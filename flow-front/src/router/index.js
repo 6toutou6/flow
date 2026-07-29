@@ -91,6 +91,19 @@ export const constantRoutes = [
   },
 
   {
+    path: '/correctPerson',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'CorrectPerson',
+        component: () => import('@/views/correctPerson/index'),
+        meta: { title: '整改确认', icon: 'el-icon-user' }
+      }
+    ]
+  },
+
+  {
     path: '/nested',
     component: Layout,
     redirect: '/nested/menu1',

@@ -76,18 +76,31 @@
       }
     }
 
-    .is-active>.el-submenu__title {
-      color: $subMenuActiveText !important;
+    // 选中子菜单时，父级菜单也红底白字
+    .el-submenu.is-active > .el-submenu__title,
+    & .nest-menu .el-submenu.is-active > .el-submenu__title {
+      background-color: $menuActiveBg !important;
+      color: $menuActiveText !important;
+      font-weight: bold;
     }
 
+    // 子菜单项基础样式（去掉 min-width，去掉 !important 避免覆盖选中态）
     & .nest-menu .el-submenu>.el-submenu__title,
     & .el-submenu .el-menu-item {
-      min-width: $sideBarWidth !important;
-      background-color: $subMenuBg !important;
+      background-color: $subMenuBg;
 
       &:hover {
         background-color: $subMenuHover !important;
       }
+    }
+
+    // 选中态：红底白字（放最后，最高优先级）
+    .el-menu-item.is-active,
+    & .el-submenu .el-menu-item.is-active,
+    & .nest-menu .el-submenu .el-menu-item.is-active {
+      background-color: $menuActiveBg !important;
+      color: $menuActiveText !important;
+      font-weight: bold;
     }
   }
 

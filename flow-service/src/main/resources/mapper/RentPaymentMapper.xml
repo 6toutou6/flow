@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zqk.house.rentpayment.mapper.RentPaymentMapper">
+    
+    <!-- 公共字段 -->
+    <sql id="Base_Column_List">
+        payment_id, user_name, doc_number, room_amount, renta_mount,
+        water_bill, electricity_bill, total_amount, payment_date, batch, payment_status,
+        create_time, update_time
+    </sql>
+    
+    <!-- 查询条件片段 -->
+    <sql id="Query_Where_Clause">
+        <where>
+            <if test="userName != null and userName != ''">
+                AND user_name LIKE CONCAT('%', #{userName}, '%')
+            </if>
+            <if test="roomAmount != null and roomAmount != ''">
+                AND room_amount = #{roomAmount}
+            </if>
+            <if test="paymentStatus != null and paymentStatus != ''">
+                AND payment_status = #{paymentStatus}
+            </if>
+            <if test="batch != null and batch != ''">
+                AND batch = #{batch}
+            </if>
+            <if test="startDate != null">
+                AND payment_date >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND payment_date &lt;= #{endDate}
+            </if>
+        </where>
+    </sql>
+    
+    <!-- 基础查询 -->
+    <select id="selectByPrimaryKey" resultType="com.zqk.house.rentpayment.entity.RentPayment">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rentpayments
+        WHERE payment_id = #{key}
+    </select>
+    
+    <select id="selectAll" resultType="com.zqk.house.rentpayment.entity.RentPayment">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rentpayments
+    </select>
+    
+    <!-- 分页查询 -->
+    <select id="getRentPaymentList" resultType="com.zqk.house.rentpayment.entity.RentPayment">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rentpayments
+        <include refid="Query_Where_Clause"/>
+        ORDER BY payment_status DESC, payment_date DESC, create_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+    
+    <select id="getTotal" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM rentpayments
+        <include refid="Query_Where_Clause"/>
+    </select>
+    
+    <!-- 根据房间号查询 -->
+    <select id="getPaymentsByRoom" resultType="com.zqk.house.rentpayment.entity.RentPayment">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rentpayments
+        WHERE room_amount = #{roomAmount}
+        ORDER BY payment_date DESC
+    </select>
+    
+    <!-- 根据用户查询 -->
+    <select id="getPaymentsByUser" resultType="com.zqk.house.rentpayment.entity.RentPayment">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rentpayments
+        WHERE user_name = #{userName}
+        ORDER BY payment_date DESC
+    </select>
+    
+    <!-- 增删改操作 -->
+    <insert id="insert" parameterType="com.zqk.house.rentpayment.entity.RentPayment">
+        INSERT INTO rentpayments(
+            payment_id, user_name, doc_number, room_amount, renta_mount,
+            water_bill, electricity_bill, total_amount, payment_date, batch, 
+            payment_status, create_time, update_time
+        )
+        VALUES(
+            #{paymentId}, #{userName}, #{docNumber}, #{roomAmount}, #{rentaMount},
+            #{waterBill}, #{electricityBill}, #{totalAmount}, #{paymentDate}, #{batch},
+            #{paymentStatus}, NOW(), NOW()
+        )
+    </insert>
+    
+    <update id="update" parameterType="com.zqk.house.rentpayment.entity.RentPayment">
+        UPDATE rentpayments
+        SET user_name = #{userName},
+            doc_number = #{docNumber},
+            room_amount = #{roomAmount},
+            renta_mount = #{rentaMount},
+            water_bill = #{waterBill},
+            electricity_bill = #{electricityBill},
+            total_amount = #{totalAmount},
+            payment_date = #{paymentDate},
+            batch = #{batch},
+            payment_status = #{paymentStatus},
+            update_time = NOW()
+        WHERE payment_id = #{paymentId}
+    </update>
+    
+    <delete id="deleteByPrimaryKey">
+        DELETE FROM rentpayments
+        WHERE payment_id = #{key}
+    </delete>
+    
+    <!-- 统计相关 -->
+    <select id="getCurrentMonthIncome" resultType="java.lang.Integer">
+        SELECT IFNULL(SUM(CAST(total_amount AS SIGNED)), 0)
+        FROM rentpayments
+        WHERE batch = #{currentMonth}
+        AND payment_status = '已支付'
+    </select>
+    
+    <select id="getPaidCount" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM rentpayments
+        WHERE batch = #{currentMonth}
+        AND payment_status = '已支付'
+    </select>
+    
+    <select id="getUnpaidCount" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM rentpayments
+        WHERE batch = #{currentMonth}
+        AND payment_status = '未支付'
+    </select>
+    
+    <select id="getMonthIncome" resultType="java.lang.Integer">
+        SELECT IFNULL(SUM(CAST(total_amount AS SIGNED)), 0)
+        FROM rentpayments
+        WHERE batch = #{batch}
+        AND payment_status = '已支付'
+    </select>
+    
+    <select id="getIncomeByDateRange" resultType="java.lang.Integer">
+        SELECT IFNULL(SUM(CAST(total_amount AS SIGNED)), 0)
+        FROM rentpayments
+        WHERE payment_date BETWEEN #{startDate} AND #{endDate}
+        AND payment_status = '已支付'
+    </select>
+    
+    <select id="getPaidCountByDateRange" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM rentpayments
+        WHERE payment_date BETWEEN #{startDate} AND #{endDate}
+        AND payment_status = '已支付'
+    </select>
+    
+    <select id="getUnpaidCountByDateRange" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM rentpayments
+        WHERE payment_date BETWEEN #{startDate} AND #{endDate}
+        AND payment_status = '未支付'
+    </select>
+    
+    <select id="getMonthlyIncomeByDateRange" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(payment_date, '%Y-%m') as month,
+            IFNULL(SUM(CAST(total_amount AS SIGNED)), 0) as income
+        FROM rentpayments
+        WHERE payment_date BETWEEN #{startDate} AND #{endDate}
+        AND payment_status = '已支付'
+        GROUP BY month
+        ORDER BY month
+    </select>
+    
+    <!-- 获取未支付房间列表 -->
+    <select id="getUnpaidRooms" resultType="com.zqk.house.dashboard.vo.UnpaidRoomVO">
+        SELECT 
+            room_amount as roomAmount,
+            user_name as userName,
+            batch,
+            total_amount as totalAmount
+        FROM rentpayments
+        WHERE payment_status = '未支付'
+        AND batch BETWEEN #{startBatch} AND #{endBatch}
+        ORDER BY batch, room_amount
+    </select>
+    
+    <!-- 获取支付统计信息 -->
+    <select id="getPaymentStats" resultType="com.zqk.house.dashboard.vo.PaymentStatsVO">
+        SELECT 
+            SUM(CASE WHEN payment_status = '已支付' THEN total_amount ELSE 0 END) as currentMonthIncome,
+            COUNT(CASE WHEN payment_status = '已支付' THEN 1 END) as paidCount,
+            COUNT(CASE WHEN payment_status = '未支付' THEN 1 END) as unpaidCount
+        FROM rentpayments
+        WHERE batch BETWEEN #{startBatch} AND #{endBatch}
+    </select>
+    
+    <!-- 获取收入统计信息 -->
+    <select id="getIncomeStats" resultType="com.zqk.house.dashboard.vo.IncomeStatsVO">
+        SELECT 
+            GROUP_CONCAT(batch ORDER BY batch) as batchStr,
+            GROUP_CONCAT(total_income ORDER BY batch) as incomeStr,
+            SUM(payment_count) as paymentCount
+        FROM (
+            SELECT 
+                batch,
+                SUM(CAST(total_amount AS DECIMAL(10,2))) as total_income,
+                COUNT(*) as payment_count
+            FROM rentpayments
+            WHERE payment_status = '已支付'
+            AND batch BETWEEN #{startBatch} AND #{endBatch}
+            GROUP BY batch
+            ORDER BY batch
+        ) t
+    </select>
+</mapper> 
