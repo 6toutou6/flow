@@ -1,0 +1,59 @@
+# ========================
+# OS 系统文件
+# ========================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ========================
+# 编辑器 / IDE
+# ========================
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+.classpath
+.project
+.settings/
+.factorypath
+
+# ========================
+# 前端 - Node.js / Vue.js
+# ========================
+node_modules/
+dist/
+dist-ssr/
+*.local
+.env.local
+.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.cache/
+.eslintcache
+.stylelintcache
+
+# ========================
+# 后端 - Java / Maven / Spring Boot
+# ========================
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+*.ctxt
+.mtj.tmp/
+hs_err_pid*
+replay_pid*
+
+# ========================
+# 构建输出
+# ========================
+build/
+out/
