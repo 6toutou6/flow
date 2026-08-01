@@ -1,46 +1,23 @@
-import { createMockResponse } from '@/utils/request'
+import request from '@/utils/request-flow'
 
-const mockUsers = {
-  admin: {
-    token: 'admin-token',
-    name: '管理员',
-    avatar: 'https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif'
-  },
-  editor: {
-    token: 'editor-token',
-    name: '编辑',
-    avatar: 'https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif'
-  }
-}
-
+// 登录：后端 /user/login 校验 sys_user 表，返回 {token, userInfo}
 export function login(data) {
-  const { username } = data
-  if (mockUsers[username]) {
-    return createMockResponse({
-      token: mockUsers[username].token
-    }, '登录成功')
-  }
-  return Promise.reject({
-    code: 50000,
-    message: '账号或密码错误'
+  return request({
+    url: '/user/login',
+    method: 'post',
+    data
   })
 }
 
+// 获取用户信息：后端 /user/info，token 由 request-flow 自动带 Authorization 头
 export function getInfo(token) {
-  const user = Object.values(mockUsers).find(u => u.token === token)
-  if (user) {
-    return createMockResponse({
-      name: user.name,
-      avatar: user.avatar,
-      roles: token === 'admin-token' ? ['admin'] : ['editor']
-    })
-  }
-  return Promise.reject({
-    code: 50008,
-    message: 'Token无效'
+  return request({
+    url: '/user/info',
+    method: 'get'
   })
 }
 
+// 退出：前端清 token 即可（后端无状态 JWT，无需调接口）
 export function logout() {
-  return createMockResponse(null, '退出成功')
+  return Promise.resolve({ code: 200, message: '退出成功', data: null })
 }

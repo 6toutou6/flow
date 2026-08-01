@@ -13,7 +13,9 @@ function registerRoutes(app) {
     return responseFake(route.url, route.type, route.response)
   })
   for (const mock of mocksForServer) {
-    app[mock.type](mock.url, mock.response)
+    // bodyParser 只挂载到 mock 路由上，避免全局 app.use 消费转发到后端的请求体 stream
+    // 否则 proxy 转发时 body 丢失，后端报 HttpMessageNotReadableException
+    app[mock.type](mock.url, bodyParser.json(), bodyParser.urlencoded({ extended: true }), mock.response)
     mockLastIndex = app._router.stack.length
   }
   const mockRoutesLength = Object.keys(mocksForServer).length
@@ -44,12 +46,8 @@ const responseFake = (url, type, respond) => {
 }
 
 module.exports = app => {
-  // parse app.body
-  // https://expressjs.com/en/4x/api.html#req.body
-  app.use(bodyParser.json())
-  app.use(bodyParser.urlencoded({
-    extended: true
-  }))
+  // 注意：不要在此全局 app.use(bodyParser)，否则会消费所有请求体（含需要 proxy 转发到后端的请求），
+  // 导致后端读取 body 时报 I/O error。bodyParser 已改为按 mock 路由单独挂载（见 registerRoutes）。
 
   const mockRoutes = registerRoutes(app)
   var mockRoutesLength = mockRoutes.mockRoutesLength

@@ -104,6 +104,19 @@ export const constantRoutes = [
   },
 
   {
+    path: '/sysuser',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'SysUser',
+        component: () => import('@/views/sysuser/index'),
+        meta: { title: '用户管理', icon: 'el-icon-s-custom' }
+      }
+    ]
+  },
+
+  {
     path: '/nested',
     component: Layout,
     redirect: '/nested/menu1',

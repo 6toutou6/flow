@@ -19,14 +19,15 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/**")  // intercept all requests
                 .excludePathPatterns("/user/login")  // exclude login
-                .excludePathPatterns("/user/info");  // exclude info
+                .excludePathPatterns("/user/info")  // exclude info
+                .excludePathPatterns("/sys-user/**");  // sys_user CRUD 接口放行（开发阶段不鉴权）
     }
     
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         WebMvcConfigurer.super.addCorsMappings(registry);
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:8080")
+                .allowedOriginPatterns("http://localhost:*", "http://127.0.0.1:*")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .exposedHeaders("*")

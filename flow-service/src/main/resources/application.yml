@@ -1,9 +1,9 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://rm-bp17u16c097kdorgcco.rwlb.rds.aliyuncs.com:3306/test001?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/flow?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
-    password: asdf@123456
+    password: 12345
   sql:
     init:
       schema-locations: classpath:db/schema.sql
@@ -17,7 +17,7 @@ spring:
     format:
       date-time: yyyy-MM-dd HH:mm:ss
 
-mybatis:
+mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
