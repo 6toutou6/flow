@@ -3,8 +3,10 @@ package com.zqk.house.sysuser.controller;
 import com.zqk.house.sysuser.entity.SysUser;
 import com.zqk.house.sysuser.entity.SysUserQueryForm;
 import com.zqk.house.sysuser.service.SysUserService;
+import com.zqk.house.sysuser.vo.LoginUser;
 import com.zqk.house.util.PageResult;
 import com.zqk.house.util.Result;
+import com.zqk.house.util.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -45,6 +47,17 @@ public class SysUserController {
     public Result<Void> delete(@PathVariable Long id) {
         return sysUserService.deleteUser(id) ?
                 Result.success("删除成功") : Result.fail("删除失败");
+    }
+
+    /**
+     * 演示：获取当前登录用户信息（通过 SecurityUtils 取 ThreadLocal）
+     * 任意 Controller 方法都可用 SecurityUtils.getLoginUser() 拿到登录用户
+     */
+    @GetMapping("/current")
+    public Result<LoginUser> current() {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        return loginUser != null ?
+                Result.success("获取成功", loginUser) : Result.fail("未登录");
     }
 
     @GetMapping("/{id}")

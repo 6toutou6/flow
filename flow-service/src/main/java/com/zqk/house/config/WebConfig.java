@@ -17,10 +17,8 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
-                .addPathPatterns("/**")  // intercept all requests
-                .excludePathPatterns("/user/login")  // exclude login
-                .excludePathPatterns("/user/info")  // exclude info
-                .excludePathPatterns("/sys-user/**");  // sys_user CRUD 接口放行（开发阶段不鉴权）
+                .addPathPatterns("/**")
+                .excludePathPatterns("/user/login");
     }
     
     @Override
