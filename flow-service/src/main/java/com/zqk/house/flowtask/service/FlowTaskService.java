@@ -9,8 +9,10 @@ import com.zqk.house.flowdata.mapper.FlowAttachmentMapper;
 import com.zqk.house.flowdata.mapper.FlowFormDataMapper;
 import com.zqk.house.flowdata.mapper.FlowFormRecordMapper;
 import com.zqk.house.flowtask.entity.FlowTask;
+import com.zqk.house.flowtask.entity.FlowTaskDispatch;
 import com.zqk.house.flowtask.entity.FlowTaskNode;
 import com.zqk.house.flowtask.entity.FlowTaskQueryForm;
+import com.zqk.house.flowtask.mapper.FlowTaskDispatchMapper;
 import com.zqk.house.flowtask.mapper.FlowTaskMapper;
 import com.zqk.house.flowtask.mapper.FlowTaskNodeMapper;
 import com.zqk.house.flowtask.vo.FormDataItemVO;
@@ -50,6 +52,8 @@ public class FlowTaskService {
     @Autowired
     private FlowTaskNodeMapper flowTaskNodeMapper;
     @Autowired
+    private FlowTaskDispatchMapper flowTaskDispatchMapper;
+    @Autowired
     private FlowTemplateMapper flowTemplateMapper;
     @Autowired
     private FlowTemplateNodeMapper flowTemplateNodeMapper;
@@ -62,53 +66,33 @@ public class FlowTaskService {
     @Autowired
     private FlowAttachmentMapper flowAttachmentMapper;
 
-    /** 任务组分页：一次下发 = 一个任务组，组级不含“当前处理人”；成员各自独立（当前处理人/进度在成员上） */
+    /** 主任务分页：一次下发 = 一条主任务，组级不含“当前处理人”；成员各自独立（当前处理人/进度在成员上） */
     public PageResult<TaskGroupVO> getPage(FlowTaskQueryForm form) {
         int page = form.getPage() == null ? 1 : form.getPage();
         int limit = form.getLimit() == null ? 10 : form.getLimit();
         int offset = (page - 1) * limit;
         String taskName = StringUtils.hasText(form.getTaskName()) ? form.getTaskName() : null;
         Integer status = form.getStatus();
-        List<TaskGroupVO> groups = flowTaskMapper.selectDispatchPage(taskName, status, offset, limit);
-        Long total = flowTaskMapper.selectDispatchCount(taskName, status);
-        if (!groups.isEmpty()) {
-            List<Long> dispatchIds = groups.stream().map(TaskGroupVO::getDispatchId).collect(Collectors.toList());
-            Map<Long, FlowTask> primaryMap = flowTaskMapper.selectPrimaryByDispatchIds(dispatchIds).stream()
-                    .collect(Collectors.toMap(FlowTask::getDispatchId, t -> t, (a, b) -> a));
-            for (TaskGroupVO g : groups) {
-                FlowTask primary = primaryMap.get(g.getDispatchId());
-                if (primary != null) {
-                    g.setPrimaryTaskStatus(primary.getStatus());
-                    g.setTaskName(primary.getTaskName());
-                    g.setTaskDesc(primary.getTaskDesc());
-                    g.setTemplateId(primary.getTemplateId());
-                    g.setStartTime(primary.getStartTime());
-                    g.setEndTime(primary.getEndTime());
-                }
-            }
-        }
+        List<TaskGroupVO> groups = flowTaskDispatchMapper.selectDispatchPage(taskName, status, offset, limit);
+        Long total = flowTaskDispatchMapper.selectDispatchCount(taskName, status);
         return new PageResult<>(groups, total);
     }
 
-    /** 任务组详情：组头 + 全部成员（level 2 展示） */
+    /** 主任务详情：组头 + 全部成员（level 2 展示）。空组（无成员）仍返回，便于补员/删除 */
     public TaskGroupVO getDispatchDetail(Long dispatchId) {
+        FlowTaskDispatch dispatch = flowTaskDispatchMapper.selectById(dispatchId);
+        if (dispatch == null) return null;
         List<TaskMemberVO> members = flowTaskMapper.selectMembersByDispatch(dispatchId);
-        if (members.isEmpty()) return null;
         TaskGroupVO vo = new TaskGroupVO();
         vo.setDispatchId(dispatchId);
+        vo.setPrimaryTaskId(dispatchId);
+        vo.setTaskName(dispatch.getTaskName());
+        vo.setTaskDesc(dispatch.getTaskDesc());
+        vo.setTemplateId(dispatch.getTemplateId());
+        vo.setStartTime(dispatch.getStartTime());
+        vo.setEndTime(dispatch.getEndTime());
+        vo.setDispatchTime(dispatch.getCreateTime());
         vo.setMembers(members);
-        TaskMemberVO primary = members.get(0);
-        vo.setPrimaryTaskId(primary.getTaskId());
-        vo.setPrimaryTaskStatus(primary.getStatus());
-        vo.setTaskName(primary.getTaskName());
-        vo.setTemplateId(primary.getTemplateId());
-        FlowTask primaryTask = flowTaskMapper.selectById(primary.getTaskId());
-        if (primaryTask != null) {
-            vo.setTaskDesc(primaryTask.getTaskDesc());
-            vo.setStartTime(primaryTask.getStartTime());
-            vo.setEndTime(primaryTask.getEndTime());
-            vo.setDispatchTime(primaryTask.getCreateTime());
-        }
         int running = 0, finished = 0, cancelled = 0;
         for (TaskMemberVO m : members) {
             if (m.getStatus() == null) continue;
@@ -120,8 +104,8 @@ public class FlowTaskService {
         vo.setRunningCount(running);
         vo.setFinishedCount(finished);
         vo.setCancelledCount(cancelled);
-        // 聚合状态：任一进行中→1；全部作废→3；否则→2（与列表/统计口径一致）
-        vo.setStatus(running > 0 ? 1 : (cancelled == members.size() ? 3 : 2));
+        // 聚合状态：空组→0；任一进行中→1；全作废→3；否则→2（与列表/统计口径一致）
+        vo.setStatus(members.isEmpty() ? 0 : (running > 0 ? 1 : (cancelled == members.size() ? 3 : 2)));
         return vo;
     }
 
@@ -335,9 +319,18 @@ public class FlowTaskService {
 
         LoginUser loginUser = SecurityUtils.getLoginUser();
         Long creatorId = loginUser == null ? null : loginUser.getId();
+        // 先建主任务（一次下发 = 一条主任务，人员删空后仍保留）
+        FlowTaskDispatch dispatch = new FlowTaskDispatch();
+        dispatch.setTemplateId(dto.getTemplateId());
+        dispatch.setTemplateVersion(tpl.getVersion());
+        dispatch.setTaskName(dto.getTaskName());
+        dispatch.setTaskDesc(dto.getTaskDesc());
+        dispatch.setStartTime(dto.getStartTime());
+        dispatch.setEndTime(dto.getEndTime());
+        dispatch.setCreatorId(creatorId);
+        flowTaskDispatchMapper.insert(dispatch);
+        Long dispatchId = dispatch.getId();
         int count = 0;
-        // 下发批次ID：同一次下发的所有独立任务共享（= 首条任务ID），用于「任务→人员」分组
-        Long dispatchId = null;
         for (Long handlerId : dto.getFirstHandlerIds()) {
             if (handlerId == null) continue;
             FlowTask task = new FlowTask();
@@ -353,10 +346,8 @@ public class FlowTaskService {
             task.setFinishedNodeCount(0);
             task.setTotalNodeCount((int) total);
             task.setCreatorId(creatorId);
-            flowTaskMapper.insert(task);
-            if (dispatchId == null) dispatchId = task.getId();
             task.setDispatchId(dispatchId);
-            flowTaskMapper.updateById(task);
+            flowTaskMapper.insert(task);
             // 插首个 task_node（待处理）
             FlowTaskNode firstTaskNode = new FlowTaskNode();
             firstTaskNode.setTaskId(task.getId());
@@ -373,66 +364,53 @@ public class FlowTaskService {
     }
 
     /**
-     * 新增人员：为每个新增处理人创建一条全新的独立任务（从开始节点重新走流程），归入本任务组。
+     * 新增人员：以主任务为对象，为每个新增处理人创建一条独立成员任务（从开始节点重新走流程），归入本主任务。
      * 每个下发任务都是独立的、互不影响——即便某人在其他任务里做过某节点处理人，也不影响为其建独立任务。
+     * 已是该组成员（起始节点处理人）的人员自动跳过，避免重复。
      * @return 实际创建的任务数量
      */
     @Transactional(rollbackFor = Exception.class)
-    public int addHandlers(Long taskId, List<Long> handlerIds) {
+    public int addHandlers(Long dispatchId, List<Long> handlerIds) {
         if (handlerIds == null || handlerIds.isEmpty()) {
             throw new RuntimeException("请至少选择一个处理人");
         }
-        FlowTask task = flowTaskMapper.selectById(taskId);
-        if (task == null) throw new RuntimeException("任务不存在");
-        if (task.getStatus() == 3) throw new RuntimeException("任务已作废，无法新增人员");
-        return createFollowUpTasks(task, handlerIds);
-    }
-
-    /**
-     * 已完成任务追加处理人：为每个新增处理人创建一条全新的独立任务（从开始节点重新走流程）。
-     * 新任务归入源任务的「任务组」（共享 dispatch_id，任务名沿用源任务名），
-     * 因此新增人员成为同一任务组下的新成员，各成员任务完全独立、互不影响。
-     * 组内已参与过该流程的人员自动跳过，避免重复。
-     * @return 实际创建的任务数量
-     */
-    private int createFollowUpTasks(FlowTask src, List<Long> handlerIds) {
-        FlowTemplate tpl = flowTemplateMapper.selectById(src.getTemplateId());
+        FlowTaskDispatch dispatch = flowTaskDispatchMapper.selectById(dispatchId);
+        if (dispatch == null) throw new RuntimeException("任务不存在");
+        FlowTemplate tpl = flowTemplateMapper.selectById(dispatch.getTemplateId());
         if (tpl == null) throw new RuntimeException("模板不存在");
         // 开始节点
         LambdaQueryWrapper<FlowTemplateNode> sw = new LambdaQueryWrapper<>();
-        sw.eq(FlowTemplateNode::getTemplateId, src.getTemplateId())
+        sw.eq(FlowTemplateNode::getTemplateId, dispatch.getTemplateId())
           .eq(FlowTemplateNode::getNodeType, 1).last("LIMIT 1");
         FlowTemplateNode firstNode = flowTemplateNodeMapper.selectOne(sw);
         if (firstNode == null) throw new RuntimeException("模板缺少开始节点");
         // 总节点数
         LambdaQueryWrapper<FlowTemplateNode> countW = new LambdaQueryWrapper<>();
-        countW.eq(FlowTemplateNode::getTemplateId, src.getTemplateId());
+        countW.eq(FlowTemplateNode::getTemplateId, dispatch.getTemplateId());
         long total = flowTemplateNodeMapper.selectCount(countW);
         LoginUser loginUser = SecurityUtils.getLoginUser();
         Long creatorId = loginUser == null ? null : loginUser.getId();
-        // 源任务所在任务组（dispatch_id 兜底：无则自成一组）
-        Long dispatchId = src.getDispatchId() != null ? src.getDispatchId() : src.getId();
+        // 组内已有成员任务的起始节点处理人（去重，避免重复建独立任务）
         List<Long> groupTaskIds = flowTaskMapper.selectList(new LambdaQueryWrapper<FlowTask>()
                         .eq(FlowTask::getDispatchId, dispatchId))
                 .stream().map(FlowTask::getId).collect(Collectors.toList());
-        if (groupTaskIds.isEmpty()) groupTaskIds = new ArrayList<>();
-        groupTaskIds.add(src.getId());
+        Set<Long> memberOwners = groupTaskIds.isEmpty() ? new java.util.HashSet<>() :
+                flowTaskNodeMapper.selectList(new LambdaQueryWrapper<FlowTaskNode>()
+                        .in(FlowTaskNode::getTaskId, groupTaskIds)
+                        .eq(FlowTaskNode::getNodeType, 1))
+                        .stream().map(FlowTaskNode::getHandlerUserId)
+                        .filter(java.util.Objects::nonNull)
+                        .collect(Collectors.toSet());
         int count = 0;
         for (Long handlerId : handlerIds) {
             if (handlerId == null) continue;
-            // 仅拦“已是本任务组成员（起始节点处理人）”的人员，避免重复建独立任务；
-            // 在其他任务里当过某节点并行处理人的不影响——每个下发任务独立，互不影响
-            LambdaQueryWrapper<FlowTaskNode> pw = new LambdaQueryWrapper<>();
-            pw.in(FlowTaskNode::getTaskId, groupTaskIds)
-              .eq(FlowTaskNode::getNodeType, 1)
-              .eq(FlowTaskNode::getHandlerUserId, handlerId);
-            if (flowTaskNodeMapper.selectCount(pw) > 0) continue;
+            if (memberOwners.contains(handlerId)) continue;
             FlowTask task = new FlowTask();
-            task.setTemplateId(src.getTemplateId());
-            task.setTaskName(src.getTaskName());
-            task.setTaskDesc(src.getTaskDesc());
-            task.setStartTime(src.getStartTime());
-            task.setEndTime(src.getEndTime());
+            task.setTemplateId(dispatch.getTemplateId());
+            task.setTaskName(dispatch.getTaskName());
+            task.setTaskDesc(dispatch.getTaskDesc());
+            task.setStartTime(dispatch.getStartTime());
+            task.setEndTime(dispatch.getEndTime());
             task.setStatus(1);
             task.setTemplateVersion(tpl.getVersion());
             task.setCurrentNodeId(firstNode.getId());
@@ -440,9 +418,8 @@ public class FlowTaskService {
             task.setFinishedNodeCount(0);
             task.setTotalNodeCount((int) total);
             task.setCreatorId(creatorId);
-            flowTaskMapper.insert(task);
             task.setDispatchId(dispatchId);
-            flowTaskMapper.updateById(task);
+            flowTaskMapper.insert(task);
             // 插首个 task_node（待处理）
             FlowTaskNode firstTaskNode = new FlowTaskNode();
             firstTaskNode.setTaskId(task.getId());
@@ -786,7 +763,7 @@ public class FlowTaskService {
         return flowTaskMapper.updateById(t) > 0;
     }
 
-    /** 删除任务（成员）级联清理全部提交：任务 + 节点 + 表单记录 + 表单数据 + 附件 */
+    /** 删除任务（成员）级联清理全部提交：任务 + 节点 + 表单记录 + 表单数据 + 附件。主任务保留 */
     @Transactional(rollbackFor = Exception.class)
     public boolean delete(Long id) {
         // 1) 表单记录 → 表单数据 / 附件
@@ -809,5 +786,19 @@ public class FlowTaskService {
         flowTaskNodeMapper.delete(nw);
         // 3) 任务本身
         return flowTaskMapper.deleteById(id) > 0;
+    }
+
+    /** 删除主任务（任务组）：仅当组内无人员时才允许 */
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deleteDispatch(Long dispatchId) {
+        FlowTaskDispatch dispatch = flowTaskDispatchMapper.selectById(dispatchId);
+        if (dispatch == null) throw new RuntimeException("任务不存在");
+        LambdaQueryWrapper<FlowTask> mw = new LambdaQueryWrapper<>();
+        mw.eq(FlowTask::getDispatchId, dispatchId);
+        long memberCount = flowTaskMapper.selectCount(mw);
+        if (memberCount > 0) {
+            throw new RuntimeException("请先删除该任务的所有人员");
+        }
+        return flowTaskDispatchMapper.deleteById(dispatchId) > 0;
     }
 }

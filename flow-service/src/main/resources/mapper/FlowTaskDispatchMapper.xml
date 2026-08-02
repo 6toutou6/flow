@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zqk.house.flowtask.mapper.FlowTaskDispatchMapper">
+
+    <!-- 主任务 + 成员聚合。聚合状态：任一进行中→1；无成员→0；全作废→3；否则→2 -->
+    <sql id="dispatchAgg">
+        SELECT d.id AS dispatchId,
+               d.task_name AS taskName,
+               d.task_desc AS taskDesc,
+               d.template_id AS templateId,
+               d.start_time AS startTime,
+               d.end_time AS endTime,
+               d.create_time AS dispatchTime,
+               d.id AS primaryTaskId,
+               COALESCE(m.memberCount, 0) AS memberCount,
+               COALESCE(m.runningCount, 0) AS runningCount,
+               COALESCE(m.finishedCount, 0) AS finishedCount,
+               COALESCE(m.cancelledCount, 0) AS cancelledCount,
+               CASE
+                 WHEN COALESCE(m.runningCount, 0) > 0 THEN 1
+                 WHEN COALESCE(m.memberCount, 0) = 0 THEN 0
+                 WHEN COALESCE(m.cancelledCount, 0) = COALESCE(m.memberCount, 0) THEN 3
+                 ELSE 2
+               END AS status
+        FROM flow_task_dispatch d
+        LEFT JOIN (
+            SELECT dispatch_id,
+                   COUNT(*) AS memberCount,
+                   SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS runningCount,
+                   SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) AS finishedCount,
+                   SUM(CASE WHEN status = 3 THEN 1 ELSE 0 END) AS cancelledCount
+            FROM flow_task
+            GROUP BY dispatch_id
+        ) m ON m.dispatch_id = d.id
+    </sql>
+
+    <select id="selectDispatchPage" resultType="com.zqk.house.flowtask.vo.TaskGroupVO">
+        SELECT * FROM (
+            <include refid="dispatchAgg"/>
+            <where>
+                <if test="taskName != null and taskName != ''">
+                    AND d.task_name LIKE CONCAT('%', #{taskName}, '%')
+                </if>
+            </where>
+        ) g
+        <if test="status != null">
+            <choose>
+                <when test="status == 0"> WHERE g.status = 0 </when>
+                <when test="status == 1"> WHERE g.status = 1 </when>
+                <when test="status == 2"> WHERE g.status = 2 </when>
+                <when test="status == 3"> WHERE g.status = 3 </when>
+            </choose>
+        </if>
+        ORDER BY g.dispatchTime DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectDispatchCount" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM (
+            <include refid="dispatchAgg"/>
+            <where>
+                <if test="taskName != null and taskName != ''">
+                    AND d.task_name LIKE CONCAT('%', #{taskName}, '%')
+                </if>
+            </where>
+        ) g
+        <if test="status != null">
+            <choose>
+                <when test="status == 0"> WHERE g.status = 0 </when>
+                <when test="status == 1"> WHERE g.status = 1 </when>
+                <when test="status == 2"> WHERE g.status = 2 </when>
+                <when test="status == 3"> WHERE g.status = 3 </when>
+            </choose>
+        </if>
+    </select>
+
+</mapper>

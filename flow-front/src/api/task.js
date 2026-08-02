@@ -25,6 +25,14 @@ export function getTaskGroupDetail(dispatchId) {
   })
 }
 
+// 删除主任务（任务组）：仅当组内无人员时才允许
+export function deleteTaskGroup(dispatchId) {
+  return request({
+    url: `/flow-task/dispatch/${dispatchId}`,
+    method: 'delete'
+  })
+}
+
 // 下发任务
 export function createTask(data) {
   return request({

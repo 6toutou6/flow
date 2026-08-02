@@ -53,12 +53,22 @@ public class FlowTaskController {
         }
     }
 
-    /** 临时增加处理人（加入当前节点并行处理） */
+    /** 新增人员：在主任务下为每个新增处理人创建独立成员任务 */
     @PostMapping("/add-handlers")
     public Result<Integer> addHandlers(@RequestBody AddHandlersDTO dto) {
         try {
-            int count = flowTaskService.addHandlers(dto.getTaskId(), dto.getHandlerIds());
+            int count = flowTaskService.addHandlers(dto.getDispatchId(), dto.getHandlerIds());
             return Result.success("成功新增 " + count + " 名处理人", count);
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
+    /** 删除主任务（任务组）：仅当组内无人员时才允许 */
+    @DeleteMapping("/dispatch/{dispatchId}")
+    public Result<Void> deleteDispatch(@PathVariable Long dispatchId) {
+        try {
+            return flowTaskService.deleteDispatch(dispatchId) ? Result.success("删除成功") : Result.fail("删除失败");
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         }

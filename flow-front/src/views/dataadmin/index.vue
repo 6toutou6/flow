@@ -125,6 +125,7 @@
                   <td>{{ row.dispatchTime }}</td>
                   <td class="text-right">
                     <button class="action-link" @click="openTaskGroup(row)"><i class="el-icon-user" /> 查看成员</button>
+                    <button class="action-link text-error" :disabled="row.memberCount > 0" :title="row.memberCount > 0 ? '请先删除所有人员' : '删除任务'" @click="onDeleteGroup(row)"><i class="el-icon-delete" /> 删除任务</button>
                   </td>
                 </tr>
                 <tr v-if="!loading && taskList.length === 0">
@@ -219,7 +220,7 @@
 </template>
 
 <script>
-import { getTaskList, getTaskDetail, getTaskGroupDetail, addTaskHandlers, deleteTask } from '@/api/task'
+import { getTaskList, getTaskDetail, getTaskGroupDetail, addTaskHandlers, deleteTask, deleteTaskGroup } from '@/api/task'
 import { getUserList } from '@/api/sysuser'
 import { getTemplateList } from '@/api/template'
 import { getDataStats } from '@/api/data'
@@ -264,10 +265,9 @@ export default {
       if (this.level === 2) return '任务成员'
       return '流程处理详情'
     },
-    /** 是否可新增人员：主任务未作废（进行中/已完成均可） */
+    /** 是否可新增人员：选中任务组即可（空组也能补员） */
     canAddHandler() {
-      const g = this.selectedGroup
-      return g && g.primaryTaskStatus !== 3
+      return !!this.selectedGroup
     },
     /** 组内已有成员（新增时排除，避免重复） */
     handlerIdsInTask() {
@@ -303,12 +303,12 @@ export default {
       this.fetchTaskList()
       this.fetchStats()
     },
-    /** 新增人员确认（目标为主任务：已完成→创建独立任务归入本组；进行中→加入当前节点并行） */
+    /** 新增人员确认（在主任务下为每个人创建独立成员任务，空组也能补员） */
     async onConfirmAddHandler(users) {
       if (!users || users.length === 0) return
       try {
         const handlerIds = users.map(u => u.id)
-        const res = await addTaskHandlers({ taskId: this.selectedGroup.primaryTaskId, handlerIds })
+        const res = await addTaskHandlers({ dispatchId: this.selectedGroup.dispatchId, handlerIds })
         this.$message.success(res.message || '新增成功')
         this.addHandlerVisible = false
         await this.refreshMembers()
@@ -317,15 +317,22 @@ export default {
         this.$message.error((e && e.message) || '新增失败')
       }
     },
-    /** 刷新当前任务组成员 */
+    /** 刷新当前任务组成员（组已不存在时清空，避免残留成员卡） */
     async refreshMembers() {
       if (!this.selectedGroup) return
       this.detailLoading = true
       try {
         const res = await getTaskGroupDetail(this.selectedGroup.dispatchId)
-        this.selectedGroup = res.data || this.selectedGroup
-        this.members = (res.data && res.data.members) || []
+        if (res.data && res.data.members) {
+          this.selectedGroup = res.data
+          this.members = res.data.members
+        } else {
+          // 任务组已不存在（成员删空）
+          this.members = []
+        }
       } catch (e) {
+        // 404：任务组已不存在，清空成员
+        this.members = []
         console.error(e)
       } finally {
         this.detailLoading = false
@@ -389,7 +396,7 @@ export default {
         this.detailLoading = false
       }
     },
-    /** 删除任务成员（删除该任务全部提交数据，需确认防误触） */
+    /** 删除任务成员（删除该成员任务全部提交数据；主任务保留，删空后任务仍在可另行删除） */
     async onRemoveMember(member) {
       try {
         await this.$confirm(`确定删除成员「${member.ownerName || member.taskId}」吗？将删除该任务及其全部提交记录，不可恢复。`, '删除成员确认', {
@@ -404,11 +411,29 @@ export default {
       try {
         const res = await deleteTask(member.taskId)
         this.$message.success(res.message || '删除成功')
+        // 主任务保留：无论删空与否都刷新成员（删空后显示空态，可在任务列表删除该任务）
         await this.refreshMembers()
-        if (this.members.length === 0) {
-          this.backToTasks()
-          this.fetchTaskList()
-        }
+        this.fetchStats()
+      } catch (e) {
+        this.$message.error((e && e.message) || '删除失败')
+      }
+    },
+    /** 删除主任务（任务组）：仅当组内无人员时才允许（后端再次校验） */
+    async onDeleteGroup(group) {
+      try {
+        await this.$confirm(`确定删除任务「${group.taskName}」吗？删除后不可恢复。`, '删除任务确认', {
+          confirmButtonText: '删除',
+          cancelButtonText: '取消',
+          type: 'warning',
+          confirmButtonClass: 'el-button--danger'
+        })
+      } catch (e) {
+        return // 用户取消
+      }
+      try {
+        const res = await deleteTaskGroup(group.dispatchId)
+        this.$message.success(res.message || '删除成功')
+        this.fetchTaskList()
         this.fetchStats()
       } catch (e) {
         this.$message.error((e && e.message) || '删除失败')
@@ -541,7 +566,9 @@ $border: #e4beba;
 .ov-none { color: #bbb; font-weight: 400; }
 .action-link { color: $primary; background: none; border: none; cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; gap: 3px;
   &:hover { text-decoration: underline; }
+  &:disabled { color: #bbb; cursor: not-allowed; text-decoration: none; }
 }
+.text-error { color: #ba1a1a; }
 .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #faf9f9; border-top: 1px solid $border; }
 .pagination-info { font-size: 12px; color: #414755; }
 .pagination-controls { display: flex; align-items: center; gap: 8px; }

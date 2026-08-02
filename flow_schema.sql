@@ -111,6 +111,22 @@ CREATE TABLE `flow_task` (
   KEY idx_current_handler (`current_handler_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='填报任务（一次下发一个任务组，下发给每个人一条独立任务）';
 
+-- 表5.1：flow_task_dispatch 主任务表（一次下发 = 一条主任务）
+-- 人员成员删空后主任务仍保留，可在数据后台单独删除（须无成员）
+CREATE TABLE `flow_task_dispatch` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主任务ID（下发批次）',
+  `template_id` bigint NOT NULL COMMENT '关联流程模板ID',
+  `template_version` int NOT NULL COMMENT '锁定模板版本',
+  `task_name` varchar(100) NOT NULL COMMENT '任务名称',
+  `task_desc` text DEFAULT NULL COMMENT '任务说明',
+  `start_time` datetime DEFAULT NULL COMMENT '填报开始时间',
+  `end_time` datetime DEFAULT NULL COMMENT '填报截止时间',
+  `creator_id` bigint NOT NULL COMMENT '下发任务管理员',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY idx_template (`template_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='主任务（一次下发，人员删空后仍保留，可删除）';
+
 -- 表6：flow_task_user 任务填报人员关联表【废弃，保留兼容】
 -- 顺序流转模型改用 flow_task_node 承载处理人，此表停止使用，保留不删
 CREATE TABLE `flow_task_user` (
