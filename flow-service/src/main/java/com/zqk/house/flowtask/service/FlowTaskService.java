@@ -78,6 +78,19 @@ public class FlowTaskService {
         return new PageResult<>(groups, total);
     }
 
+    /** 成员分页查询（按姓名/部门/状态过滤，防止成员过多一次拉取） */
+    public PageResult<TaskMemberVO> getMembersPage(Long dispatchId, Integer page, Integer limit,
+                                                   String name, String dept, Integer status) {
+        int p = page == null ? 1 : page;
+        int l = limit == null ? 10 : limit;
+        int offset = (p - 1) * l;
+        String n = (name == null || name.trim().isEmpty()) ? null : name.trim();
+        String d = (dept == null || dept.trim().isEmpty()) ? null : dept.trim();
+        List<TaskMemberVO> list = flowTaskMapper.selectMembersPage(dispatchId, n, d, status, offset, l);
+        Long total = flowTaskMapper.selectMembersCount(dispatchId, n, d, status);
+        return new PageResult<>(list, total);
+    }
+
     /** 主任务详情：组头 + 全部成员（level 2 展示）。空组（无成员）仍返回，便于补员/删除 */
     public TaskGroupVO getDispatchDetail(Long dispatchId) {
         FlowTaskDispatch dispatch = flowTaskDispatchMapper.selectById(dispatchId);

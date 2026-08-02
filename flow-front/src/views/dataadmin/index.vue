@@ -152,7 +152,41 @@
               <i class="el-icon-user" />
               <p>该任务暂无人员</p>
             </div>
-            <div v-else class="handler-grid">
+            <template v-else>
+              <!-- 成员筛选（姓名/部门/状态，点击查询才查询） -->
+              <div class="filter-section member-filter">
+                <div class="filter-grid">
+                  <div class="filter-item">
+                    <label class="filter-label">姓名</label>
+                    <input v-model="memberFilters.name" class="filter-input" placeholder="输入姓名搜索" @keyup.enter="memberFilterSearch" />
+                  </div>
+                  <div class="filter-item">
+                    <label class="filter-label">部门</label>
+                    <input v-model="memberFilters.dept" class="filter-input" placeholder="输入部门搜索" @keyup.enter="memberFilterSearch" />
+                  </div>
+                  <div class="filter-item">
+                    <label class="filter-label">状态</label>
+                    <select v-model="memberFilters.status" class="filter-select">
+                      <option value="">全部</option>
+                      <option :value="1">进行中</option>
+                      <option :value="2">已完成</option>
+                      <option :value="3">已作废</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="filter-actions">
+                  <span class="member-count">共 {{ memberTotal }} 人</span>
+                  <div class="filter-actions-right">
+                    <button class="btn-reset" @click="resetMemberFilters">重置</button>
+                    <button class="btn-search" @click="memberFilterSearch">查询</button>
+                  </div>
+                </div>
+              </div>
+              <div v-if="members.length === 0" class="empty-state">
+                <i class="el-icon-search" />
+                <p>没有符合条件的人员</p>
+              </div>
+              <div v-else class="handler-grid">
               <div v-for="m in members" :key="m.taskId" class="handler-card">
                 <div class="hc-left" @click="openMemberFlow(m)">
                   <div class="hc-avatar">{{ memberName(m).charAt(0) }}</div>
@@ -178,7 +212,25 @@
                   </div>
                 </div>
               </div>
-            </div>
+              </div>
+              <!-- 成员分页（可切换每页条数） -->
+              <div v-if="memberTotal > 0" class="pagination member-pagination">
+                <div class="pagination-left">
+                  <span class="pagination-info">共计 {{ memberTotal }} 人</span>
+                  <select v-model="memberPageSize" class="page-size-select" @change="onMemberPageSizeChange">
+                    <option :value="10">10 条/页</option>
+                    <option :value="20">20 条/页</option>
+                    <option :value="50">50 条/页</option>
+                    <option :value="100">100 条/页</option>
+                  </select>
+                </div>
+                <div class="pagination-controls">
+                  <button class="page-btn" :disabled="memberPage === 1" @click="memberPrevPage"><i class="el-icon-arrow-left" /></button>
+                  <span class="page-current">{{ memberPage }} / {{ memberTotalPages }}</span>
+                  <button class="page-btn" :disabled="memberPage === memberTotalPages" @click="memberNextPage"><i class="el-icon-arrow-right" /></button>
+                </div>
+              </div>
+            </template>
           </div>
         </template>
 
@@ -220,7 +272,7 @@
 </template>
 
 <script>
-import { getTaskList, getTaskDetail, getTaskGroupDetail, addTaskHandlers, deleteTask, deleteTaskGroup } from '@/api/task'
+import { getTaskList, getTaskDetail, getTaskGroupDetail, getTaskMembers, addTaskHandlers, deleteTask, deleteTaskGroup } from '@/api/task'
 import { getUserList } from '@/api/sysuser'
 import { getTemplateList } from '@/api/template'
 import { getDataStats } from '@/api/data'
@@ -250,10 +302,15 @@ export default {
       // 映射
       userMap: {},
       tplMap: {},
-      // 第二级（任务组 + 成员）
+      // 第二级（任务组 + 成员，分页）
       detailLoading: false,
       selectedGroup: null,
       members: [],
+      memberFilters: { name: '', dept: '', status: '' },
+      memberPage: 1,
+      memberPageSize: 10,
+      memberTotal: 0,
+      memberTotalPages: 1,
       // 第三级
       taskDetail: null,
       selectedHandler: null
@@ -299,6 +356,58 @@ export default {
       if (!m.totalNodeCount) return 0
       return Math.round(((m.finishedNodeCount || 0) / m.totalNodeCount) * 100)
     },
+    /** 成员筛选查询（点击查询/回车才触发请求） */
+    memberFilterSearch() {
+      this.memberPage = 1
+      this.fetchMembers()
+    },
+    /** 重置成员筛选并重新查询 */
+    resetMemberFilters() {
+      this.memberFilters = { name: '', dept: '', status: '' }
+      this.memberPage = 1
+      this.fetchMembers()
+    },
+    /** 成员分页查询（当前页 + 过滤条件） */
+    async fetchMembers() {
+      if (!this.selectedGroup) return
+      this.detailLoading = true
+      try {
+        const params = { page: this.memberPage, limit: this.memberPageSize }
+        if (this.memberFilters.name && this.memberFilters.name.trim()) params.name = this.memberFilters.name.trim()
+        if (this.memberFilters.dept && this.memberFilters.dept.trim()) params.dept = this.memberFilters.dept.trim()
+        if (this.memberFilters.status !== '') params.status = Number(this.memberFilters.status)
+        const res = await getTaskMembers(this.selectedGroup.dispatchId, params)
+        this.members = (res.data && res.data.records) || []
+        this.memberTotal = (res.data && res.data.total) || 0
+        this.memberTotalPages = Math.ceil(this.memberTotal / this.memberPageSize) || 1
+        // 当前页超出范围（如删除本页最后一条后），回退到最后一页
+        if (this.memberPage > this.memberTotalPages && this.memberTotalPages > 0) {
+          this.memberPage = this.memberTotalPages
+          await this.fetchMembers()
+        }
+      } catch (e) {
+        console.error(e)
+      } finally {
+        this.detailLoading = false
+      }
+    },
+    memberPrevPage() {
+      if (this.memberPage > 1) {
+        this.memberPage--
+        this.fetchMembers()
+      }
+    },
+    memberNextPage() {
+      if (this.memberPage < this.memberTotalPages) {
+        this.memberPage++
+        this.fetchMembers()
+      }
+    },
+    /** 切换每页条数：回到第 1 页重新查询 */
+    onMemberPageSizeChange() {
+      this.memberPage = 1
+      this.fetchMembers()
+    },
     onDispatchSuccess() {
       this.fetchTaskList()
       this.fetchStats()
@@ -317,26 +426,16 @@ export default {
         this.$message.error((e && e.message) || '新增失败')
       }
     },
-    /** 刷新当前任务组成员（组已不存在时清空，避免残留成员卡） */
+    /** 刷新当前任务组（组头 + 成员分页） */
     async refreshMembers() {
       if (!this.selectedGroup) return
-      this.detailLoading = true
       try {
         const res = await getTaskGroupDetail(this.selectedGroup.dispatchId)
-        if (res.data && res.data.members) {
-          this.selectedGroup = res.data
-          this.members = res.data.members
-        } else {
-          // 任务组已不存在（成员删空）
-          this.members = []
-        }
+        if (res.data) this.selectedGroup = res.data
       } catch (e) {
-        // 404：任务组已不存在，清空成员
-        this.members = []
         console.error(e)
-      } finally {
-        this.detailLoading = false
       }
+      await this.fetchMembers()
     },
     async loadMaps() {
       try {
@@ -380,21 +479,21 @@ export default {
       this.currentPage = 1
       this.fetchTaskList()
     },
-    /** 点击任务组 → 查看成员 */
+    /** 点击任务组 → 查看成员（组头 + 成员分页第一页） */
     async openTaskGroup(group) {
       this.selectedGroup = group
       this.level = 2
       this.members = []
-      this.detailLoading = true
+      this.memberFilters = { name: '', dept: '', status: '' }
+      this.memberPage = 1
+      this.memberTotal = 0
       try {
         const res = await getTaskGroupDetail(group.dispatchId)
         this.selectedGroup = res.data || group
-        this.members = (res.data && res.data.members) || []
       } catch (e) {
         console.error(e)
-      } finally {
-        this.detailLoading = false
       }
+      await this.fetchMembers()
     },
     /** 删除任务成员（删除该成员任务全部提交数据；主任务保留，删空后任务仍在可另行删除） */
     async onRemoveMember(member) {
@@ -528,6 +627,13 @@ $border: #e4beba;
 }
 .filter-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(228,190,186,0.3); }
 .filter-actions-right { display: flex; gap: 8px; margin-left: auto; }
+.member-filter { margin-bottom: 16px; }
+.member-count { font-size: 12px; color: #757575; }
+.member-pagination { margin-top: 16px; border: 1px solid $border; border-radius: 8px; justify-content: flex-end; }
+.pagination-left { display: flex; align-items: center; gap: 12px; }
+.page-size-select { height: 32px; border: 1px solid $border; border-radius: 4px; padding: 0 6px; font-size: 12px; color: #414755; outline: none; background: #fff; cursor: pointer;
+  &:focus { border-color: $primary; }
+}
 .btn-reset { padding: 0 16px; height: 36px; border: 1px solid $border; border-radius: 4px; font-size: 13px; color: #5b403d; background: #fff; cursor: pointer;
   &:hover { background: #f6f3f2; }
 }
@@ -572,6 +678,7 @@ $border: #e4beba;
 .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #faf9f9; border-top: 1px solid $border; }
 .pagination-info { font-size: 12px; color: #414755; }
 .pagination-controls { display: flex; align-items: center; gap: 8px; }
+.member-pagination { justify-content: flex-end; } /* 放在 .pagination 之后才能覆盖 space-between */
 .page-btn { width: 32px; height: 32px; border-radius: 4px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; font-size: 14px;
   &:hover:not(:disabled) { background: #efeded; }
   &:disabled { opacity: 0.3; cursor: not-allowed; }

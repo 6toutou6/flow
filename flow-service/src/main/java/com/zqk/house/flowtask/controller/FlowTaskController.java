@@ -9,6 +9,7 @@ import com.zqk.house.flowtask.vo.NodeSubmitDTO;
 import com.zqk.house.flowtask.vo.TaskCreateDTO;
 import com.zqk.house.flowtask.vo.TaskDetailVO;
 import com.zqk.house.flowtask.vo.TaskGroupVO;
+import com.zqk.house.flowtask.vo.TaskMemberVO;
 import com.zqk.house.flowtask.vo.TaskProgressVO;
 import com.zqk.house.util.PageResult;
 import com.zqk.house.util.Result;
@@ -35,6 +36,17 @@ public class FlowTaskController {
     public Result<TaskGroupVO> dispatchDetail(@PathVariable Long dispatchId) {
         TaskGroupVO vo = flowTaskService.getDispatchDetail(dispatchId);
         return vo != null ? Result.success("获取成功", vo) : Result.notFound("任务组不存在");
+    }
+
+    /** 任务组成员分页查询（姓名/部门/状态过滤 + 分页） */
+    @GetMapping("/dispatch/{dispatchId}/members")
+    public Result<PageResult<TaskMemberVO>> members(@PathVariable Long dispatchId,
+                                                    @RequestParam(required = false) Integer page,
+                                                    @RequestParam(required = false) Integer limit,
+                                                    @RequestParam(required = false) String name,
+                                                    @RequestParam(required = false) String dept,
+                                                    @RequestParam(required = false) Integer status) {
+        return Result.success("获取成功", flowTaskService.getMembersPage(dispatchId, page, limit, name, dept, status));
     }
 
     @GetMapping("/{id}")

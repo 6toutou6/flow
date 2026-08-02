@@ -25,6 +25,15 @@ export function getTaskGroupDetail(dispatchId) {
   })
 }
 
+// 任务组成员分页查询（姓名/部门/状态过滤）
+export function getTaskMembers(dispatchId, params) {
+  return request({
+    url: `/flow-task/dispatch/${dispatchId}/members`,
+    method: 'get',
+    params
+  })
+}
+
 // 删除主任务（任务组）：仅当组内无人员时才允许
 export function deleteTaskGroup(dispatchId) {
   return request({

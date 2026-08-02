@@ -2,25 +2,28 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.zqk.house.flowtask.mapper.FlowTaskMapper">
 
-    <!-- 某任务组的全部成员（起始节点处理人 = 被下发者；按 id 升序，[0] 即主任务） -->
-    <select id="selectMembersByDispatch" resultType="com.zqk.house.flowtask.vo.TaskMemberVO">
-        SELECT t.id AS taskId, t.task_name AS taskName, t.template_id AS templateId,
-               t.status, t.current_node_id AS currentNodeId, t.current_handler_id AS currentHandlerId,
-               t.finished_node_count AS finishedNodeCount, t.total_node_count AS totalNodeCount,
-               t.create_time AS createTime,
-               s.handler_user_id AS ownerUserId,
-               u.real_name AS ownerName, u.emp_no AS ownerEmpNo, u.dept_name AS ownerDept,
-               -- 当前处理人 = 当前节点的全部待办处理人（任一完成即可）；无待办时回退为当前指针处理人
-               CASE
-                 WHEN EXISTS (SELECT 1 FROM flow_task_node tn3
-                              WHERE tn3.task_id = t.id AND tn3.node_id = t.current_node_id AND tn3.submit_status = 0)
-                 THEN (SELECT GROUP_CONCAT(u3.real_name SEPARATOR '、')
-                       FROM flow_task_node tn3
-                       LEFT JOIN sys_user u3 ON u3.id = tn3.handler_user_id
+    <sql id="memberSelectColumns">
+        t.id AS taskId, t.task_name AS taskName, t.template_id AS templateId,
+        t.status, t.current_node_id AS currentNodeId, t.current_handler_id AS currentHandlerId,
+        t.finished_node_count AS finishedNodeCount, t.total_node_count AS totalNodeCount,
+        t.create_time AS createTime,
+        s.handler_user_id AS ownerUserId,
+        u.real_name AS ownerName, u.emp_no AS ownerEmpNo, u.dept_name AS ownerDept,
+        -- 当前处理人 = 当前节点的全部待办处理人（任一完成即可）；无待办时回退为当前指针处理人
+        CASE
+          WHEN EXISTS (SELECT 1 FROM flow_task_node tn3
                        WHERE tn3.task_id = t.id AND tn3.node_id = t.current_node_id AND tn3.submit_status = 0)
-                 ELSE cu.real_name
-               END AS currentHandlerName,
-               cn.node_name AS currentNodeName
+          THEN (SELECT GROUP_CONCAT(u3.real_name SEPARATOR '、')
+                FROM flow_task_node tn3
+                LEFT JOIN sys_user u3 ON u3.id = tn3.handler_user_id
+                WHERE tn3.task_id = t.id AND tn3.node_id = t.current_node_id AND tn3.submit_status = 0)
+          ELSE cu.real_name
+        END AS currentHandlerName,
+        cn.node_name AS currentNodeName
+    </sql>
+
+    <!-- 基础 FROM/JOIN/WHERE（仅 dispatchId，无过滤条件，供无过滤查询复用） -->
+    <sql id="memberFromWhereBase">
         FROM flow_task t
         JOIN flow_task_node s ON s.node_type = 1
              AND s.id = (SELECT MIN(id) FROM flow_task_node WHERE task_id = t.id AND node_type = 1)
@@ -28,7 +31,47 @@
         LEFT JOIN sys_user cu ON cu.id = t.current_handler_id
         LEFT JOIN flow_template_node cn ON cn.id = t.current_node_id
         WHERE COALESCE(t.dispatch_id, t.id) = #{dispatchId}
+    </sql>
+
+    <!-- 过滤条件（仅在使用到 name/dept/status 参数的方法中引用） -->
+    <sql id="memberFilterWhere">
+        <if test="name != null and name != ''">
+            AND u.real_name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="dept != null and dept != ''">
+            AND u.dept_name LIKE CONCAT('%', #{dept}, '%')
+        </if>
+        <if test="status != null">
+            AND t.status = #{status}
+        </if>
+    </sql>
+
+    <!-- 某任务组全部成员（起始节点处理人 = 被下发者；按 id 升序，[0] 即主任务） -->
+    <select id="selectMembersByDispatch" resultType="com.zqk.house.flowtask.vo.TaskMemberVO">
+        SELECT
+        <include refid="memberSelectColumns"/>
+        <include refid="memberFromWhereBase"/>
         ORDER BY t.id ASC
+    </select>
+
+    <!-- 某任务组全部成员（分页，支持姓名/部门/状态过滤） -->
+    <select id="selectMembersPage" resultType="com.zqk.house.flowtask.vo.TaskMemberVO">
+        SELECT
+        <include refid="memberSelectColumns"/>
+        <include refid="memberFromWhereBase"/>
+        <include refid="memberFilterWhere"/>
+        ORDER BY t.id ASC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectMembersCount" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM flow_task t
+        JOIN flow_task_node s ON s.node_type = 1
+             AND s.id = (SELECT MIN(id) FROM flow_task_node WHERE task_id = t.id AND node_type = 1)
+        LEFT JOIN sys_user u  ON u.id  = s.handler_user_id
+        WHERE COALESCE(t.dispatch_id, t.id) = #{dispatchId}
+        <include refid="memberFilterWhere"/>
     </select>
 
 </mapper>
