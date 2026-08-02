@@ -331,10 +331,10 @@ export default {
 .page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; }
 .breadcrumb { display: flex; gap: 8px; font-size: 12px; line-height: 20px; color: #414755; margin-bottom: 8px;
-  .active { color: #a20513; font-weight: 600; }
+  .active { color: #C53030; font-weight: 600; }
 }
 .page-heading { font-size: 30px; line-height: 38px; font-weight: 600; color: #1b1c1c; }
-.btn-primary { display: flex; align-items: center; padding: 10px 24px; background-color: #a20513; color: white; border-radius: 8px; font-weight: 600; font-size: 13px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); transition: all 0.2s; cursor: pointer; border: none;
+.btn-primary { display: flex; align-items: center; padding: 10px 24px; background-color: #C53030; color: white; border-radius: 8px; font-weight: 600; font-size: 13px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); transition: all 0.2s; cursor: pointer; border: none;
   &:hover { opacity: 0.9; }
 }
 .filter-section { background: white; border: 1px solid #e4beba; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
@@ -345,7 +345,7 @@ export default {
 .filter-item { display: flex; flex-direction: column; gap: 4px; }
 .filter-label { font-size: 13px; color: #757575; }
 .filter-select, .filter-input { height: 36px; border: 1px solid #e4beba; border-radius: 4px; padding: 0 8px; font-size: 13px; outline: none; transition: all 0.2s;
-  &:focus { border-color: #a20513; box-shadow: 0 0 0 1px rgba(162, 5, 19, 0.2); }
+  &:focus { border-color: #C53030; box-shadow: 0 0 0 1px rgba(162, 5, 19, 0.2); }
 }
 .filter-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(228, 190, 186, 0.3); }
 .filter-actions-left { display: flex; gap: 8px; }
@@ -353,7 +353,7 @@ export default {
 .btn-reset { padding: 0 16px; height: 36px; border: 1px solid #e4beba; border-radius: 4px; font-size: 13px; color: #5b403d; background: white; cursor: pointer;
   &:hover { background: #f6f3f2; }
 }
-.btn-search { padding: 0 16px; height: 36px; border: none; border-radius: 4px; font-size: 13px; font-weight: bold; color: white; background: #a20513; cursor: pointer; display: flex; align-items: center; gap: 4px;
+.btn-search { padding: 0 16px; height: 36px; border: none; border-radius: 4px; font-size: 13px; font-weight: bold; color: white; background: #C53030; cursor: pointer; display: flex; align-items: center; gap: 4px;
   &:hover { background: rgba(162, 5, 19, 0.9); }
 }
 .table-card { background-color: white; border: 1px solid #e4beba; border-radius: 8px; overflow: hidden; }
@@ -378,7 +378,7 @@ export default {
 .status-chip { padding: 2px 8px; border-radius: 2px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; border: 1px solid transparent; }
 .status-normal { background-color: rgba(38, 109, 0, 0.1); border-color: #266d00; color: #266d00; }
 .status-disabled { background-color: rgba(114, 119, 134, 0.1); border-color: #727786; color: #727786; }
-.action-link { color: #a20513; background: none; border: none; cursor: pointer; font-size: 14px; margin-right: 8px;
+.action-link { color: #C53030; background: none; border: none; cursor: pointer; font-size: 14px; margin-right: 8px;
   &:hover { text-decoration: underline; }
 }
 .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px; background-color: #faf9f9; border-top: 1px solid #e4beba; }
@@ -386,7 +386,7 @@ export default {
 .pagination-controls { display: flex; align-items: center; gap: 4px; }
 .page-btn { width: 32px; height: 32px; border-radius: 4px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; font-size: 14px; transition: background-color 0.2s;
   &:hover:not(.active):not(:disabled) { background-color: #efeded; }
-  &.active { background-color: #a20513; color: white; font-weight: 700; }
+  &.active { background-color: #C53030; color: white; font-weight: 700; }
   &:disabled { opacity: 0.3; cursor: not-allowed; }
 }
 .page-size-select { margin-left: 16px; background: transparent; border: 1px solid #727786; border-radius: 4px; font-size: 12px; padding: 4px; }

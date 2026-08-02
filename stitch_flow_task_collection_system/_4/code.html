@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Enterprise Flow - 可视化表单设计器</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface-variant": "#5a403e",
+                        "inverse-on-surface": "#ebf1ff",
+                        "tertiary-fixed": "#b8eaff",
+                        "secondary-fixed-dim": "#bcc7dd",
+                        "tertiary-container": "#00738f",
+                        "surface-bright": "#f9f9ff",
+                        "primary": "#a2141b",
+                        "on-tertiary-fixed-variant": "#004d61",
+                        "on-background": "#121c2c",
+                        "inverse-primary": "#ffb3ad",
+                        "surface-dim": "#d0daf0",
+                        "secondary-fixed": "#d8e3fa",
+                        "outline-variant": "#e2bebb",
+                        "primary-fixed-dim": "#ffb3ad",
+                        "on-secondary-fixed-variant": "#3c475a",
+                        "on-primary-fixed": "#410003",
+                        "on-error-container": "#93000a",
+                        "outline": "#8e706d",
+                        "surface-variant": "#d9e3f9",
+                        "secondary": "#545f72",
+                        "on-error": "#ffffff",
+                        "on-primary-fixed-variant": "#920212",
+                        "on-secondary-fixed": "#111c2c",
+                        "error-container": "#ffdad6",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-low": "#f0f3ff",
+                        "primary-container": "#c53030",
+                        "surface-container": "#e7eeff",
+                        "surface-container-high": "#dee8ff",
+                        "primary-fixed": "#ffdad6",
+                        "on-primary": "#ffffff",
+                        "tertiary": "#00596f",
+                        "on-secondary-container": "#586377",
+                        "surface": "#f9f9ff",
+                        "on-primary-container": "#ffe4e1",
+                        "on-tertiary-container": "#cef0ff",
+                        "surface-container-highest": "#d9e3f9",
+                        "on-surface": "#121c2c",
+                        "tertiary-fixed-dim": "#7fd1f1",
+                        "inverse-surface": "#273141",
+                        "background": "#f9f9ff",
+                        "on-secondary": "#ffffff",
+                        "secondary-container": "#d5e0f7",
+                        "on-tertiary-fixed": "#001f28",
+                        "surface-tint": "#b52426",
+                        "surface-container-lowest": "#ffffff",
+                        "error": "#ba1a1a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "xl": "32px",
+                        "sm": "8px",
+                        "unit": "4px",
+                        "margin-desktop": "40px",
+                        "gutter": "24px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "xs": "4px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "label-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f9f9ff; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .drafting-grid {
+            background-size: 16px 16px;
+            background-image: radial-gradient(circle, #E2E8F0 1px, transparent 1px);
+        }
+        .canvas-card-active {
+            border: 2px solid #a2141b;
+            box-shadow: 0 4px 6px rgba(162, 20, 27, 0.1);
+        }
+    </style>
+</head>
+<body class="overflow-hidden">
+<!-- Side Navigation Shell -->
+<aside class="fixed left-0 top-0 h-full flex flex-col p-4 z-40 border-r border-outline-variant bg-surface w-[280px]">
+<div class="mb-8 px-2">
+<h1 class="text-headline-md font-bold text-primary">Enterprise Flow</h1>
+<p class="text-label-sm text-secondary">Workflow Solutions</p>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 bg-primary-container text-on-primary-container rounded-lg px-4 py-3 font-bold transition-transform scale-[0.99]" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="text-label-md">Templates</span>
+</a>
+<a class="flex items-center gap-3 text-secondary rounded-lg px-4 py-3 hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="text-label-md">Forms</span>
+</a>
+<a class="flex items-center gap-3 text-secondary rounded-lg px-4 py-3 hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">checklist</span>
+<span class="text-label-md">Tasks</span>
+</a>
+<a class="flex items-center gap-3 text-secondary rounded-lg px-4 py-3 hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-label-md">Data</span>
+</a>
+</nav>
+<div class="mt-auto pt-4 border-t border-outline-variant space-y-1">
+<a class="flex items-center gap-3 text-secondary rounded-lg px-4 py-2 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-3 text-secondary rounded-lg px-4 py-2 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="text-label-md">Support</span>
+</a>
+<div class="mt-4 flex items-center gap-3 px-2">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-bold text-xs">JD</div>
+<div>
+<p class="text-label-sm font-bold text-on-surface">Admin User</p>
+<p class="text-[10px] text-on-surface-variant">Standard Plan</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Top App Bar -->
+<header class="fixed top-0 right-0 left-[280px] flex justify-between items-center px-lg h-16 z-30 bg-surface-container-lowest border-b border-outline-variant">
+<div class="flex items-center gap-4">
+<nav class="flex items-center gap-2 text-label-sm text-secondary">
+<span>Templates</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-on-surface font-semibold">New Form</span>
+</nav>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-4 py-2 rounded-lg text-secondary font-label-md hover:bg-surface-container-high transition-colors">Preview</button>
+<button class="px-4 py-2 rounded-lg bg-secondary-container text-on-secondary-container font-label-md hover:shadow-sm transition-all">Save Draft</button>
+<button class="px-6 py-2 rounded-lg bg-primary text-on-primary font-label-md font-bold hover:brightness-110 shadow-md transition-all">Publish</button>
+<div class="w-px h-6 bg-outline-variant mx-2"></div>
+<button class="p-2 text-secondary hover:bg-surface-variant/20 rounded-full">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-secondary hover:bg-surface-variant/20 rounded-full">
+<span class="material-symbols-outlined">apps</span>
+</button>
+</div>
+</header>
+<!-- Main Content Cluster -->
+<main class="fixed top-16 left-[280px] right-0 bottom-0 flex bg-background">
+<!-- Left: Components Panel -->
+<section class="w-72 border-r border-outline-variant bg-surface flex flex-col">
+<div class="p-4 border-b border-outline-variant">
+<h3 class="text-label-md font-bold text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">widgets</span>
+                    Components
+                </h3>
+</div>
+<div class="flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-3 content-start">
+<!-- Draggable Items -->
+<div class="group flex flex-col items-center justify-center p-3 border border-outline-variant rounded-lg bg-surface-container-lowest hover:border-primary hover:text-primary cursor-grab transition-all">
+<span class="material-symbols-outlined mb-1">short_text</span>
+<span class="text-label-sm">Text</span>
+</div>
+<div class="group flex flex-col items-center justify-center p-3 border border-outline-variant rounded-lg bg-surface-container-lowest hover:border-primary hover:text-primary cursor-grab transition-all">
+<span class="material-symbols-outlined mb-1">notes</span>
+<span class="text-label-sm">Textarea</span>
+</div>
+<div class="group flex flex-col items-center justify-center p-3 border border-outline-variant rounded-lg bg-surface-container-lowest hover:border-primary hover:text-primary cursor-grab transition-all">
+<span class="material-symbols-outlined mb-1">123</span>
+<span class="text-label-sm">Number</span>
+</div>
+<div class="group flex flex-col items-center justify-center p-3 border border-outline-variant rounded-lg bg-surface-container-lowest hover:border-primary hover:text-primary cursor-grab transition-all">
+<span class="material-symbols-outlined mb-1">calendar_today</span>
+<span class="text-label-sm">Date</span>
+</div>
+<div class="group flex flex-col items-center justify-center p-3 border border-outline-variant rounded-lg bg-surface-container-lowest hover:border-primary hover:text-primary cursor-grab transition-all">
+<span class="material-symbols-outlined mb-1">radio_button_checked</span>
+<span class="text-label-sm">Radio</span>
+</div>
+<div class="group flex flex-col items-center justify-center p-3 border border-outline-variant rounded-lg bg-surface-container-lowest hover:border-primary hover:text-primary cursor-grab transition-all">
+<span class="material-symbols-outlined mb-1">check_box</span>
+<span class="text-label-sm">Checkbox</span>
+</div>
+<div class="group flex flex-col items-center justify-center p-3 border border-outline-variant rounded-lg bg-surface-container-lowest hover:border-primary hover:text-primary cursor-grab transition-all">
+<span class="material-symbols-outlined mb-1">upload_file</span>
+<span class="text-label-sm">File</span>
+</div>
+<div class="group flex flex-col items-center justify-center p-3 border border-outline-variant rounded-lg bg-surface-container-lowest hover:border-primary hover:text-primary cursor-grab transition-all">
+<span class="material-symbols-outlined mb-1">image</span>
+<span class="text-label-sm">Image</span>
+</div>
+</div>
+</section>
+<!-- Center: Design Canvas -->
+<section class="flex-1 drafting-grid overflow-y-auto relative flex flex-col items-center p-xl">
+<div class="w-full max-w-[800px] bg-white rounded-xl shadow-sm border border-outline-variant min-h-screen p-12 mb-20">
+<div class="mb-10 pb-6 border-b border-outline-variant">
+<h2 class="text-display-lg font-bold text-on-surface outline-none" contenteditable="true">Untitled Form</h2>
+<p class="text-body-md text-secondary mt-2 outline-none" contenteditable="true">Enter a description for your high-performance data collection workflow.</p>
+</div>
+<div class="space-y-6">
+<!-- Drop Target Example 1: Active -->
+<div class="p-6 bg-surface-container-lowest border-2 border-primary rounded-xl relative group">
+<div class="absolute -left-3 top-1/2 -translate-y-1/2 bg-primary text-white p-1 rounded-full cursor-move opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[16px]">drag_indicator</span>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-label-md font-bold text-primary">Full Name <span class="text-error">*</span></label>
+<input class="w-full border-outline bg-white rounded-lg p-3 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="e.g. John Doe" type="text"/>
+</div>
+<div class="absolute -right-12 top-0 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 bg-white border border-outline-variant rounded-lg shadow-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+<button class="p-2 bg-white border border-outline-variant rounded-lg shadow-sm hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</div>
+<!-- Drop Target Example 2: Idle -->
+<div class="p-6 bg-white border border-dashed border-outline hover:border-primary rounded-xl cursor-pointer transition-colors group">
+<div class="flex flex-col gap-2">
+<label class="text-label-md font-bold text-on-surface">Employee ID</label>
+<div class="w-full border border-outline-variant bg-surface-container-low rounded-lg p-3 text-secondary text-body-sm">
+                                Numeric value placeholder
+                            </div>
+</div>
+</div>
+<!-- Drop Target Example 3: Drop Zone -->
+<div class="h-32 border-2 border-dashed border-primary bg-primary/5 rounded-xl flex flex-col items-center justify-center text-primary group animate-pulse">
+<span class="material-symbols-outlined text-4xl mb-2">add_circle</span>
+<p class="text-label-md font-bold">Drop component here</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Right: Properties Panel -->
+<section class="w-[320px] border-l border-outline-variant bg-surface flex flex-col">
+<div class="p-4 border-b border-outline-variant flex items-center justify-between">
+<h3 class="text-label-md font-bold text-on-surface">Field Properties</h3>
+<span class="text-[10px] uppercase tracking-wider bg-primary/10 text-primary px-2 py-1 rounded-full font-bold">Text Input</span>
+</div>
+<div class="flex-1 overflow-y-auto p-6 space-y-6">
+<!-- Property: Label -->
+<div class="space-y-2">
+<label class="text-label-sm font-bold text-secondary">Field Label</label>
+<input class="w-full border-outline-variant rounded-lg p-3 text-body-sm focus:border-primary focus:ring-1 focus:ring-primary/20" type="text" value="Full Name"/>
+</div>
+<!-- Property: Placeholder -->
+<div class="space-y-2">
+<label class="text-label-sm font-bold text-secondary">Placeholder</label>
+<input class="w-full border-outline-variant rounded-lg p-3 text-body-sm focus:border-primary focus:ring-1 focus:ring-primary/20" type="text" value="e.g. John Doe"/>
+</div>
+<!-- Property: Validation Switches -->
+<div class="space-y-4 pt-4">
+<div class="flex items-center justify-between">
+<label class="text-label-sm font-bold text-on-surface">Required</label>
+<button class="relative w-10 h-6 bg-primary rounded-full transition-colors">
+<span class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></span>
+</button>
+</div>
+<div class="flex items-center justify-between">
+<label class="text-label-sm font-bold text-on-surface">Read Only</label>
+<button class="relative w-10 h-6 bg-outline-variant rounded-full transition-colors">
+<span class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full"></span>
+</button>
+</div>
+</div>
+<hr class="border-outline-variant"/>
+<!-- Advanced Limits -->
+<div class="space-y-4">
+<div class="space-y-2">
+<label class="text-label-sm font-bold text-secondary">Max Length (Chars)</label>
+<input class="w-full border-outline-variant rounded-lg p-3 text-body-sm" type="number" value="100"/>
+</div>
+<div class="space-y-2">
+<label class="text-label-sm font-bold text-secondary">File Size Limit (MB)</label>
+<div class="relative">
+<input class="w-full border-outline-variant bg-surface-container-low rounded-lg p-3 text-body-sm opacity-50" disabled="" type="number" value="10"/>
+<span class="absolute right-3 top-3 text-label-sm text-outline">MB</span>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-label-sm font-bold text-secondary">Allowed Suffixes</label>
+<div class="flex flex-wrap gap-2">
+<span class="px-2 py-1 bg-surface-container-high rounded border border-outline-variant text-[10px] font-bold">.PDF</span>
+<span class="px-2 py-1 bg-surface-container-high rounded border border-outline-variant text-[10px] font-bold">.JPG</span>
+<button class="px-2 py-1 border border-dashed border-primary text-primary text-[10px] font-bold rounded hover:bg-primary/5">+ Add</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer: Quick Actions -->
+<div class="p-4 border-t border-outline-variant bg-surface-container-lowest">
+<button class="w-full py-3 border-2 border-primary text-primary rounded-lg font-bold text-label-md hover:bg-primary hover:text-white transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+                    Preview Components
+                </button>
+</div>
+</section>
+</main>
+<!-- Micro-interaction Script -->
+<script>
+        document.querySelectorAll('.group[draggable="true"]').forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                e.target.style.opacity = '0.4';
+                e.target.style.transform = 'rotate(2deg) scale(1.05)';
+            });
+            item.addEventListener('dragend', (e) => {
+                e.target.style.opacity = '1';
+                e.target.style.transform = 'none';
+            });
+        });
+
+        // Simple Toggle interaction
+        const toggles = document.querySelectorAll('.relative.w-10.h-6');
+        toggles.forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                const knob = toggle.querySelector('span');
+                const isOff = toggle.classList.contains('bg-outline-variant');
+                
+                if(isOff) {
+                    toggle.classList.remove('bg-outline-variant');
+                    toggle.classList.add('bg-primary');
+                    knob.classList.remove('left-1');
+                    knob.classList.add('right-1');
+                } else {
+                    toggle.classList.remove('bg-primary');
+                    toggle.classList.add('bg-outline-variant');
+                    knob.classList.remove('right-1');
+                    knob.classList.add('left-1');
+                }
+            });
+        });
+    </script>
+</body></html>

@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Workflow Manager - Template Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-surface-variant": "#5a403e",
+                    "inverse-on-surface": "#ebf1ff",
+                    "tertiary-fixed": "#b8eaff",
+                    "secondary-fixed-dim": "#bcc7dd",
+                    "tertiary-container": "#00738f",
+                    "surface-bright": "#f9f9ff",
+                    "primary": "#a2141b",
+                    "on-tertiary-fixed-variant": "#004d61",
+                    "on-background": "#121c2c",
+                    "inverse-primary": "#ffb3ad",
+                    "surface-dim": "#d0daf0",
+                    "secondary-fixed": "#d8e3fa",
+                    "outline-variant": "#e2bebb",
+                    "primary-fixed-dim": "#ffb3ad",
+                    "on-secondary-fixed-variant": "#3c475a",
+                    "on-primary-fixed": "#410003",
+                    "on-error-container": "#93000a",
+                    "outline": "#8e706d",
+                    "surface-variant": "#d9e3f9",
+                    "secondary": "#545f72",
+                    "on-error": "#ffffff",
+                    "on-primary-fixed-variant": "#920212",
+                    "on-secondary-fixed": "#111c2c",
+                    "error-container": "#ffdad6",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-low": "#f0f3ff",
+                    "primary-container": "#c53030",
+                    "surface-container": "#e7eeff",
+                    "surface-container-high": "#dee8ff",
+                    "primary-fixed": "#ffdad6",
+                    "on-primary": "#ffffff",
+                    "tertiary": "#00596f",
+                    "on-secondary-container": "#586377",
+                    "surface": "#f9f9ff",
+                    "on-primary-container": "#ffe4e1",
+                    "on-tertiary-container": "#cef0ff",
+                    "surface-container-highest": "#d9e3f9",
+                    "on-surface": "#121c2c",
+                    "tertiary-fixed-dim": "#7fd1f1",
+                    "inverse-surface": "#273141",
+                    "background": "#f9f9ff",
+                    "on-secondary": "#ffffff",
+                    "secondary-container": "#d5e0f7",
+                    "on-tertiary-fixed": "#001f28",
+                    "surface-tint": "#b52426",
+                    "surface-container-lowest": "#ffffff",
+                    "error": "#ba1a1a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "margin-mobile": "16px",
+                    "xl": "32px",
+                    "sm": "8px",
+                    "unit": "4px",
+                    "margin-desktop": "40px",
+                    "gutter": "24px",
+                    "md": "16px",
+                    "lg": "24px",
+                    "xs": "4px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "label-md": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "label-sm": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            vertical-align: middle;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2bebb; border-radius: 10px; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(226, 190, 187, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen">
+<!-- Side Navigation Bar -->
+<aside class="fixed left-0 top-0 h-full w-[280px] flex flex-col p-4 z-40 bg-surface border-r border-outline-variant shadow-sm transition-all duration-300">
+<div class="mb-8 px-4 flex items-center gap-3">
+<div class="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined text-headline-sm" style="font-variation-settings: 'FILL' 1;">account_tree</span>
+</div>
+<div>
+<h1 class="text-headline-sm font-headline-sm font-bold text-primary">Enterprise Flow</h1>
+<p class="text-label-sm text-secondary">Workflow Solutions</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1 overflow-y-auto custom-scrollbar">
+<!-- Active Navigation -->
+<a class="flex items-center gap-3 bg-primary-container text-on-primary-container rounded-lg px-4 py-3 font-bold scale-[0.99] transition-transform" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="text-label-md font-label-md">Templates</span>
+</a>
+<!-- Inactive Navigations -->
+<a class="flex items-center gap-3 text-secondary rounded-lg px-4 py-3 hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="text-label-md font-label-md">Forms</span>
+</a>
+<a class="flex items-center gap-3 text-secondary rounded-lg px-4 py-3 hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">checklist</span>
+<span class="text-label-md font-label-md">Tasks</span>
+</a>
+<a class="flex items-center gap-3 text-secondary rounded-lg px-4 py-3 hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-label-md font-label-md">Data</span>
+</a>
+</nav>
+<div class="mt-auto pt-4 border-t border-outline-variant space-y-1">
+<a class="flex items-center gap-3 text-secondary rounded-lg px-4 py-3 hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-label-md font-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-3 text-secondary rounded-lg px-4 py-3 hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="text-label-md font-label-md">Support</span>
+</a>
+<div class="mt-4 flex items-center gap-3 px-4 py-2 bg-surface-container rounded-xl">
+<img class="w-10 h-10 rounded-full border-2 border-white" data-alt="A professional headshot of a corporate user in business attire, clean studio lighting with a neutral gray background. The subject is a woman with a confident, approachable expression, representing an enterprise user profile image for a workflow management system." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDUou7N4x8FJGJnNBGr97e77OBGOtqm2VqO2n5kGKNXKovxZAi9pKQGn0vrG4cNg61QHp0K-0LftXQ04iZGOgzWuAjHnifMrLzaRWdZaL2W0VO3CEUEJDHYQctLpV4VPeCzoN5Ni7x_TP-SjFeslLlen44GbffFUXuyTRInHPSI_X9mBbVwkmvOox6CDnd--szFuyxutuuDj2YfwWugJcGru7JIFOUeavAVTqye071Ev_xOosU_Ogdug"/>
+<div class="overflow-hidden">
+<p class="text-label-md font-bold truncate">Alex Chen</p>
+<p class="text-label-sm text-on-surface-variant truncate">Admin Account</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Shell -->
+<div class="ml-[280px] flex flex-col min-h-screen">
+<!-- Top App Bar -->
+<header class="fixed top-0 right-0 left-[280px] h-16 flex items-center justify-between px-lg bg-surface-container-lowest border-b border-outline-variant z-30">
+<div class="flex items-center flex-1 max-w-2xl">
+<div class="relative w-full group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full h-10 pl-10 pr-4 bg-surface-container rounded-full border-none focus:ring-2 focus:ring-primary/20 text-body-sm transition-all outline-none" placeholder="Search templates, categories, or creators..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4 ml-lg">
+<button class="hover:bg-surface-variant/20 rounded-full p-2 text-on-surface-variant relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full"></span>
+</button>
+<button class="hover:bg-surface-variant/20 rounded-full p-2 text-on-surface-variant">
+<span class="material-symbols-outlined">apps</span>
+</button>
+</div>
+</header>
+<!-- Page Content Area -->
+<main class="mt-16 p-lg flex-1">
+<div class="max-w-[1440px] mx-auto space-y-xl">
+<!-- Page Header -->
+<div class="flex items-end justify-between">
+<div>
+<h2 class="text-headline-lg font-headline-lg text-on-surface">Template Management</h2>
+<p class="text-body-md text-secondary mt-1">Manage and deploy process definitions across your organization.</p>
+</div>
+<button class="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg font-bold shadow-md hover:brightness-110 active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined">add_circle</span>
+                        Create Template
+                    </button>
+</div>
+<!-- Bento Grid Style Stats/Overview (Optional high-end UI) -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-lg">
+<div class="glass-card p-lg rounded-xl shadow-sm border border-outline-variant/30 flex items-center gap-4">
+<div class="p-3 bg-primary/10 rounded-lg text-primary">
+<span class="material-symbols-outlined text-headline-sm" style="font-variation-settings: 'FILL' 1;">file_copy</span>
+</div>
+<div>
+<p class="text-label-sm text-secondary">Total Templates</p>
+<p class="text-headline-sm font-bold">128</p>
+</div>
+</div>
+<div class="glass-card p-lg rounded-xl shadow-sm border border-outline-variant/30 flex items-center gap-4">
+<div class="p-3 bg-tertiary-container/10 rounded-lg text-tertiary-container">
+<span class="material-symbols-outlined text-headline-sm" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div>
+<p class="text-label-sm text-secondary">Active Status</p>
+<p class="text-headline-sm font-bold">114</p>
+</div>
+</div>
+<div class="glass-card p-lg rounded-xl shadow-sm border border-outline-variant/30 flex items-center gap-4">
+<div class="p-3 bg-secondary-container/20 rounded-lg text-secondary">
+<span class="material-symbols-outlined text-headline-sm" style="font-variation-settings: 'FILL' 1;">history</span>
+</div>
+<div>
+<p class="text-label-sm text-secondary">Last Deployment</p>
+<p class="text-headline-sm font-bold">2h ago</p>
+</div>
+</div>
+<div class="glass-card p-lg rounded-xl shadow-sm border border-outline-variant/30 flex items-center gap-4">
+<div class="p-3 bg-primary-container/10 rounded-lg text-primary-container">
+<span class="material-symbols-outlined text-headline-sm" style="font-variation-settings: 'FILL' 1;">groups</span>
+</div>
+<div>
+<p class="text-label-sm text-secondary">Collaborators</p>
+<p class="text-headline-sm font-bold">42</p>
+</div>
+</div>
+</div>
+<!-- Template Table Container -->
+<div class="bg-white rounded-xl shadow-sm border border-outline-variant overflow-hidden">
+<div class="p-lg border-b border-outline-variant flex items-center justify-between bg-surface-container-low">
+<div class="flex gap-4">
+<div class="flex items-center gap-2 px-3 py-1.5 bg-white border border-outline-variant rounded-lg text-body-sm text-on-surface cursor-pointer hover:bg-surface transition-colors">
+<span class="material-symbols-outlined text-label-md">filter_alt</span>
+                                All Categories
+                                <span class="material-symbols-outlined text-label-md">expand_more</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 bg-white border border-outline-variant rounded-lg text-body-sm text-on-surface cursor-pointer hover:bg-surface transition-colors">
+<span class="material-symbols-outlined text-label-md">sort</span>
+                                Sort by Date
+                            </div>
+</div>
+<p class="text-label-sm text-secondary">Showing 1-10 of 128 results</p>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low/50 text-label-md uppercase tracking-wider text-secondary border-b border-outline-variant">
+<th class="px-lg py-4 font-semibold">Template Name</th>
+<th class="px-lg py-4 font-semibold">Category</th>
+<th class="px-lg py-4 font-semibold text-center">Version</th>
+<th class="px-lg py-4 font-semibold">Status</th>
+<th class="px-lg py-4 font-semibold">Creator</th>
+<th class="px-lg py-4 font-semibold text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/30">
+<!-- Row 1 -->
+<tr class="hover:bg-primary/5 transition-colors group">
+<td class="px-lg py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-surface-container-highest flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-headline-sm">contract</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Employee Onboarding Pro</p>
+<p class="text-label-sm text-secondary">Standard HR lifecycle automation</p>
+</div>
+</div>
+</td>
+<td class="px-lg py-4">
+<span class="px-2 py-1 rounded bg-secondary-container text-on-secondary-container text-label-sm">Human Resources</span>
+</td>
+<td class="px-lg py-4 text-center">
+<span class="text-label-md font-bold text-tertiary">v2.4.1</span>
+</td>
+<td class="px-lg py-4">
+<div class="flex items-center gap-1.5 text-primary-container">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span class="text-label-md font-bold">Active</span>
+</div>
+</td>
+<td class="px-lg py-4">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-surface-dim overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A small thumbnail profile picture of a male software engineer with a neutral expression, high-quality professional lighting, minimalist office background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDfp-GHKwh--O0tU5UVspzp-nFpn-NPirkM3hkq7VIe7S-1BQ6xAKOwiWUQKuLdFTdbSPRixCkVLydhGIJmvOasO4jb_aW1fIOzmNTMuLdsf6PyWlp60mpqcSTj5R49NI3R3x4uTgbHgB0mCGTNZN8m40V3u3mc51BvH1NtgIZjubMIwAI2-evi1hLwLGto863ReRicG-9Mjgc3KBG1iO_QdIsdTwDys3Hd7-n-fEzFYbfKlzOpL5ihhA"/>
+</div>
+<span class="text-body-sm text-on-surface">Mark J.</span>
+</div>
+</td>
+<td class="px-lg py-4 text-right">
+<div class="flex items-center justify-end gap-1">
+<button class="p-2 hover:bg-surface-variant/20 rounded text-secondary hover:text-primary transition-colors" title="Edit">
+<span class="material-symbols-outlined">edit</span>
+</button>
+<button class="p-2 hover:bg-surface-variant/20 rounded text-secondary hover:text-primary transition-colors" title="Copy">
+<span class="material-symbols-outlined">content_copy</span>
+</button>
+<button class="p-2 hover:bg-surface-variant/20 rounded text-secondary hover:text-primary transition-colors" title="Version History">
+<span class="material-symbols-outlined">history</span>
+</button>
+<button class="p-2 hover:bg-error-container/20 rounded text-secondary hover:text-error transition-colors" title="Delete">
+<span class="material-symbols-outlined">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-primary/5 transition-colors group">
+<td class="px-lg py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-surface-container-highest flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-headline-sm">payments</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Procurement Approval</p>
+<p class="text-label-sm text-secondary">Multilevel financial clearance</p>
+</div>
+</div>
+</td>
+<td class="px-lg py-4">
+<span class="px-2 py-1 rounded bg-secondary-container text-on-secondary-container text-label-sm">Finance</span>
+</td>
+<td class="px-lg py-4 text-center">
+<span class="text-label-md font-bold text-tertiary">v1.0.8</span>
+</td>
+<td class="px-lg py-4">
+<div class="flex items-center gap-1.5 text-primary-container">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span class="text-label-md font-bold">Active</span>
+</div>
+</td>
+<td class="px-lg py-4">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-surface-dim overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A small thumbnail profile picture of a female creative director, sophisticated attire, bright airy lighting, soft focused background of a modern office space." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgYguB-8FGdMXg4dKv1r_ezYbBD7bE2ap0aycuR-UqY81D-uVxvymOb4ddX4_ifQaQ2g8kel9YRpRsurFuy0FD-pue8bQcs8qpoc6uw-kD-2H1jp2Pmu9PVqkTKtHRLiYSrJPCnxZBM1fgARmVrB26Jan4G2FWdPDsa2Ta2qu8N5vZ9FR2-qu081ESRFq8bEPJLBou_pH8xCReM2EDQam6b7us2n-pQ3cwlktxyQtGRir2Ulm9dLUenQ"/>
+</div>
+<span class="text-body-sm text-on-surface">Sarah K.</span>
+</div>
+</td>
+<td class="px-lg py-4 text-right">
+<div class="flex items-center justify-end gap-1">
+<button class="p-2 hover:bg-surface-variant/20 rounded text-secondary hover:text-primary transition-colors" title="Edit">
+<span class="material-symbols-outlined">edit</span>
+</button>
+<button class="p-2 hover:bg-surface-variant/20 rounded text-secondary hover:text-primary transition-colors" title="Copy">
+<span class="material-symbols-outlined">content_copy</span>
+</button>
+<button class="p-2 hover:bg-surface-variant/20 rounded text-secondary hover:text-primary transition-colors" title="Version History">
+<span class="material-symbols-outlined">history</span>
+</button>
+<button class="p-2 hover:bg-error-container/20 rounded text-secondary hover:text-error transition-colors" title="Delete">
+<span class="material-symbols-outlined">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 (Inactive) -->
+<tr class="hover:bg-primary/5 transition-colors group bg-surface-container-lowest/40">
+<td class="px-lg py-4">
+<div class="flex items-center gap-3 opacity-60">
+<div class="w-8 h-8 rounded bg-surface-container-highest flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-headline-sm">architecture</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Asset Audit [Draft]</p>
+<p class="text-label-sm text-secondary">Quarterly hardware verification</p>
+</div>
+</div>
+</td>
+<td class="px-lg py-4">
+<span class="px-2 py-1 rounded bg-surface-container-highest text-on-surface-variant text-label-sm">Operations</span>
+</td>
+<td class="px-lg py-4 text-center">
+<span class="text-label-md font-bold text-secondary">v0.4.0</span>
+</td>
+<td class="px-lg py-4">
+<div class="flex items-center gap-1.5 text-secondary">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="text-label-md font-bold">Inactive</span>
+</div>
+</td>
+<td class="px-lg py-4">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-surface-dim overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional profile photo of a man in a white dress shirt, sharp corporate lighting, professional studio look with a clean solid background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCFP8fvtXZqbEqSLuQebpy4Df-X5zn_nlPoHnRcBN2_N_YriGtVCbQlxWHETm9cVB7AoGZK8Tk5ymoK5Ehw87keIM92RQOpiQBjwypCxRzUysMGBKqOC_YJ_ylvxD7sydkVpZ0cKk4TzpPWdkgf2EtuMcQFEGN_zV8PSdk5TNKLSqV7NSbrZUOdbxCP5dMQKn6GuKOM-fwGLCNukRMRbmN0T0r4R9h7cRsxoZp4eL4TdpIRvH56D-pNdA"/>
+</div>
+<span class="text-body-sm text-on-surface">David L.</span>
+</div>
+</td>
+<td class="px-lg py-4 text-right">
+<div class="flex items-center justify-end gap-1">
+<button class="p-2 hover:bg-surface-variant/20 rounded text-secondary hover:text-primary transition-colors" title="Edit">
+<span class="material-symbols-outlined">edit</span>
+</button>
+<button class="p-2 hover:bg-surface-variant/20 rounded text-secondary hover:text-primary transition-colors" title="Copy">
+<span class="material-symbols-outlined">content_copy</span>
+</button>
+<button class="p-2 hover:bg-surface-variant/20 rounded text-secondary hover:text-primary transition-colors" title="Version History">
+<span class="material-symbols-outlined">history</span>
+</button>
+<button class="p-2 hover:bg-error-container/20 rounded text-secondary hover:text-error transition-colors" title="Delete">
+<span class="material-symbols-outlined">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-primary/5 transition-colors group">
+<td class="px-lg py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-surface-container-highest flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-headline-sm">security</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">IT Access Request</p>
+<p class="text-label-sm text-secondary">System-wide permission flow</p>
+</div>
+</div>
+</td>
+<td class="px-lg py-4">
+<span class="px-2 py-1 rounded bg-secondary-container text-on-secondary-container text-label-sm">IT Support</span>
+</td>
+<td class="px-lg py-4 text-center">
+<span class="text-label-md font-bold text-tertiary">v3.2.0</span>
+</td>
+<td class="px-lg py-4">
+<div class="flex items-center gap-1.5 text-primary-container">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span class="text-label-md font-bold">Active</span>
+</div>
+</td>
+<td class="px-lg py-4">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-surface-dim overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a female IT manager in business casual, modern office lighting with glass partitions and soft bokeh in the background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBpQEYefbiROIeI0Yo6SAGbIEvHo-ET5i5M9c6xw8vtXm66oo2r0ERvLtC2KcrUe80wGxp2L3rQmD32OME81jnM90xqQGljN_l_4pN4tLSTjGwhmWNbxBnIrRShSrOy3xHR_QEu-v8PtsO65V7DhMzXgHMJZGY3IunAyJBCiQN70Of8MM9_Ui-llNw87rvcb9hSVZ5Y6i9QbiM2iXZNvG6qHhmAoSZo8rIZd0zaSebMTWkgEMoraxSBYQ"/>
+</div>
+<span class="text-body-sm text-on-surface">Elena R.</span>
+</div>
+</td>
+<td class="px-lg py-4 text-right">
+<div class="flex items-center justify-end gap-1">
+<button class="p-2 hover:bg-surface-variant/20 rounded text-secondary hover:text-primary transition-colors" title="Edit">
+<span class="material-symbols-outlined">edit</span>
+</button>
+<button class="p-2 hover:bg-surface-variant/20 rounded text-secondary hover:text-primary transition-colors" title="Copy">
+<span class="material-symbols-outlined">content_copy</span>
+</button>
+<button class="p-2 hover:bg-surface-variant/20 rounded text-secondary hover:text-primary transition-colors" title="Version History">
+<span class="material-symbols-outlined">history</span>
+</button>
+<button class="p-2 hover:bg-error-container/20 rounded text-secondary hover:text-error transition-colors" title="Delete">
+<span class="material-symbols-outlined">delete</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="p-lg flex items-center justify-between bg-surface-container-low border-t border-outline-variant">
+<div class="flex items-center gap-2">
+<span class="text-body-sm text-secondary">Rows per page:</span>
+<select class="bg-transparent border-none text-body-sm font-bold text-on-surface focus:ring-0">
+<option>10</option>
+<option>20</option>
+<option>50</option>
+</select>
+</div>
+<div class="flex items-center gap-6">
+<span class="text-body-sm text-secondary">Page 1 of 13</span>
+<div class="flex gap-1">
+<button class="p-1 hover:bg-surface-variant/20 rounded disabled:opacity-30" disabled="">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="p-1 hover:bg-surface-variant/20 rounded">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Recent Activity/Designer Tip Section (Bento Style) -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-lg">
+<div class="lg:col-span-2 glass-card p-lg rounded-xl shadow-sm">
+<h3 class="text-headline-sm font-bold mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">analytics</span>
+                            Usage Trends
+                        </h3>
+<div class="h-48 flex items-end justify-between gap-4 px-4 pb-2 border-b border-outline-variant">
+<!-- Visual placeholder for a simple bar chart -->
+<div class="w-full bg-primary/20 rounded-t-lg h-[40%] hover:bg-primary transition-all cursor-pointer relative group">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-on-surface text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">Mon</div>
+</div>
+<div class="w-full bg-primary/20 rounded-t-lg h-[65%] hover:bg-primary transition-all cursor-pointer relative group"></div>
+<div class="w-full bg-primary/20 rounded-t-lg h-[45%] hover:bg-primary transition-all cursor-pointer relative group"></div>
+<div class="w-full bg-primary/20 rounded-t-lg h-[85%] hover:bg-primary transition-all cursor-pointer relative group"></div>
+<div class="w-full bg-primary/30 rounded-t-lg h-[95%] hover:bg-primary transition-all cursor-pointer relative group"></div>
+<div class="w-full bg-primary/20 rounded-t-lg h-[60%] hover:bg-primary transition-all cursor-pointer relative group"></div>
+<div class="w-full bg-primary/20 rounded-t-lg h-[30%] hover:bg-primary transition-all cursor-pointer relative group"></div>
+</div>
+<div class="flex justify-between mt-2 text-label-sm text-secondary">
+<span>Last 7 Days</span>
+<span>Template Deployment Frequency</span>
+</div>
+</div>
+<div class="bg-primary text-white p-lg rounded-xl shadow-md relative overflow-hidden flex flex-col justify-between">
+<div class="relative z-10">
+<h3 class="text-headline-sm font-bold mb-2">Designer's Tip</h3>
+<p class="text-body-sm opacity-90 leading-relaxed">
+                                Use the 'Version History' tool to roll back to any previous state of your workflow. Versioning is automatically enabled for all Active templates.
+                            </p>
+</div>
+<div class="relative z-10 mt-4">
+<button class="bg-white text-primary px-4 py-2 rounded-lg text-label-md font-bold hover:bg-opacity-90 transition-all">
+                                Learn More
+                            </button>
+</div>
+<!-- Abstract decorative circle -->
+<div class="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+<div class="absolute -left-4 -top-4 w-20 h-20 bg-white/5 rounded-full blur-xl"></div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer / Credits -->
+<footer class="mt-xl p-lg border-t border-outline-variant text-center bg-surface-container-lowest">
+<p class="text-label-sm text-secondary">© 2024 Enterprise Flow. All rights reserved. Version 4.8.2-stable</p>
+</footer>
+</div>
+<script>
+        // Micro-interaction for search focus
+        const searchInput = document.querySelector('input[type="text"]');
+        const searchContainer = searchInput.parentElement;
+        
+        searchInput.addEventListener('focus', () => {
+            searchContainer.classList.add('ring-2', 'ring-primary/20');
+        });
+        
+        searchInput.addEventListener('blur', () => {
+            searchContainer.classList.remove('ring-2', 'ring-primary/20');
+        });
+
+        // Simple row hover effect logging (extensibility point)
+        const tableRows = document.querySelectorAll('tbody tr');
+        tableRows.forEach(row => {
+            row.addEventListener('mouseenter', () => {
+                // Potential for adding micro-animations or hints
+            });
+        });
+    </script>
+</body></html>

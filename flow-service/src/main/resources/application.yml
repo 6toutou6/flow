@@ -22,7 +22,7 @@ mybatis-plus:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   mapper-locations: classpath:mapper/*.xml
-  type-aliases-package: com.zqk.house.user.entity
+  type-aliases-package: com.zqk.house
 
 server:
   port: 9000

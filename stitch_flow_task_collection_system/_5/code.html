@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Task Distribution - Workflow Manager</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface-variant": "#5a403e",
+                        "inverse-on-surface": "#ebf1ff",
+                        "tertiary-fixed": "#b8eaff",
+                        "secondary-fixed-dim": "#bcc7dd",
+                        "tertiary-container": "#00738f",
+                        "surface-bright": "#f9f9ff",
+                        "primary": "#a2141b",
+                        "on-tertiary-fixed-variant": "#004d61",
+                        "on-background": "#121c2c",
+                        "inverse-primary": "#ffb3ad",
+                        "surface-dim": "#d0daf0",
+                        "secondary-fixed": "#d8e3fa",
+                        "outline-variant": "#e2bebb",
+                        "primary-fixed-dim": "#ffb3ad",
+                        "on-secondary-fixed-variant": "#3c475a",
+                        "on-primary-fixed": "#410003",
+                        "on-error-container": "#93000a",
+                        "outline": "#8e706d",
+                        "surface-variant": "#d9e3f9",
+                        "secondary": "#545f72",
+                        "on-error": "#ffffff",
+                        "on-primary-fixed-variant": "#920212",
+                        "on-secondary-fixed": "#111c2c",
+                        "error-container": "#ffdad6",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-low": "#f0f3ff",
+                        "primary-container": "#c53030",
+                        "surface-container": "#e7eeff",
+                        "surface-container-high": "#dee8ff",
+                        "primary-fixed": "#ffdad6",
+                        "on-primary": "#ffffff",
+                        "tertiary": "#00596f",
+                        "on-secondary-container": "#586377",
+                        "surface": "#f9f9ff",
+                        "on-primary-container": "#ffe4e1",
+                        "on-tertiary-container": "#cef0ff",
+                        "surface-container-highest": "#d9e3f9",
+                        "on-surface": "#121c2c",
+                        "tertiary-fixed-dim": "#7fd1f1",
+                        "inverse-surface": "#273141",
+                        "background": "#f9f9ff",
+                        "on-secondary": "#ffffff",
+                        "secondary-container": "#d5e0f7",
+                        "on-tertiary-fixed": "#001f28",
+                        "surface-tint": "#b52426",
+                        "surface-container-lowest": "#ffffff",
+                        "error": "#ba1a1a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "xl": "32px",
+                        "sm": "8px",
+                        "unit": "4px",
+                        "margin-desktop": "40px",
+                        "gutter": "24px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "xs": "4px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "label-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .form-focus:focus {
+            border-color: #a2141b;
+            box-shadow: 0 0 0 3px rgba(162, 20, 27, 0.2);
+            outline: none;
+        }
+        .modal-overlay {
+            background-color: rgba(18, 28, 44, 0.4);
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md min-h-screen">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full w-[280px] bg-surface border-r border-outline-variant flex flex-col p-4 z-40 shadow-sm">
+<div class="mb-8 px-4">
+<h1 class="text-headline-md font-headline-md font-bold text-primary">Enterprise Flow</h1>
+<p class="text-label-sm text-secondary">Workflow Solutions</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 text-secondary rounded-lg px-4 py-3 hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-label-md text-label-md">Templates</span>
+</a>
+<a class="flex items-center gap-3 text-secondary rounded-lg px-4 py-3 hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="font-label-md text-label-md">Forms</span>
+</a>
+<a class="flex items-center gap-3 bg-primary-container text-on-primary-container rounded-lg px-4 py-3 font-bold scale-[0.99] transition-transform" href="#">
+<span class="material-symbols-outlined">checklist</span>
+<span class="font-label-md text-label-md">Tasks</span>
+</a>
+<a class="flex items-center gap-3 text-secondary rounded-lg px-4 py-3 hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label-md text-label-md">Data</span>
+</a>
+</nav>
+<div class="mt-auto pt-4 border-t border-outline-variant space-y-1">
+<button class="w-full bg-primary text-on-primary font-bold py-3 rounded-lg mb-4 hover:opacity-90 transition-opacity">
+                Create New
+            </button>
+<a class="flex items-center gap-3 text-secondary rounded-lg px-4 py-2 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-3 text-secondary rounded-lg px-4 py-2 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-[280px] min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 left-[280px] h-16 bg-surface-container-lowest flex justify-between items-center px-lg z-30 border-b border-outline-variant">
+<div class="flex items-center gap-4">
+<span class="text-headline-sm font-headline-sm font-black text-primary">Workflow Manager</span>
+<div class="relative ml-8">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="pl-10 pr-4 py-1.5 bg-surface-variant/20 border-none rounded-full text-label-md w-64 focus:ring-2 focus:ring-primary/20" placeholder="Search tasks..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="hover:bg-surface-variant/20 rounded-full p-2 text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="hover:bg-surface-variant/20 rounded-full p-2 text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined">apps</span>
+</button>
+<div class="ml-2 w-8 h-8 rounded-full bg-surface-container-high overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a corporate user with a neutral expression, wearing business attire, against a clean studio background. The lighting is soft and even, highlighting a professional and reliable persona within an enterprise software context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbgA58mj7petSeZ3W5lyBp7tv6nHDxLElTnxAU7vWII3xO3LEPFNHHUJINhyMqcuKtQc8Ks8Z2DxQKYryvyW6EMBe4evGHeo7Cu1OzKkjZSNjx_rl1hcp_4Tnwtqk90SxX-EK4KmWScYu_AtaSZIQtE_r17cFojoe7hhMul6_LvSTfgqcBdUFj5RxZw9l1D4G5wtxQzeASwIMegWB6nuo8lMNYwyROpk5WgTcCbQnr8nyYyf-GCtoPPw"/>
+</div>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="mt-16 p-margin-desktop max-w-[1200px] mx-auto w-full">
+<div class="flex items-center justify-between mb-xl">
+<div>
+<h2 class="text-headline-lg font-headline-lg text-on-surface">Task Distribution</h2>
+<p class="text-body-md text-secondary">Configure and broadcast new operational tasks to departments.</p>
+</div>
+<button class="bg-primary text-on-primary px-lg py-3 rounded-lg font-bold shadow-md hover:opacity-95 transition-all flex items-center gap-2" onclick="document.getElementById('confirmModal').classList.remove('hidden')">
+<span class="material-symbols-outlined">send</span>
+                    Confirm Distribution
+                </button>
+</div>
+<!-- Configuration Grid -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Main Form Card -->
+<div class="col-span-8 space-y-lg">
+<section class="bg-surface-container-lowest border border-outline-variant p-lg rounded-xl shadow-sm">
+<h3 class="text-headline-sm font-headline-sm mb-lg border-b border-outline-variant pb-md">General Information</h3>
+<div class="space-y-md">
+<div>
+<label class="block text-label-md font-label-md text-on-surface mb-xs">Select Template</label>
+<select class="w-full border border-outline rounded-lg px-md py-sm bg-surface text-body-md form-focus">
+<option>Standard Operational Review</option>
+<option>Quarterly Performance Audit</option>
+<option>Security Compliance Checklist</option>
+<option>Custom Workflow...</option>
+</select>
+</div>
+<div>
+<label class="block text-label-md font-label-md text-on-surface mb-xs">Task Name</label>
+<input class="w-full border border-outline rounded-lg px-md py-sm bg-surface text-body-md form-focus" placeholder="e.g. Q3 Regional Safety Inspection" type="text"/>
+</div>
+<div class="grid grid-cols-2 gap-md">
+<div>
+<label class="block text-label-md font-label-md text-on-surface mb-xs">Deadline</label>
+<div class="relative">
+<input class="w-full border border-outline rounded-lg px-md py-sm bg-surface text-body-md form-focus" type="date"/>
+</div>
+</div>
+<div>
+<label class="block text-label-md font-label-md text-on-surface mb-xs">Priority Level</label>
+<div class="flex gap-2">
+<button class="flex-1 py-sm border border-outline rounded-lg text-label-md hover:bg-surface-container transition-colors">Low</button>
+<button class="flex-1 py-sm border border-primary bg-primary-container/20 text-primary font-bold rounded-lg text-label-md">Medium</button>
+<button class="flex-1 py-sm border border-outline rounded-lg text-label-md hover:bg-surface-container transition-colors">High</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="bg-surface-container-lowest border border-outline-variant p-lg rounded-xl shadow-sm">
+<div class="flex items-center justify-between mb-md">
+<h3 class="text-headline-sm font-headline-sm">Announcement Details</h3>
+<div class="flex gap-1">
+<button class="p-2 hover:bg-surface-container rounded transition-colors"><span class="material-symbols-outlined">format_bold</span></button>
+<button class="p-2 hover:bg-surface-container rounded transition-colors"><span class="material-symbols-outlined">format_italic</span></button>
+<button class="p-2 hover:bg-surface-container rounded transition-colors"><span class="material-symbols-outlined">link</span></button>
+<button class="p-2 hover:bg-surface-container rounded transition-colors"><span class="material-symbols-outlined">attach_file</span></button>
+</div>
+</div>
+<textarea class="w-full h-48 border border-outline rounded-lg px-md py-sm bg-surface text-body-md form-focus resize-none" placeholder="Provide detailed instructions for the participants..."></textarea>
+</section>
+</div>
+<!-- Side Sidebar Card -->
+<div class="col-span-4 space-y-lg">
+<section class="bg-surface-container-lowest border border-outline-variant p-lg rounded-xl shadow-sm">
+<h3 class="text-headline-sm font-headline-sm mb-lg">Participants</h3>
+<div class="space-y-md">
+<div class="flex items-center justify-between text-label-md text-secondary pb-xs border-b border-outline-variant">
+<span>Selected Groups/Users</span>
+<span class="bg-primary text-on-primary px-2 py-0.5 rounded-full text-label-sm">4</span>
+</div>
+<ul class="space-y-sm">
+<li class="flex items-center justify-between p-sm bg-surface-container rounded-lg border border-outline-variant">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">corporate_fare</span>
+<span class="text-label-md">Operations Dept.</span>
+</div>
+<button class="text-on-surface-variant hover:text-error"><span class="material-symbols-outlined text-[20px]">close</span></button>
+</li>
+<li class="flex items-center justify-between p-sm bg-surface-container rounded-lg border border-outline-variant">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">corporate_fare</span>
+<span class="text-label-md">Supply Chain</span>
+</div>
+<button class="text-on-surface-variant hover:text-error"><span class="material-symbols-outlined text-[20px]">close</span></button>
+</li>
+<li class="flex items-center justify-between p-sm bg-surface-container rounded-lg border border-outline-variant">
+<div class="flex items-center gap-3">
+<div class="w-6 h-6 rounded-full bg-secondary-container flex items-center justify-center text-[10px] font-bold">JD</div>
+<span class="text-label-md">Jane Doe</span>
+</div>
+<button class="text-on-surface-variant hover:text-error"><span class="material-symbols-outlined text-[20px]">close</span></button>
+</li>
+</ul>
+<button class="w-full py-3 border-2 border-dashed border-outline text-secondary font-bold rounded-lg hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2" onclick="document.getElementById('selectionModal').classList.remove('hidden')">
+<span class="material-symbols-outlined">person_add</span>
+                                Specify Participants
+                            </button>
+</div>
+</section>
+<section class="bg-surface-container-highest/30 border border-dashed border-outline p-lg rounded-xl flex flex-col items-center justify-center text-center space-y-md">
+<span class="material-symbols-outlined text-48px text-outline">help_outline</span>
+<p class="text-label-md text-secondary px-4">Need help setting up automated distribution rules? Check our advanced workflow guide.</p>
+<a class="text-primary font-bold text-label-md hover:underline" href="#">View Documentation</a>
+</section>
+</div>
+</div>
+</div>
+</main>
+<!-- User Selection Modal -->
+<div class="fixed inset-0 z-50 hidden" id="selectionModal">
+<div class="modal-overlay absolute inset-0"></div>
+<div class="absolute inset-0 flex items-center justify-center p-4">
+<div class="bg-surface-container-lowest w-full max-w-[600px] rounded-xl shadow-2xl overflow-hidden border border-outline-variant">
+<header class="p-lg border-b border-outline-variant flex items-center justify-between bg-surface-bright">
+<h3 class="text-headline-sm font-headline-sm">Select Participants</h3>
+<button class="p-2 hover:bg-surface-container rounded-full transition-colors" onclick="document.getElementById('selectionModal').classList.add('hidden')">
+<span class="material-symbols-outlined">close</span>
+</button>
+</header>
+<div class="p-lg">
+<div class="relative mb-lg">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full pl-10 pr-4 py-2 border border-outline rounded-lg form-focus" placeholder="Search by name, department, or role..." type="text"/>
+</div>
+<div class="h-[400px] overflow-y-auto pr-2 space-y-xl">
+<!-- Department -->
+<div>
+<div class="flex items-center justify-between mb-sm">
+<span class="text-label-md font-bold uppercase tracking-wider text-secondary">Departments</span>
+<button class="text-primary text-label-sm font-bold">Select All</button>
+</div>
+<div class="space-y-1">
+<label class="flex items-center justify-between p-md hover:bg-surface-container rounded-lg cursor-pointer transition-colors border border-transparent hover:border-outline-variant">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary">groups</span>
+<div>
+<p class="text-label-md font-bold">Operations Management</p>
+<p class="text-label-sm text-on-surface-variant">42 Active Members</p>
+</div>
+</div>
+<input checked="" class="w-5 h-5 rounded border-outline text-primary focus:ring-primary/20" type="checkbox"/>
+</label>
+<label class="flex items-center justify-between p-md hover:bg-surface-container rounded-lg cursor-pointer transition-colors border border-transparent hover:border-outline-variant">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary">groups</span>
+<div>
+<p class="text-label-md font-bold">Quality Assurance</p>
+<p class="text-label-sm text-on-surface-variant">12 Active Members</p>
+</div>
+</div>
+<input class="w-5 h-5 rounded border-outline text-primary focus:ring-primary/20" type="checkbox"/>
+</label>
+<label class="flex items-center justify-between p-md hover:bg-surface-container rounded-lg cursor-pointer transition-colors border border-transparent hover:border-outline-variant">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary">groups</span>
+<div>
+<p class="text-label-md font-bold">Logistics &amp; Supply</p>
+<p class="text-label-sm text-on-surface-variant">28 Active Members</p>
+</div>
+</div>
+<input class="w-5 h-5 rounded border-outline text-primary focus:ring-primary/20" type="checkbox"/>
+</label>
+</div>
+</div>
+<!-- Individual Users -->
+<div>
+<div class="flex items-center justify-between mb-sm">
+<span class="text-label-md font-bold uppercase tracking-wider text-secondary">Individual Users</span>
+<button class="text-primary text-label-sm font-bold">Select All</button>
+</div>
+<div class="space-y-1">
+<label class="flex items-center justify-between p-md hover:bg-surface-container rounded-lg cursor-pointer transition-colors border border-transparent hover:border-outline-variant">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A small profile avatar of a male professional with glasses, smiling warmly. The image has a soft blue-tinted background, fitting a modern corporate directory style with high clarity and professional lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWDeWYNpXBhKBFI265e3ci_hfjAd_Qord4XEKuVZoztCQN-GxzkIPVpPnm3AWRyoXN5E7FFbqT-kFQ0tr6I8Ktc8I0q5RoyldocdFDGBY_zb1tTms5q1wmExmbfolwYOQXOynh1fln1MbkTsM5Evb9B8YkW46rm3MdRuhNaaowQgCcNUgV9KdJh2RYTvj_VZQMSQeCPxJjiTRo8ob9Pv0MyiHpLNhC_9STOkuw-b5wZqBcUsKu6clg2A"/>
+</div>
+<div>
+<p class="text-label-md font-bold">Robert Chen</p>
+<p class="text-label-sm text-on-surface-variant">Lead Auditor</p>
+</div>
+</div>
+<input class="w-5 h-5 rounded border-outline text-primary focus:ring-primary/20" type="checkbox"/>
+</label>
+<label class="flex items-center justify-between p-md hover:bg-surface-container rounded-lg cursor-pointer transition-colors border border-transparent hover:border-outline-variant">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A small profile avatar of a female corporate manager with a professional haircut and business casual attire. The portrait is set against a clean, minimal white wall with natural light coming from the side, symbolizing transparency and competence." src="https://lh3.googleusercontent.com/aida-public/AB6AXuChiNeDtPeoL1YuJvsKVUEq53Af1LhsIZRsECjMBTxlszzKdvt_4gomm_QBc9NE2mgg0xlz31mCzI6wFlwezqTA9wZLR4TJD4HmNnY_RjMKgxeTQC3FDc3Sol-p3VdxFiY3Wh4qHnHor774EtpBVPQ0J6Xa4ZaGOu_xTM9HA5ujELg0lLPii5V15YUhrP2zrVrAyQ20eI1GpsVrMPY3-KfDWx-PQ8waKYWb1V8YRRCYnxmLo8rgAJi04Q"/>
+</div>
+<div>
+<p class="text-label-md font-bold">Sarah Miller</p>
+<p class="text-label-sm text-on-surface-variant">Compliance Officer</p>
+</div>
+</div>
+<input class="w-5 h-5 rounded border-outline text-primary focus:ring-primary/20" type="checkbox"/>
+</label>
+</div>
+</div>
+</div>
+</div>
+<footer class="p-lg border-t border-outline-variant flex justify-end gap-sm bg-surface-container-low">
+<button class="px-lg py-2 border border-outline rounded-lg font-bold text-secondary hover:bg-surface-container transition-colors" onclick="document.getElementById('selectionModal').classList.add('hidden')">Cancel</button>
+<button class="px-lg py-2 bg-primary text-on-primary rounded-lg font-bold hover:opacity-90 shadow-md transition-opacity" onclick="document.getElementById('selectionModal').classList.add('hidden')">Confirm Selection</button>
+</footer>
+</div>
+</div>
+</div>
+<!-- Success/Confirmation Dialog (Hidden) -->
+<div class="fixed inset-0 z-50 hidden" id="confirmModal">
+<div class="modal-overlay absolute inset-0"></div>
+<div class="absolute inset-0 flex items-center justify-center p-4">
+<div class="bg-surface-container-lowest w-full max-w-[400px] rounded-xl shadow-2xl p-xl text-center space-y-lg">
+<div class="w-20 h-20 bg-primary-container/20 rounded-full flex items-center justify-center mx-auto">
+<span class="material-symbols-outlined text-48px text-primary" style="font-size: 48px;">task_alt</span>
+</div>
+<div>
+<h3 class="text-headline-md font-headline-md">Ready to Distribute?</h3>
+<p class="text-body-md text-secondary">This will notify 4 groups/users across 3 departments immediately.</p>
+</div>
+<div class="flex flex-col gap-2">
+<button class="w-full py-3 bg-primary text-on-primary rounded-lg font-bold shadow-md hover:opacity-90" onclick="document.getElementById('confirmModal').classList.add('hidden')">Yes, Distribute Task</button>
+<button class="w-full py-3 border border-outline rounded-lg text-secondary font-bold hover:bg-surface-container" onclick="document.getElementById('confirmModal').classList.add('hidden')">Go Back</button>
+</div>
+</div>
+</div>
+</div>
+<script>
+        // Simple logic to handle interactions
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.getElementById('selectionModal').classList.add('hidden');
+                document.getElementById('confirmModal').classList.add('hidden');
+            }
+        });
+    </script>
+</body></html>

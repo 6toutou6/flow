@@ -46,7 +46,7 @@ export const constantRoutes = [
   {
     path: '/',
     component: Layout,
-    redirect: '/dashboard',
+    redirect: '/data-admin',
     children: [{
       path: 'dashboard',
       name: 'Dashboard',
@@ -112,6 +112,59 @@ export const constantRoutes = [
         name: 'SysUser',
         component: () => import('@/views/sysuser/index'),
         meta: { title: '用户管理', icon: 'el-icon-s-custom' }
+      }
+    ]
+  },
+
+  {
+    path: '/flow-template',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'FlowTemplate',
+        component: () => import('@/views/flowtemplate/index'),
+        meta: { title: '模板管理', icon: 'el-icon-document' }
+      }
+    ]
+  },
+
+  {
+    path: '/form-designer',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: 'index',
+        name: 'FormDesigner',
+        component: () => import('@/views/formdesigner/index'),
+        meta: { title: '表单设计器', icon: 'el-icon-set-up', activeMenu: '/flow-template/index' }
+      }
+    ]
+  },
+
+  {
+    path: '/task-process',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'TaskProcess',
+        component: () => import('@/views/taskprocess/index'),
+        meta: { title: '任务处理', icon: 'el-icon-s-claim' }
+      }
+    ]
+  },
+
+  {
+    path: '/data-admin',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'DataAdmin',
+        component: () => import('@/views/dataadmin/index'),
+        meta: { title: '数据后台', icon: 'el-icon-data-analysis' }
       }
     ]
   },

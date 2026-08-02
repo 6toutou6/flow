@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zqk.house.flowtask.mapper.FlowTaskNodeMapper">
+
+    <!-- 我的待办：当前登录用户作为处理人且未处理的任务节点 -->
+    <resultMap id="MyTodoMap" type="com.zqk.house.flowtask.vo.MyTodoVO">
+        <result property="taskNodeId" column="task_node_id"/>
+        <result property="taskId" column="task_id"/>
+        <result property="taskName" column="task_name"/>
+        <result property="templateId" column="template_id"/>
+        <result property="templateName" column="template_name"/>
+        <result property="currentNodeId" column="current_node_id"/>
+        <result property="nodeName" column="node_name"/>
+        <result property="nodeTips" column="node_tips"/>
+        <result property="nodeType" column="node_type"/>
+        <result property="taskCreateTime" column="task_create_time"/>
+    </resultMap>
+
+    <select id="selectMyTodo" resultMap="MyTodoMap">
+        SELECT tn.id AS task_node_id, tn.task_id, tn.node_id AS current_node_id,
+               tn.node_name, tn.node_type,
+               t.task_name, t.template_id, t.create_time AS task_create_time,
+               tpl.template_name,
+               n.node_tips
+        FROM flow_task_node tn
+        INNER JOIN flow_task t ON tn.task_id = t.id
+        LEFT JOIN flow_template tpl ON t.template_id = tpl.id
+        LEFT JOIN flow_template_node n ON tn.node_id = n.id
+        WHERE tn.submit_status = 0
+          AND t.status = 1
+          AND tn.handler_user_id = #{handlerUserId}
+        ORDER BY tn.create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectMyTodoCount" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM flow_task_node tn
+        INNER JOIN flow_task t ON tn.task_id = t.id
+        WHERE tn.submit_status = 0
+          AND t.status = 1
+          AND tn.handler_user_id = #{handlerUserId}
+    </select>
+
+    <!-- 任务流转进度：该任务全部节点（按 sort_num）+ 处理人姓名 -->
+    <resultMap id="ProgressMap" type="com.zqk.house.flowtask.vo.TaskProgressVO">
+        <result property="taskNodeId" column="task_node_id"/>
+        <result property="nodeId" column="node_id"/>
+        <result property="nodeName" column="node_name"/>
+        <result property="sortNum" column="sort_num"/>
+        <result property="nodeType" column="node_type"/>
+        <result property="handlerUserId" column="handler_user_id"/>
+        <result property="handlerName" column="handler_name"/>
+        <result property="submitStatus" column="submit_status"/>
+        <result property="handleTime" column="handle_time"/>
+        <result property="nextHandlerUserId" column="next_handler_user_id"/>
+        <result property="nextHandlerName" column="next_handler_name"/>
+        <result property="formRecordId" column="form_record_id"/>
+        <result property="action" column="action"/>
+        <result property="rejectReason" column="reject_reason"/>
+        <result property="passComment" column="pass_comment"/>
+    </resultMap>
+
+    <select id="selectTaskProgress" resultMap="ProgressMap">
+        SELECT tn.id AS task_node_id, tn.node_id, tn.node_name, tn.sort_num, tn.node_type,
+               tn.handler_user_id, tn.submit_status, tn.handle_time,
+               tn.next_handler_user_id, tn.form_record_id, tn.action, tn.reject_reason, tn.pass_comment,
+               u.real_name AS handler_name,
+               u2.real_name AS next_handler_name
+        FROM flow_task_node tn
+        LEFT JOIN sys_user u ON tn.handler_user_id = u.id
+        LEFT JOIN sys_user u2 ON tn.next_handler_user_id = u2.id
+        WHERE tn.task_id = #{taskId}
+        ORDER BY tn.sort_num ASC
+    </select>
+
+</mapper>

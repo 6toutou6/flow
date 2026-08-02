@@ -47,3 +47,126 @@
 .el-range-separator {
   box-sizing: content-box;
 }
+
+// ===== 主题色统一覆盖 #C53030 =====
+$--color-primary: #C53030;
+
+// 主按钮
+.el-button--primary {
+  background-color: $--color-primary;
+  border-color: $--color-primary;
+  &:hover, &:focus {
+    background-color: mix(#ffffff, $--color-primary, 12%);
+    border-color: mix(#ffffff, $--color-primary, 12%);
+  }
+  &.is-plain {
+    color: $--color-primary;
+    background-color: mix(#ffffff, $--color-primary, 90%);
+    border-color: mix(#ffffff, $--color-primary, 60%);
+    &:hover, &:focus {
+      color: #fff;
+      background-color: $--color-primary;
+      border-color: $--color-primary;
+    }
+  }
+}
+
+// 输入框聚焦
+.el-input__inner:focus,
+.el-textarea__inner:focus {
+  border-color: $--color-primary;
+}
+.el-input.is-active .el-input__inner {
+  border-color: $--color-primary;
+}
+
+// 单选/多选
+.el-radio__input.is-checked .el-radio__inner,
+.el-checkbox__input.is-checked .el-radio__inner,
+.el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: $--color-primary;
+  border-color: $--color-primary;
+}
+.el-radio__input.is-checked + .el-radio__label,
+.el-checkbox__input.is-checked + .el-checkbox__label {
+  color: $--color-primary;
+}
+.el-radio__inner:hover,
+.el-checkbox__inner:hover {
+  border-color: $--color-primary;
+}
+
+// 开关
+.el-switch.is-checked .el-switch__core {
+  border-color: $--color-primary;
+  background-color: $--color-primary;
+}
+
+// 分页
+.el-pagination {
+  .el-pager li.active {
+    color: $--color-primary;
+    &:hover { color: $--color-primary; }
+  }
+  .btn-prev, .btn-next, .el-pager li:hover { color: $--color-primary; }
+}
+
+// 步骤条
+.el-step__head.is-process,
+.el-step__head.is-finish {
+  color: $--color-primary;
+  border-color: $--color-primary;
+}
+.el-step__title.is-process,
+.el-step__title.is-finish {
+  color: $--color-primary;
+}
+.el-step__line { background-color: #e4e7ed; }
+.el-step__icon.is-text { background-color: #fff; }
+.el-step__head.is-process .el-step__icon.is-text,
+.el-step__head.is-finish .el-step__icon.is-text {
+  color: #fff;
+  background-color: $--color-primary;
+}
+
+// 标签页
+.el-tabs__item.is-active { color: $--color-primary; }
+.el-tabs__item:hover { color: $--color-primary; }
+.el-tabs__active-bar { background-color: $--color-primary; }
+
+// 标签
+.el-tag {
+  &--success { background-color: rgba(38, 109, 0, 0.1); border-color: rgba(38, 109, 0, 0.4); color: #266d00; }
+}
+
+// 日期选择器/选择器选中态
+.el-date-table td.current:not(.disabled) span,
+.el-date-table td.today span {
+  color: $--color-primary;
+}
+.el-select-dropdown__item.selected {
+  color: $--color-primary;
+  font-weight: 700;
+}
+
+// 加载
+.el-loading-spinner .el-loading-text { color: $--color-primary; }
+.el-loading-spinner .path { stroke: $--color-primary; }
+
+// 进度条
+.el-progress-bar__inner { background-color: $--color-primary; }
+
+// 滑块
+.el-slider__bar { background-color: $--color-primary; }
+.el-slider__button { border-color: $--color-primary; }
+
+// 面包屑
+.el-breadcrumb__inner a:hover,
+.el-breadcrumb__item:last-child .el-breadcrumb__inner { color: $--color-primary; }
+
+// 表格 hover
+.el-table__body tr:hover > td { background-color: #FFF5F5 !important; }
+
+// 消息提示边色
+.el-message--info .el-message__content { color: #606266; }
+

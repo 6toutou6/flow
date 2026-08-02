@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zqk.house.flowdata.mapper.FlowFormRecordMapper">
+
+    <resultMap id="RecordListMap" type="com.zqk.house.flowdata.vo.FormRecordListVO">
+        <id property="id" column="id"/>
+        <result property="taskId" column="task_id"/>
+        <result property="templateId" column="template_id"/>
+        <result property="nodeId" column="node_id"/>
+        <result property="taskNodeId" column="task_node_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="recordStatus" column="record_status"/>
+        <result property="isDraft" column="is_draft"/>
+        <result property="submitTime" column="submit_time"/>
+        <result property="createTime" column="create_time"/>
+        <result property="userName" column="user_name"/>
+        <result property="userEmpNo" column="user_emp_no"/>
+        <result property="templateName" column="template_name"/>
+        <result property="category" column="category"/>
+        <result property="nodeName" column="node_name"/>
+    </resultMap>
+
+    <sql id="queryWhere">
+        <where>
+            r.record_status = 1
+            <if test="form.userId != null">AND r.user_id = #{form.userId}</if>
+            <if test="form.templateId != null">AND r.template_id = #{form.templateId}</if>
+            <if test="form.taskId != null">AND r.task_id = #{form.taskId}</if>
+            <if test="form.recordStatus != null">AND r.record_status = #{form.recordStatus}</if>
+            <if test="form.startDate != null">AND r.submit_time &gt;= #{form.startDate}</if>
+            <if test="form.endDate != null">AND r.submit_time &lt;= #{form.endDate}</if>
+        </where>
+    </sql>
+
+    <select id="selectRecordList" resultMap="RecordListMap">
+        SELECT r.id, r.task_id, r.template_id, r.node_id, r.task_node_id, r.user_id,
+               r.record_status, r.is_draft, r.submit_time, r.create_time,
+               u.real_name AS user_name, u.emp_no AS user_emp_no,
+               t.template_name, t.category,
+               n.node_name
+        FROM flow_form_record r
+        LEFT JOIN sys_user u ON r.user_id = u.id
+        LEFT JOIN flow_template t ON r.template_id = t.id
+        LEFT JOIN flow_template_node n ON r.node_id = n.id
+        <include refid="queryWhere"/>
+        ORDER BY r.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectRecordCount" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM flow_form_record r
+        <include refid="queryWhere"/>
+    </select>
+
+    <select id="selectRecordById" resultMap="RecordListMap">
+        SELECT r.id, r.task_id, r.template_id, r.node_id, r.task_node_id, r.user_id,
+               r.record_status, r.is_draft, r.submit_time, r.create_time,
+               u.real_name AS user_name, u.emp_no AS user_emp_no,
+               t.template_name, t.category,
+               n.node_name
+        FROM flow_form_record r
+        LEFT JOIN sys_user u ON r.user_id = u.id
+        LEFT JOIN flow_template t ON r.template_id = t.id
+        LEFT JOIN flow_template_node n ON r.node_id = n.id
+        WHERE r.id = #{id}
+    </select>
+
+    <!-- 任务维度统计 -->
+    <select id="selectStats" resultType="com.zqk.house.flowdata.vo.DataStatsVO">
+        SELECT
+            (SELECT COUNT(*) FROM flow_task WHERE status IN (1,2)) AS totalTasks,
+            (SELECT COUNT(*) FROM flow_task WHERE status = 1) AS runningTasks,
+            (SELECT COUNT(*) FROM flow_task WHERE status = 2) AS finishedTasks,
+            (SELECT COUNT(*) FROM flow_task_node tn
+             INNER JOIN flow_task t ON tn.task_id = t.id
+             WHERE tn.handler_user_id = #{userId}
+               AND tn.submit_status = 0
+               AND t.status = 1) AS myTodoCount
+    </select>
+
+    <select id="selectTrend" resultType="com.zqk.house.flowdata.vo.TrendPointVO">
+        SELECT DATE_FORMAT(submit_time, '%Y-%m-%d') AS date, COUNT(*) AS count
+        FROM flow_form_record
+        WHERE record_status = 1
+          AND submit_time &gt;= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        GROUP BY DATE_FORMAT(submit_time, '%Y-%m-%d')
+        ORDER BY date
+    </select>
+
+</mapper>

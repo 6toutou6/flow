@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Axiom Workflow | 可视化表单设计器</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-dim": "#d0daf0",
+                    "surface-bright": "#f9f9ff",
+                    "primary": "#a2141b",
+                    "on-primary-container": "#ffe4e1",
+                    "surface-container": "#e7eeff",
+                    "outline-variant": "#e2bebb",
+                    "secondary-fixed-dim": "#bcc7dd",
+                    "outline": "#8e706d",
+                    "inverse-surface": "#273141",
+                    "inverse-on-surface": "#ebf1ff",
+                    "on-primary-fixed-variant": "#920212",
+                    "background": "#f9f9ff",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container-highest": "#d9e3f9",
+                    "error": "#ba1a1a",
+                    "surface": "#f9f9ff",
+                    "on-surface-variant": "#5a403e",
+                    "secondary": "#545f72",
+                    "on-tertiary-fixed-variant": "#004d61",
+                    "surface-container-low": "#f0f3ff",
+                    "on-error-container": "#93000a",
+                    "on-primary": "#ffffff",
+                    "tertiary-fixed": "#b8eaff",
+                    "tertiary": "#00596f",
+                    "on-tertiary-container": "#cef0ff",
+                    "on-primary-fixed": "#410003",
+                    "on-secondary-fixed-variant": "#3c475a",
+                    "on-tertiary-fixed": "#001f28",
+                    "secondary-container": "#d5e0f7",
+                    "primary-fixed": "#ffdad6",
+                    "tertiary-container": "#00738f",
+                    "surface-tint": "#b52426",
+                    "secondary-fixed": "#d8e3fa",
+                    "on-secondary-fixed": "#111c2c",
+                    "tertiary-fixed-dim": "#7fd1f1",
+                    "error-container": "#ffdad6",
+                    "on-background": "#121c2c",
+                    "primary-fixed-dim": "#ffb3ad",
+                    "on-secondary-container": "#586377",
+                    "inverse-primary": "#ffb3ad",
+                    "on-tertiary": "#ffffff",
+                    "on-surface": "#121c2c",
+                    "on-secondary": "#ffffff",
+                    "primary-container": "#c53030",
+                    "surface-variant": "#d9e3f9",
+                    "surface-container-high": "#dee8ff",
+                    "on-error": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "xl": "32px",
+                    "margin-mobile": "16px",
+                    "sm": "8px",
+                    "xs": "4px",
+                    "md": "16px",
+                    "lg": "24px",
+                    "gutter": "24px",
+                    "unit": "4px",
+                    "margin-desktop": "40px"
+            },
+            "fontFamily": {
+                    "label-md": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-md": ["Inter"]
+            },
+            "fontSize": {
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        .canvas-grid {
+            background-image: radial-gradient(#CBD5E0 1px, transparent 1px);
+            background-size: 16px 16px;
+        }
+        .field-card:hover .field-actions {
+            opacity: 1;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md overflow-hidden h-screen flex">
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-0 h-full w-[280px] bg-surface-container-lowest border-r border-outline-variant flex flex-col z-50">
+<div class="p-lg">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Axiom Workflow</h1>
+<p class="text-sm text-secondary opacity-70">Enterprise Edition</p>
+</div>
+<div class="flex-grow py-md">
+<a class="flex items-center px-lg py-sm mb-1 text-secondary hover:text-primary hover:bg-surface-container transition-colors group" href="#">
+<span class="material-symbols-outlined mr-md">description</span>
+<span class="font-body-md">Templates</span>
+</a>
+<!-- Active Tab: Form Designer -->
+<a class="flex items-center px-lg py-sm mb-1 text-primary font-bold border-r-4 border-primary bg-surface-container-low transition-all" href="#">
+<span class="material-symbols-outlined mr-md">edit_note</span>
+<span class="font-body-md">Form Designer</span>
+</a>
+<a class="flex items-center px-lg py-sm mb-1 text-secondary hover:text-primary hover:bg-surface-container transition-colors group" href="#">
+<span class="material-symbols-outlined mr-md">assignment_turned_in</span>
+<span class="font-body-md">Task Distribution</span>
+</a>
+<a class="flex items-center px-lg py-sm mb-1 text-secondary hover:text-primary hover:bg-surface-container transition-colors group" href="#">
+<span class="material-symbols-outlined mr-md">dashboard</span>
+<span class="font-body-md">Data Dashboard</span>
+</a>
+</div>
+<div class="mt-auto border-t border-outline-variant py-md">
+<a class="flex items-center px-lg py-sm text-secondary hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined mr-md">settings</span>
+<span class="font-body-md">Settings</span>
+</a>
+<a class="flex items-center px-lg py-sm text-secondary hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined mr-md">help</span>
+<span class="font-body-md">Support</span>
+</a>
+<div class="mt-md px-lg flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center text-primary font-bold">JD</div>
+<div>
+<p class="text-label-md font-bold text-on-surface">Admin User</p>
+<p class="text-[10px] uppercase text-secondary">Axiom Admin</p>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content Shell -->
+<div class="flex flex-col flex-grow ml-[280px]">
+<!-- TopAppBar -->
+<header class="sticky top-0 z-40 bg-surface border-b border-outline-variant h-16 flex justify-between items-center px-lg w-full">
+<div class="flex items-center gap-xl">
+<h2 class="font-headline-sm text-headline-sm font-black text-primary">表单设计器</h2>
+<nav class="hidden md:flex gap-lg">
+<a class="font-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">仪表板</a>
+<a class="font-label-md text-primary border-b-2 border-primary pb-1" href="#">表单设计</a>
+<a class="font-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">流程模型</a>
+</nav>
+</div>
+<div class="flex items-center gap-md">
+<div class="relative hidden lg:block">
+<input class="pl-10 pr-4 py-1.5 rounded-full border border-outline-variant bg-surface-container-low text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary w-64 transition-all" placeholder="搜索组件..." type="text"/>
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-lg">search</span>
+</div>
+<button class="p-2 text-secondary hover:bg-surface-container rounded-full transition-all">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="bg-primary hover:bg-primary-container text-white px-md py-1.5 rounded font-label-md transition-all active:scale-95">
+                    保存并预览
+                </button>
+</div>
+</header>
+<!-- Builder Workspace -->
+<main class="flex flex-grow overflow-hidden bg-surface-container-low">
+<!-- Left Sidebar: Field Library -->
+<aside class="w-64 bg-surface border-r border-outline-variant flex flex-col">
+<div class="p-md border-b border-outline-variant">
+<h3 class="font-label-md text-on-surface">基础字段</h3>
+</div>
+<div class="p-md grid grid-cols-2 gap-sm overflow-y-auto">
+<!-- Field Item -->
+<div class="bg-surface-container-lowest border border-outline-variant p-sm flex flex-col items-center justify-center rounded hover:border-primary hover:text-primary cursor-move transition-all group">
+<span class="material-symbols-outlined text-xl mb-xs text-secondary group-hover:text-primary">text_fields</span>
+<span class="text-xs">单行文本</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant p-sm flex flex-col items-center justify-center rounded hover:border-primary hover:text-primary cursor-move transition-all group">
+<span class="material-symbols-outlined text-xl mb-xs text-secondary group-hover:text-primary">notes</span>
+<span class="text-xs">多行文本</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant p-sm flex flex-col items-center justify-center rounded hover:border-primary hover:text-primary cursor-move transition-all group">
+<span class="material-symbols-outlined text-xl mb-xs text-secondary group-hover:text-primary">pin</span>
+<span class="text-xs">数字</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant p-sm flex flex-col items-center justify-center rounded hover:border-primary hover:text-primary cursor-move transition-all group">
+<span class="material-symbols-outlined text-xl mb-xs text-secondary group-hover:text-primary">calendar_today</span>
+<span class="text-xs">日期</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant p-sm flex flex-col items-center justify-center rounded hover:border-primary hover:text-primary cursor-move transition-all group">
+<span class="material-symbols-outlined text-xl mb-xs text-secondary group-hover:text-primary">radio_button_checked</span>
+<span class="text-xs">单选框</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant p-sm flex flex-col items-center justify-center rounded hover:border-primary hover:text-primary cursor-move transition-all group">
+<span class="material-symbols-outlined text-xl mb-xs text-secondary group-hover:text-primary">check_box</span>
+<span class="text-xs">多选框</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant p-sm flex flex-col items-center justify-center rounded hover:border-primary hover:text-primary cursor-move transition-all group">
+<span class="material-symbols-outlined text-xl mb-xs text-secondary group-hover:text-primary">attach_file</span>
+<span class="text-xs">文件上传</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant p-sm flex flex-col items-center justify-center rounded hover:border-primary hover:text-primary cursor-move transition-all group">
+<span class="material-symbols-outlined text-xl mb-xs text-secondary group-hover:text-primary">image</span>
+<span class="text-xs">图片上传</span>
+</div>
+</div>
+<div class="p-md border-t border-b border-outline-variant mt-md">
+<h3 class="font-label-md text-on-surface">高级字段</h3>
+</div>
+<div class="p-md grid grid-cols-2 gap-sm">
+<div class="bg-surface-container-lowest border border-outline-variant p-sm flex flex-col items-center justify-center rounded opacity-50 cursor-not-allowed">
+<span class="material-symbols-outlined text-xl mb-xs">table_view</span>
+<span class="text-xs">子表格</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant p-sm flex flex-col items-center justify-center rounded opacity-50 cursor-not-allowed">
+<span class="material-symbols-outlined text-xl mb-xs">link</span>
+<span class="text-xs">关联数据</span>
+</div>
+</div>
+</aside>
+<!-- Middle Canvas -->
+<section class="flex-grow flex flex-col p-lg canvas-grid overflow-y-auto">
+<!-- Inner Toolbar -->
+<div class="flex justify-between items-center mb-md">
+<div class="flex gap-sm">
+<button class="bg-white border border-outline-variant px-sm py-1 rounded text-xs flex items-center gap-1 hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-sm">desktop_windows</span> 电脑端
+                        </button>
+<button class="bg-white border border-outline-variant px-sm py-1 rounded text-xs flex items-center gap-1 hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-sm">smartphone</span> 移动端
+                        </button>
+</div>
+<div class="flex gap-sm">
+<button class="text-xs text-secondary px-sm py-1 hover:bg-surface-container-high rounded transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">undo</span> 撤销
+                        </button>
+<button class="text-xs text-secondary px-sm py-1 hover:bg-surface-container-high rounded transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">redo</span> 重做
+                        </button>
+<div class="w-px h-4 bg-outline-variant self-center mx-1"></div>
+<button class="text-xs text-error px-sm py-1 hover:bg-error-container rounded transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">delete</span> 清空
+                        </button>
+</div>
+</div>
+<!-- Form Canvas Area -->
+<div class="bg-white rounded-lg shadow-sm border border-outline-variant min-h-full max-w-3xl mx-auto w-full p-xl flex flex-col gap-lg relative">
+<!-- Form Title -->
+<div class="border-b-2 border-primary pb-sm mb-md">
+<h2 class="text-xl font-bold text-on-surface">企业员工报销申请表</h2>
+<p class="text-sm text-secondary">请完整填写以下信息，确保附件清晰可见。</p>
+</div>
+<!-- Existing Field: Name (Selected) -->
+<div class="field-card relative p-md border-2 border-primary bg-primary-fixed/20 rounded group ring-4 ring-primary/5">
+<div class="flex justify-between items-start mb-sm">
+<label class="text-label-md text-on-surface flex items-center gap-xs">
+                                姓名 <span class="text-primary">*</span>
+</label>
+<div class="field-actions flex gap-1 opacity-100 transition-opacity">
+<button class="bg-primary text-white p-1 rounded-sm shadow-sm hover:bg-primary-container">
+<span class="material-symbols-outlined text-xs">content_copy</span>
+</button>
+<button class="bg-primary text-white p-1 rounded-sm shadow-sm hover:bg-primary-container">
+<span class="material-symbols-outlined text-xs">delete</span>
+</button>
+</div>
+</div>
+<input class="w-full border-outline-variant rounded p-2 bg-white/50 cursor-default" placeholder="请输入您的姓名" readonly="" type="text"/>
+<div class="absolute -top-3 left-3 bg-primary text-white text-[10px] px-2 py-0.5 rounded-full font-bold">单行文本</div>
+</div>
+<!-- Existing Field: Department -->
+<div class="field-card relative p-md border border-dashed border-outline hover:border-primary hover:bg-surface-container transition-all rounded group cursor-pointer">
+<div class="flex justify-between items-start mb-sm">
+<label class="text-label-md text-on-surface flex items-center gap-xs">
+                                所在部门 <span class="text-primary">*</span>
+</label>
+<div class="field-actions flex gap-1 opacity-0 transition-opacity">
+<button class="bg-primary text-white p-1 rounded-sm">
+<span class="material-symbols-outlined text-xs">content_copy</span>
+</button>
+<button class="bg-primary text-white p-1 rounded-sm">
+<span class="material-symbols-outlined text-xs">delete</span>
+</button>
+</div>
+</div>
+<div class="w-full border border-outline-variant rounded p-2 bg-white flex justify-between items-center text-secondary text-sm">
+                            请选择部门
+                            <span class="material-symbols-outlined">expand_more</span>
+</div>
+</div>
+<!-- Existing Field: Amount -->
+<div class="field-card relative p-md border border-dashed border-outline hover:border-primary hover:bg-surface-container transition-all rounded group cursor-pointer">
+<div class="flex justify-between items-start mb-sm">
+<label class="text-label-md text-on-surface flex items-center gap-xs">
+                                报销总额 (元) <span class="text-primary">*</span>
+</label>
+<div class="field-actions flex gap-1 opacity-0 transition-opacity">
+<button class="bg-primary text-white p-1 rounded-sm">
+<span class="material-symbols-outlined text-xs">content_copy</span>
+</button>
+<button class="bg-primary text-white p-1 rounded-sm">
+<span class="material-symbols-outlined text-xs">delete</span>
+</button>
+</div>
+</div>
+<input class="w-full border-outline-variant rounded p-2 bg-white" placeholder="0.00" readonly="" type="number"/>
+</div>
+<!-- Drop Zone Hint -->
+<div class="border-2 border-dashed border-primary/30 rounded-lg py-xl flex flex-col items-center justify-center bg-primary-fixed/10 group cursor-pointer hover:bg-primary-fixed/20 transition-all">
+<span class="material-symbols-outlined text-primary text-3xl mb-sm">add_circle</span>
+<p class="text-sm text-primary font-bold">点击或拖拽组件到此处</p>
+</div>
+</div>
+</section>
+<!-- Right Sidebar: Property Panel -->
+<aside class="w-72 bg-surface border-l border-outline-variant flex flex-col">
+<div class="flex border-b border-outline-variant">
+<button class="flex-1 py-md text-sm font-bold text-primary border-b-2 border-primary">字段属性</button>
+<button class="flex-1 py-md text-sm text-secondary hover:text-on-surface">表单设置</button>
+</div>
+<div class="p-md flex-grow overflow-y-auto space-y-lg">
+<!-- Property Section -->
+<div class="space-y-md">
+<div>
+<label class="block text-xs font-bold text-on-surface-variant mb-xs">字段标题</label>
+<input class="w-full border-outline-variant rounded text-sm p-2 focus:border-primary focus:ring-1 focus:ring-primary/20" type="text" value="姓名"/>
+</div>
+<div>
+<label class="block text-xs font-bold text-on-surface-variant mb-xs">占位提示</label>
+<input class="w-full border-outline-variant rounded text-sm p-2 focus:border-primary focus:ring-1 focus:ring-primary/20" type="text" value="请输入您的姓名"/>
+</div>
+<div>
+<label class="block text-xs font-bold text-on-surface-variant mb-xs">默认值</label>
+<input class="w-full border-outline-variant rounded text-sm p-2 focus:border-primary focus:ring-1 focus:ring-primary/20" placeholder="无" type="text"/>
+</div>
+<div class="flex items-center justify-between py-2">
+<span class="text-xs font-bold text-on-surface-variant">是否必填</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-surface-container-highest rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="flex items-center justify-between py-2">
+<span class="text-xs font-bold text-on-surface-variant">显示计数</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-surface-container-highest rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div>
+<label class="block text-xs font-bold text-on-surface-variant mb-xs">最大长度</label>
+<input class="w-full border-outline-variant rounded text-sm p-2 focus:border-primary focus:ring-1 focus:ring-primary/20" type="number" value="20"/>
+</div>
+<div class="pt-md border-t border-outline-variant">
+<label class="block text-xs font-bold text-on-surface-variant mb-xs">校验规则 (正则)</label>
+<div class="flex gap-2">
+<input class="flex-grow border-outline-variant rounded text-xs p-2 font-mono" placeholder="^[\u4E00-\u9FA5]{2,4}$" type="text"/>
+<button class="p-1 border border-outline-variant rounded hover:bg-surface-container">
+<span class="material-symbols-outlined text-sm">settings_suggest</span>
+</button>
+</div>
+</div>
+<div class="pt-md">
+<label class="block text-xs font-bold text-on-surface-variant mb-xs">显示条件</label>
+<button class="w-full py-2 border-2 border-dashed border-outline-variant rounded text-xs text-secondary hover:text-primary hover:border-primary transition-all">
+                                + 添加逻辑条件
+                            </button>
+</div>
+</div>
+</div>
+<div class="p-md border-t border-outline-variant bg-surface-container-lowest">
+<button class="w-full py-2 bg-secondary text-white rounded font-label-md hover:bg-on-secondary-fixed-variant transition-colors mb-sm">
+                        应用于所有字段
+                    </button>
+<button class="w-full py-2 text-primary border border-primary rounded font-label-md hover:bg-primary/5 transition-colors">
+                        复制字段配置 ID
+                    </button>
+</div>
+</aside>
+</main>
+</div>
+<!-- Micro-interaction JS -->
+<script>
+        // Simple drag-over visual simulation
+        const dropZone = document.querySelector('.border-dashed.border-primary\\/30');
+        if (dropZone) {
+            dropZone.addEventListener('mouseenter', () => {
+                dropZone.classList.add('scale-[1.02]', 'shadow-md');
+            });
+            dropZone.addEventListener('mouseleave', () => {
+                dropZone.classList.remove('scale-[1.02]', 'shadow-md');
+            });
+        }
+
+        // Toggle simulation for checkboxes
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                console.log('Property changed:', this.checked);
+            });
+        });
+
+        // Field selection simulation
+        const cards = document.querySelectorAll('.field-card');
+        cards.forEach(card => {
+            card.addEventListener('click', function() {
+                cards.forEach(c => {
+                    c.classList.remove('border-2', 'border-primary', 'bg-primary-fixed/20', 'ring-4', 'ring-primary/5');
+                    c.classList.add('border-dashed', 'border-outline');
+                    c.querySelector('.field-actions')?.classList.add('opacity-0');
+                    c.querySelector('.field-actions')?.classList.remove('opacity-100');
+                });
+                this.classList.remove('border-dashed', 'border-outline');
+                this.classList.add('border-2', 'border-primary', 'bg-primary-fixed/20', 'ring-4', 'ring-primary/5');
+                this.querySelector('.field-actions')?.classList.remove('opacity-0');
+                this.querySelector('.field-actions')?.classList.add('opacity-100');
+            });
+        });
+    </script>
+</body></html>

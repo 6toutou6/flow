@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>流程模板管理 - Axiom Workflow</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-dim": "#d0daf0",
+                    "surface-bright": "#f9f9ff",
+                    "primary": "#a2141b",
+                    "on-primary-container": "#ffe4e1",
+                    "surface-container": "#e7eeff",
+                    "outline-variant": "#e2bebb",
+                    "secondary-fixed-dim": "#bcc7dd",
+                    "outline": "#8e706d",
+                    "inverse-surface": "#273141",
+                    "inverse-on-surface": "#ebf1ff",
+                    "on-primary-fixed-variant": "#920212",
+                    "background": "#f9f9ff",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container-highest": "#d9e3f9",
+                    "error": "#ba1a1a",
+                    "surface": "#f9f9ff",
+                    "on-surface-variant": "#5a403e",
+                    "secondary": "#545f72",
+                    "on-tertiary-fixed-variant": "#004d61",
+                    "surface-container-low": "#f0f3ff",
+                    "on-error-container": "#93000a",
+                    "on-primary": "#ffffff",
+                    "tertiary-fixed": "#b8eaff",
+                    "tertiary": "#00596f",
+                    "on-tertiary-container": "#cef0ff",
+                    "on-primary-fixed": "#410003",
+                    "on-secondary-fixed-variant": "#3c475a",
+                    "on-tertiary-fixed": "#001f28",
+                    "secondary-container": "#d5e0f7",
+                    "primary-fixed": "#ffdad6",
+                    "tertiary-container": "#00738f",
+                    "surface-tint": "#b52426",
+                    "secondary-fixed": "#d8e3fa",
+                    "on-secondary-fixed": "#111c2c",
+                    "tertiary-fixed-dim": "#7fd1f1",
+                    "error-container": "#ffdad6",
+                    "on-background": "#121c2c",
+                    "primary-fixed-dim": "#ffb3ad",
+                    "on-secondary-container": "#586377",
+                    "inverse-primary": "#ffb3ad",
+                    "on-tertiary": "#ffffff",
+                    "on-surface": "#121c2c",
+                    "on-secondary": "#ffffff",
+                    "primary-container": "#c53030",
+                    "surface-variant": "#d9e3f9",
+                    "surface-container-high": "#dee8ff",
+                    "on-error": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "xl": "32px",
+                    "margin-mobile": "16px",
+                    "sm": "8px",
+                    "xs": "4px",
+                    "md": "16px",
+                    "lg": "24px",
+                    "gutter": "24px",
+                    "unit": "4px",
+                    "margin-desktop": "40px"
+            },
+            "fontFamily": {
+                    "label-md": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-md": ["Inter"]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-tab {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- SideNavBar Anchor -->
+<aside class="fixed left-0 top-0 h-full w-[280px] bg-surface-container-lowest border-r border-outline-variant flex flex-col z-50 overflow-y-auto transition-all duration-200 ease-in-out">
+<div class="p-lg flex flex-col gap-xs">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Axiom Workflow</h1>
+<p class="font-body-md text-body-md text-secondary">Enterprise Edition</p>
+</div>
+<nav class="flex-1 mt-lg">
+<ul class="space-y-sm px-md">
+<li>
+<!-- Active State Logic: Templates is active -->
+<a class="flex items-center gap-md px-md py-sm rounded text-primary font-bold border-r-4 border-primary bg-surface-container-low transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined active-tab" data-icon="description">description</span>
+<span class="font-body-md text-body-md">Templates</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded text-secondary hover:text-primary hover:bg-surface-container transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="edit_note">edit_note</span>
+<span class="font-body-md text-body-md">Form Designer</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded text-secondary hover:text-primary hover:bg-surface-container transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="assignment_turned_in">assignment_turned_in</span>
+<span class="font-body-md text-body-md">Task Distribution</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded text-secondary hover:text-primary hover:bg-surface-container transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-body-md text-body-md">Data Dashboard</span>
+</a>
+</li>
+</ul>
+</nav>
+<div class="mt-auto border-t border-outline-variant p-md">
+<ul class="space-y-sm">
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded text-secondary hover:text-primary hover:bg-surface-container transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded text-secondary hover:text-primary hover:bg-surface-container transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-body-md text-body-md">Support</span>
+</a>
+</li>
+</ul>
+<div class="mt-md flex items-center gap-md px-md py-sm">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A clean, professional headshot of a corporate administrator, looking directly at the camera with a friendly but authoritative expression. The lighting is bright and modern, set against a blurred high-tech office background with hints of deep crimson and soft blues to match the Axiom brand identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCTGy0MFhcLDC_PFp-U_uWAWTDw-2kSE5Fi-CtID_0fmhT_SqM6X_JiNnV8yBgJxeMNGRGhYkuuBtxg0SKByL7-rvD3fG7sf6Kbj2ZJbFTsOCtnbLZ4rSCzYxVA1bfiWjv8NEedMyVAm8s7ZvlHORYnEByE5nEEgfEFnLZF38ANr60EV1eWrF1lhxkpdBKueQhDWWXDyfz5MznwV_gZAtT0-Ao12IYFIgE3MyOqRTCr1vdqHbAaPomd8Q"/>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-bold">Admin User</span>
+<span class="text-[12px] text-secondary">System Administrator</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-[280px] min-h-screen flex flex-col">
+<!-- TopAppBar Anchor -->
+<header class="sticky top-0 z-40 h-16 bg-surface border-b border-outline-variant flex justify-between items-center px-lg shadow-sm">
+<div class="flex items-center gap-lg">
+<h2 class="font-headline-sm text-headline-sm font-black text-primary">Axiom Workflow</h2>
+<nav class="hidden md:flex items-center gap-lg ml-xl">
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Dashboard</a>
+<a class="font-label-md text-label-md text-primary border-b-2 border-primary pb-1" href="#">Analytics</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Reports</a>
+</nav>
+</div>
+<div class="flex items-center gap-md">
+<div class="relative hidden lg:block">
+<input class="bg-surface-container-low border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary w-64 transition-all" placeholder="Search templates..." type="text"/>
+<span class="material-symbols-outlined absolute left-3 top-2 text-secondary text-lg" data-icon="search">search</span>
+</div>
+<button class="material-symbols-outlined p-2 text-secondary hover:text-primary transition-colors" data-icon="notifications">notifications</button>
+<button class="material-symbols-outlined p-2 text-secondary hover:text-primary transition-colors" data-icon="apps">apps</button>
+<button class="bg-primary hover:bg-primary-container text-white px-md py-2 rounded-lg font-label-md text-label-md transition-transform scale-95 active:scale-100 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+                    Create New
+                </button>
+</div>
+</header>
+<!-- Canvas Area -->
+<div class="p-xl max-w-[1440px] mx-auto w-full">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-center justify-between mb-xl gap-md">
+<div>
+<h3 class="font-headline-lg text-headline-lg text-on-surface">流程模板管理</h3>
+<p class="font-body-md text-body-md text-secondary mt-xs">管理并优化您的业务流程模板。</p>
+</div>
+<div class="flex items-center gap-md">
+<button class="bg-primary text-white px-lg py-3 rounded-lg font-label-md text-label-md flex items-center gap-2 shadow-sm hover:brightness-110 transition-all">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+                        创建模板
+                    </button>
+</div>
+</div>
+<!-- Filters & Controls -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md mb-lg shadow-sm flex flex-wrap items-center justify-between gap-md">
+<div class="flex flex-wrap items-center gap-md">
+<div class="flex flex-col gap-1">
+<label class="text-[12px] font-bold text-secondary uppercase tracking-wider">类别</label>
+<select class="bg-surface-container-low border-outline-variant rounded-lg text-sm px-4 py-2 focus:ring-primary focus:border-primary">
+<option>全部类别</option>
+<option>人事行政</option>
+<option>财务审批</option>
+<option>研发流程</option>
+</select>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-[12px] font-bold text-secondary uppercase tracking-wider">状态</label>
+<div class="flex bg-surface-container-low p-1 rounded-lg border border-outline-variant">
+<button class="px-4 py-1.5 text-sm font-medium rounded-md bg-white shadow-sm text-primary">全部</button>
+<button class="px-4 py-1.5 text-sm font-medium rounded-md text-secondary hover:text-on-surface transition-colors">激活</button>
+<button class="px-4 py-1.5 text-sm font-medium rounded-md text-secondary hover:text-on-surface transition-colors">禁用</button>
+</div>
+</div>
+</div>
+<div class="relative w-full md:w-auto">
+<input class="w-full md:w-72 bg-surface-container-low border-outline-variant rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-primary" placeholder="搜索模板名称或编号..." type="text"/>
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-secondary text-sm" data-icon="search">search</span>
+</div>
+</div>
+<!-- Template Table Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low border-b border-outline-variant">
+<tr>
+<th class="px-lg py-md text-[12px] font-bold text-secondary uppercase tracking-wider">模板名称</th>
+<th class="px-lg py-md text-[12px] font-bold text-secondary uppercase tracking-wider">类别</th>
+<th class="px-lg py-md text-[12px] font-bold text-secondary uppercase tracking-wider">版本</th>
+<th class="px-lg py-md text-[12px] font-bold text-secondary uppercase tracking-wider text-center">状态</th>
+<th class="px-lg py-md text-[12px] font-bold text-secondary uppercase tracking-wider">最后更新</th>
+<th class="px-lg py-md text-[12px] font-bold text-secondary uppercase tracking-wider text-right">操作</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="px-lg py-md">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded bg-primary/5 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+</div>
+<div>
+<div class="font-label-md text-label-md text-on-surface">员工入职申请流程</div>
+<div class="text-[12px] text-secondary">ID: TMP-20230801</div>
+</div>
+</div>
+</td>
+<td class="px-lg py-md">
+<span class="px-2 py-1 rounded bg-secondary-container text-on-secondary-container text-[12px] font-medium">人事行政</span>
+</td>
+<td class="px-lg py-md">
+<span class="text-sm font-medium font-mono text-secondary">v2.4.0</span>
+</td>
+<td class="px-lg py-md text-center">
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</td>
+<td class="px-lg py-md text-sm text-secondary">
+                                    2023-11-20 14:30
+                                </td>
+<td class="px-lg py-md text-right">
+<div class="flex justify-end gap-1">
+<button class="p-2 text-secondary hover:text-primary hover:bg-surface-container rounded transition-colors" title="编辑">
+<span class="material-symbols-outlined text-xl" data-icon="edit">edit</span>
+</button>
+<button class="p-2 text-secondary hover:text-primary hover:bg-surface-container rounded transition-colors" title="复制">
+<span class="material-symbols-outlined text-xl" data-icon="content_copy">content_copy</span>
+</button>
+<button class="p-2 text-secondary hover:text-error hover:bg-error-container/20 rounded transition-colors" title="删除">
+<span class="material-symbols-outlined text-xl" data-icon="delete">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="px-lg py-md">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded bg-primary/5 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+</div>
+<div>
+<div class="font-label-md text-label-md text-on-surface">差旅费报销审批</div>
+<div class="text-[12px] text-secondary">ID: TMP-20230805</div>
+</div>
+</div>
+</td>
+<td class="px-lg py-md">
+<span class="px-2 py-1 rounded bg-secondary-container text-on-secondary-container text-[12px] font-medium">财务审批</span>
+</td>
+<td class="px-lg py-md">
+<span class="text-sm font-medium font-mono text-secondary">v1.1.2</span>
+</td>
+<td class="px-lg py-md text-center">
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</td>
+<td class="px-lg py-md text-sm text-secondary">
+                                    2023-11-18 09:15
+                                </td>
+<td class="px-lg py-md text-right">
+<div class="flex justify-end gap-1">
+<button class="p-2 text-secondary hover:text-primary hover:bg-surface-container rounded transition-colors" title="编辑">
+<span class="material-symbols-outlined text-xl" data-icon="edit">edit</span>
+</button>
+<button class="p-2 text-secondary hover:text-primary hover:bg-surface-container rounded transition-colors" title="复制">
+<span class="material-symbols-outlined text-xl" data-icon="content_copy">content_copy</span>
+</button>
+<button class="p-2 text-secondary hover:text-error hover:bg-error-container/20 rounded transition-colors" title="删除">
+<span class="material-symbols-outlined text-xl" data-icon="delete">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="px-lg py-md">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded bg-primary/5 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="code">code</span>
+</div>
+<div>
+<div class="font-label-md text-label-md text-on-surface">代码审计流程模板</div>
+<div class="text-[12px] text-secondary">ID: TMP-20230912</div>
+</div>
+</div>
+</td>
+<td class="px-lg py-md">
+<span class="px-2 py-1 rounded bg-secondary-container text-on-secondary-container text-[12px] font-medium">研发流程</span>
+</td>
+<td class="px-lg py-md">
+<span class="text-sm font-medium font-mono text-secondary">v3.0.1</span>
+</td>
+<td class="px-lg py-md text-center">
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</td>
+<td class="px-lg py-md text-sm text-secondary">
+                                    2023-10-05 16:45
+                                </td>
+<td class="px-lg py-md text-right">
+<div class="flex justify-end gap-1">
+<button class="p-2 text-secondary hover:text-primary hover:bg-surface-container rounded transition-colors" title="编辑">
+<span class="material-symbols-outlined text-xl" data-icon="edit">edit</span>
+</button>
+<button class="p-2 text-secondary hover:text-primary hover:bg-surface-container rounded transition-colors" title="复制">
+<span class="material-symbols-outlined text-xl" data-icon="content_copy">content_copy</span>
+</button>
+<button class="p-2 text-secondary hover:text-error hover:bg-error-container/20 rounded transition-colors" title="删除">
+<span class="material-symbols-outlined text-xl" data-icon="delete">delete</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="bg-surface-container-low px-lg py-md border-t border-outline-variant flex items-center justify-between">
+<span class="text-sm text-secondary">显示 1 到 10，共 48 条数据</span>
+<div class="flex gap-2">
+<button class="p-2 border border-outline-variant rounded hover:bg-white transition-colors disabled:opacity-50">
+<span class="material-symbols-outlined text-sm" data-icon="chevron_left">chevron_left</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded bg-primary text-white text-sm font-bold">1</button>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-white transition-colors text-sm">2</button>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-white transition-colors text-sm">3</button>
+<button class="p-2 border border-outline-variant rounded hover:bg-white transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Bento Statistics Section -->
+<div class="mt-xl grid grid-cols-1 md:grid-cols-4 gap-lg">
+<div class="col-span-1 bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm">
+<div class="flex justify-between items-start mb-md">
+<div class="p-2 bg-primary/10 rounded-lg text-primary">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+</div>
+<span class="text-xs font-bold text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="trending_up">trending_up</span>
+                            +12%
+                        </span>
+</div>
+<div class="text-2xl font-bold text-on-surface">128</div>
+<div class="text-sm text-secondary">总模板数</div>
+</div>
+<div class="col-span-1 bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm">
+<div class="flex justify-between items-start mb-md">
+<div class="p-2 bg-tertiary-container/20 rounded-lg text-tertiary">
+<span class="material-symbols-outlined" data-icon="bolt">bolt</span>
+</div>
+<span class="text-xs font-bold text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="check_circle">check_circle</span>
+                            运行中
+                        </span>
+</div>
+<div class="text-2xl font-bold text-on-surface">84</div>
+<div class="text-sm text-secondary">活跃流程</div>
+</div>
+<div class="col-span-2 bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm flex items-center gap-xl">
+<div class="flex-1">
+<div class="text-sm font-bold text-secondary mb-1">本月模板更新率</div>
+<div class="h-2 w-full bg-surface-container-low rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 65%"></div>
+</div>
+<div class="flex justify-between mt-2">
+<span class="text-xs text-secondary">目标: 80%</span>
+<span class="text-xs font-bold text-primary">65% 已完成</span>
+</div>
+</div>
+<div class="hidden sm:block">
+<button class="text-primary font-bold text-sm flex items-center gap-1 hover:underline">
+                            查看报告 <span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Micro-interactions for switches
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const row = this.closest('tr');
+                if (this.checked) {
+                    console.log('Status activated for row');
+                } else {
+                    console.log('Status deactivated for row');
+                }
+            });
+        });
+
+        // Search bar interaction
+        const searchInputs = document.querySelectorAll('input[type="text"]');
+        searchInputs.forEach(input => {
+            input.addEventListener('focus', () => {
+                input.parentElement.classList.add('scale-105');
+            });
+            input.addEventListener('blur', () => {
+                input.parentElement.classList.remove('scale-105');
+            });
+        });
+    </script>
+</body></html>

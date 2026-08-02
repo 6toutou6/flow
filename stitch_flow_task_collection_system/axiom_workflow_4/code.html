@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Axiom Workflow - 数据收集后台</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-dim": "#d0daf0",
+                        "surface-bright": "#f9f9ff",
+                        "primary": "#a2141b",
+                        "on-primary-container": "#ffe4e1",
+                        "surface-container": "#e7eeff",
+                        "outline-variant": "#e2bebb",
+                        "secondary-fixed-dim": "#bcc7dd",
+                        "outline": "#8e706d",
+                        "inverse-surface": "#273141",
+                        "inverse-on-surface": "#ebf1ff",
+                        "on-primary-fixed-variant": "#920212",
+                        "background": "#f9f9ff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#d9e3f9",
+                        "error": "#ba1a1a",
+                        "surface": "#f9f9ff",
+                        "on-surface-variant": "#5a403e",
+                        "secondary": "#545f72",
+                        "on-tertiary-fixed-variant": "#004d61",
+                        "surface-container-low": "#f0f3ff",
+                        "on-error-container": "#93000a",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed": "#b8eaff",
+                        "tertiary": "#00596f",
+                        "on-tertiary-container": "#cef0ff",
+                        "on-primary-fixed": "#410003",
+                        "on-secondary-fixed-variant": "#3c475a",
+                        "on-tertiary-fixed": "#001f28",
+                        "secondary-container": "#d5e0f7",
+                        "primary-fixed": "#ffdad6",
+                        "tertiary-container": "#00738f",
+                        "surface-tint": "#b52426",
+                        "secondary-fixed": "#d8e3fa",
+                        "on-secondary-fixed": "#111c2c",
+                        "tertiary-fixed-dim": "#7fd1f1",
+                        "error-container": "#ffdad6",
+                        "on-background": "#121c2c",
+                        "primary-fixed-dim": "#ffb3ad",
+                        "on-secondary-container": "#586377",
+                        "inverse-primary": "#ffb3ad",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#121c2c",
+                        "on-secondary": "#ffffff",
+                        "primary-container": "#c53030",
+                        "surface-variant": "#d9e3f9",
+                        "surface-container-high": "#dee8ff",
+                        "on-error": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "margin-mobile": "16px",
+                        "sm": "8px",
+                        "xs": "4px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "gutter": "24px",
+                        "unit": "4px",
+                        "margin-desktop": "40px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .zebra-row:nth-child(even) { background-color: #f7fafc; }
+        .zebra-row:hover { background-color: #FFF5F5; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E0; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #A0AEC0; }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full w-[280px] bg-surface-container-lowest border-r border-outline-variant flex flex-col z-50">
+<div class="p-lg flex flex-col gap-xs">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Axiom Workflow</h1>
+<p class="font-label-sm text-label-sm text-secondary uppercase tracking-widest">Enterprise Edition</p>
+</div>
+<nav class="flex-1 px-md py-sm overflow-y-auto">
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-md px-md py-sm font-body-md text-body-md text-secondary hover:text-primary hover:bg-surface-container transition-colors rounded" href="#">
+<span class="material-symbols-outlined">description</span>
+<span>Templates</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm font-body-md text-body-md text-secondary hover:text-primary hover:bg-surface-container transition-colors rounded" href="#">
+<span class="material-symbols-outlined">edit_note</span>
+<span>Form Designer</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm font-body-md text-body-md text-secondary hover:text-primary hover:bg-surface-container transition-colors rounded" href="#">
+<span class="material-symbols-outlined">assignment_turned_in</span>
+<span>Task Distribution</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm font-body-md text-body-md text-primary font-bold border-r-4 border-primary bg-surface-container-low rounded" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Data Dashboard</span>
+</a>
+</div>
+</nav>
+<footer class="p-md border-t border-outline-variant flex flex-col gap-1">
+<a class="flex items-center gap-md px-md py-sm font-body-md text-body-md text-secondary hover:text-primary hover:bg-surface-container transition-colors rounded" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Settings</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm font-body-md text-body-md text-secondary hover:text-primary hover:bg-surface-container transition-colors rounded" href="#">
+<span class="material-symbols-outlined">help</span>
+<span>Support</span>
+</a>
+<div class="mt-md flex items-center gap-md px-md py-sm">
+<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional studio headshot of a corporate administrator, middle-aged, with a neutral and confident expression. The lighting is soft and high-key, set against a minimalist light grey background. The image has a clean, high-density corporate aesthetic, emphasizing reliability and professional vigor." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAROHaS3dOkfxEzqQrL2dR1a5CyxZ6JQGeCZgQGloJgV5n-RzNKubTTPQyH3IojjcGrtDzSd4WO3fSp5iRI18fsSRCYRtUiTLxPTeNWPIJeUvF9717uyPa1PTlcpWUu46f0KiUG8sL0pOBTa4jO2yE9STvRkVhd1R39qpxK85_yOeGfg1q52W1k0s_T0wXoV546At816mTpuyQ13kc_9bfGiSkg_zXuukPdHS2v3jiJmiju-6bYUd9a9g"/>
+</div>
+<div class="flex flex-col">
+<span class="text-label-sm font-bold truncate max-w-[120px]">Admin User</span>
+<span class="text-[10px] text-secondary">System Root</span>
+</div>
+</div>
+</footer>
+</aside>
+<!-- Main Content Shell -->
+<div class="ml-[280px] min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="sticky top-0 z-40 bg-surface border-b border-outline-variant h-16 flex items-center justify-between px-md shadow-sm">
+<div class="flex items-center gap-lg">
+<h2 class="font-headline-sm text-headline-sm font-black text-primary">Axiom Workflow</h2>
+<nav class="hidden md:flex gap-md">
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Dashboard</a>
+<a class="font-label-md text-label-md text-primary border-b-2 border-primary pb-1" href="#">Analytics</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Reports</a>
+</nav>
+</div>
+<div class="flex items-center gap-md flex-1 justify-end">
+<div class="relative max-w-sm w-full hidden lg:block">
+<input class="w-full pl-10 pr-4 py-2 text-sm border-outline-variant bg-surface-container-low focus:ring-primary focus:border-primary rounded" placeholder="搜索提交内容..." type="text"/>
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm">search</span>
+</div>
+<div class="flex items-center gap-sm px-2">
+<button class="p-sm text-secondary hover:text-primary transition-all scale-95 active:scale-100">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-sm text-secondary hover:text-primary transition-all scale-95 active:scale-100">
+<span class="material-symbols-outlined">apps</span>
+</button>
+</div>
+<button class="bg-primary hover:bg-primary/90 text-white font-bold py-2 px-md rounded text-label-md flex items-center gap-xs shadow-sm transition-transform scale-95 active:scale-100">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>新建任务</span>
+</button>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 p-lg max-w-[1440px] mx-auto w-full space-y-lg">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-md">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-xs">数据收集后台</h1>
+<p class="font-body-md text-body-md text-secondary">监控工作流提交状态与数据完整性分析报告</p>
+</div>
+<div class="flex items-center gap-sm">
+<div class="flex items-center bg-white border border-outline-variant rounded p-1 shadow-sm">
+<span class="material-symbols-outlined text-secondary px-sm text-sm">calendar_today</span>
+<input class="border-none focus:ring-0 text-sm py-1 w-48 text-on-surface-variant" type="text" value="2023-10-01 — 2023-10-31"/>
+</div>
+<button class="bg-secondary-fixed text-on-secondary-fixed hover:bg-secondary-fixed/80 py-2 px-md font-bold rounded flex items-center gap-xs transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span>导出 Excel</span>
+</button>
+<button class="bg-surface-container-lowest border border-outline-variant text-on-surface hover:bg-surface-container-low p-2 rounded transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+</button>
+</div>
+</div>
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-lg">
+<div class="bg-white p-lg rounded-xl border border-outline-variant shadow-sm flex items-center justify-between">
+<div>
+<p class="text-label-sm text-secondary uppercase font-bold tracking-wider mb-sm">总提交次数</p>
+<h3 class="text-display-lg font-display-lg text-primary">12,840</h3>
+<p class="text-xs text-green-600 flex items-center mt-xs">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+<span>较上月提升 12.5%</span>
+</p>
+</div>
+<div class="bg-primary/5 p-md rounded-full text-primary">
+<span class="material-symbols-outlined text-[40px]">bar_chart</span>
+</div>
+</div>
+<div class="bg-white p-lg rounded-xl border border-outline-variant shadow-sm flex items-center justify-between">
+<div>
+<p class="text-label-sm text-secondary uppercase font-bold tracking-wider mb-sm">待处理申请</p>
+<h3 class="text-display-lg font-display-lg text-on-surface">432</h3>
+<p class="text-xs text-amber-600 flex items-center mt-xs">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span>平均响应时间 4.2h</span>
+</p>
+</div>
+<div class="bg-surface-container p-md rounded-full text-secondary">
+<span class="material-symbols-outlined text-[40px]">pending_actions</span>
+</div>
+</div>
+<div class="bg-white p-lg rounded-xl border border-outline-variant shadow-sm flex items-center justify-between">
+<div>
+<p class="text-label-sm text-secondary uppercase font-bold tracking-wider mb-sm">表单完成率</p>
+<h3 class="text-display-lg font-display-lg text-on-surface">94.8%</h3>
+<div class="w-full bg-surface-container-low h-1.5 rounded-full mt-sm overflow-hidden">
+<div class="bg-primary h-full w-[94.8%]"></div>
+</div>
+</div>
+<div class="bg-surface-container p-md rounded-full text-secondary">
+<span class="material-symbols-outlined text-[40px]">task_alt</span>
+</div>
+</div>
+</div>
+<!-- Data Table Section -->
+<div class="bg-white rounded-xl border border-outline-variant shadow-sm overflow-hidden">
+<div class="p-md border-b border-outline-variant flex justify-between items-center bg-surface-container-low/50">
+<h4 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">list_alt</span>
+                        数据提交明细
+                    </h4>
+<div class="flex gap-sm">
+<span class="px-3 py-1 bg-white border border-outline-variant rounded text-xs text-secondary">
+                            显示 1 - 15 条 (共 4,203 条)
+                        </span>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-dim/20">
+<th class="px-lg py-md text-label-md font-bold text-on-surface uppercase border-b border-outline-variant">用户姓名</th>
+<th class="px-lg py-md text-label-md font-bold text-on-surface uppercase border-b border-outline-variant">提交时间</th>
+<th class="px-lg py-md text-label-md font-bold text-on-surface uppercase border-b border-outline-variant">使用的模版</th>
+<th class="px-lg py-md text-label-md font-bold text-on-surface uppercase border-b border-outline-variant">状态</th>
+<th class="px-lg py-md text-label-md font-bold text-on-surface uppercase border-b border-outline-variant text-right">操作</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<!-- Row 1 -->
+<tr class="zebra-row transition-colors group">
+<td class="px-lg py-md">
+<div class="flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-primary-fixed text-primary flex items-center justify-center font-bold text-xs">张</div>
+<div>
+<p class="text-sm font-bold text-on-surface">张三</p>
+<p class="text-[10px] text-secondary">ID: USR-8291</p>
+</div>
+</div>
+</td>
+<td class="px-lg py-md text-sm text-secondary">2023-10-24 14:22:15</td>
+<td class="px-lg py-md">
+<span class="px-sm py-1 bg-surface-container text-secondary text-xs rounded border border-outline-variant/30">季度合规检查表</span>
+</td>
+<td class="px-lg py-md">
+<span class="inline-flex items-center gap-1 px-sm py-0.5 rounded-full text-[12px] font-medium bg-green-100 text-green-800 border border-green-200">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> 已完成
+                                    </span>
+</td>
+<td class="px-lg py-md text-right">
+<div class="flex items-center justify-end gap-md">
+<button class="text-primary hover:underline text-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+                                            查看详情
+                                        </button>
+<button class="text-secondary hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[18px]">download_for_offline</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="zebra-row transition-colors group">
+<td class="px-lg py-md">
+<div class="flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed text-secondary flex items-center justify-center font-bold text-xs">李</div>
+<div>
+<p class="text-sm font-bold text-on-surface">李思思</p>
+<p class="text-[10px] text-secondary">ID: USR-1022</p>
+</div>
+</div>
+</td>
+<td class="px-lg py-md text-sm text-secondary">2023-10-24 13:05:42</td>
+<td class="px-lg py-md">
+<span class="px-sm py-1 bg-surface-container text-secondary text-xs rounded border border-outline-variant/30">新员工入职登记</span>
+</td>
+<td class="px-lg py-md">
+<span class="inline-flex items-center gap-1 px-sm py-0.5 rounded-full text-[12px] font-medium bg-amber-100 text-amber-800 border border-amber-200">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> 审核中
+                                    </span>
+</td>
+<td class="px-lg py-md text-right">
+<div class="flex items-center justify-end gap-md">
+<button class="text-primary hover:underline text-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+                                            查看详情
+                                        </button>
+<button class="text-secondary hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[18px]">download_for_offline</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="zebra-row transition-colors group">
+<td class="px-lg py-md">
+<div class="flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-primary-fixed text-primary flex items-center justify-center font-bold text-xs">王</div>
+<div>
+<p class="text-sm font-bold text-on-surface">王五</p>
+<p class="text-[10px] text-secondary">ID: USR-4421</p>
+</div>
+</div>
+</td>
+<td class="px-lg py-md text-sm text-secondary">2023-10-24 11:58:00</td>
+<td class="px-lg py-md">
+<span class="px-sm py-1 bg-surface-container text-secondary text-xs rounded border border-outline-variant/30">年度预算报表</span>
+</td>
+<td class="px-lg py-md">
+<span class="inline-flex items-center gap-1 px-sm py-0.5 rounded-full text-[12px] font-medium bg-red-100 text-red-800 border border-red-200">
+<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> 已驳回
+                                    </span>
+</td>
+<td class="px-lg py-md text-right">
+<div class="flex items-center justify-end gap-md">
+<button class="text-primary hover:underline text-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+                                            查看详情
+                                        </button>
+<button class="text-secondary hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[18px]">download_for_offline</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="zebra-row transition-colors group">
+<td class="px-lg py-md">
+<div class="flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed text-tertiary flex items-center justify-center font-bold text-xs">赵</div>
+<div>
+<p class="text-sm font-bold text-on-surface">赵六</p>
+<p class="text-[10px] text-secondary">ID: USR-5520</p>
+</div>
+</div>
+</td>
+<td class="px-lg py-md text-sm text-secondary">2023-10-24 09:12:33</td>
+<td class="px-lg py-md">
+<span class="px-sm py-1 bg-surface-container text-secondary text-xs rounded border border-outline-variant/30">季度合规检查表</span>
+</td>
+<td class="px-lg py-md">
+<span class="inline-flex items-center gap-1 px-sm py-0.5 rounded-full text-[12px] font-medium bg-green-100 text-green-800 border border-green-200">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> 已完成
+                                    </span>
+</td>
+<td class="px-lg py-md text-right">
+<div class="flex items-center justify-end gap-md">
+<button class="text-primary hover:underline text-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+                                            查看详情
+                                        </button>
+<button class="text-secondary hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[18px]">download_for_offline</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-md bg-surface-container-low/30 border-t border-outline-variant flex items-center justify-between">
+<p class="text-sm text-secondary">每页显示 15 条</p>
+<div class="flex items-center gap-1">
+<button class="p-1 rounded hover:bg-surface-container text-secondary disabled:opacity-30" disabled="">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded bg-primary text-white font-bold text-sm">1</button>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-container text-on-surface text-sm transition-colors">2</button>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-container text-on-surface text-sm transition-colors">3</button>
+<span class="px-2 text-secondary">...</span>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-container text-on-surface text-sm transition-colors">128</button>
+<button class="p-1 rounded hover:bg-surface-container text-secondary">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Dashboard Insights (Bento Style) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+<div class="lg:col-span-8 bg-white p-lg rounded-xl border border-outline-variant shadow-sm h-80 flex flex-col">
+<div class="flex justify-between items-center mb-md">
+<h4 class="font-headline-sm text-headline-sm text-on-surface">提交量趋势 (过去30天)</h4>
+<div class="flex gap-2">
+<span class="flex items-center gap-1 text-xs text-primary font-bold"><span class="w-2 h-2 rounded-full bg-primary"></span> 实际提交</span>
+<span class="flex items-center gap-1 text-xs text-secondary"><span class="w-2 h-2 rounded-full bg-secondary"></span> 预期目标</span>
+</div>
+</div>
+<div class="flex-1 flex items-end gap-2 pb-4">
+<!-- Mock Bars -->
+<div class="flex-1 bg-surface-container h-[40%] rounded-t-sm relative group">
+<div class="absolute bottom-0 w-full bg-primary/40 h-[80%] rounded-t-sm"></div>
+<div class="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-on-surface text-white text-[10px] py-1 px-2 rounded whitespace-nowrap pointer-events-none transition-opacity">10/01: 242</div>
+</div>
+<div class="flex-1 bg-surface-container h-[55%] rounded-t-sm relative group">
+<div class="absolute bottom-0 w-full bg-primary/40 h-[70%] rounded-t-sm"></div>
+</div>
+<div class="flex-1 bg-surface-container h-[45%] rounded-t-sm relative group">
+<div class="absolute bottom-0 w-full bg-primary/40 h-[90%] rounded-t-sm"></div>
+</div>
+<div class="flex-1 bg-surface-container h-[60%] rounded-t-sm relative group">
+<div class="absolute bottom-0 w-full bg-primary/40 h-[75%] rounded-t-sm"></div>
+</div>
+<div class="flex-1 bg-surface-container h-[70%] rounded-t-sm relative group">
+<div class="absolute bottom-0 w-full bg-primary/40 h-[85%] rounded-t-sm"></div>
+</div>
+<div class="flex-1 bg-surface-container h-[65%] rounded-t-sm relative group">
+<div class="absolute bottom-0 w-full bg-primary/40 h-[95%] rounded-t-sm"></div>
+</div>
+<div class="flex-1 bg-surface-container h-[80%] rounded-t-sm relative group">
+<div class="absolute bottom-0 w-full bg-primary/40 h-[70%] rounded-t-sm"></div>
+</div>
+<div class="flex-1 bg-primary h-[95%] rounded-t-sm relative group">
+<div class="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-on-surface text-white text-[10px] py-1 px-2 rounded whitespace-nowrap pointer-events-none transition-opacity">10/08: 412</div>
+</div>
+<div class="flex-1 bg-surface-container h-[75%] rounded-t-sm relative group">
+<div class="absolute bottom-0 w-full bg-primary/40 h-[80%] rounded-t-sm"></div>
+</div>
+<div class="flex-1 bg-surface-container h-[65%] rounded-t-sm relative group">
+<div class="absolute bottom-0 w-full bg-primary/40 h-[60%] rounded-t-sm"></div>
+</div>
+<div class="flex-1 bg-surface-container h-[55%] rounded-t-sm relative group">
+<div class="absolute bottom-0 w-full bg-primary/40 h-[85%] rounded-t-sm"></div>
+</div>
+<div class="flex-1 bg-surface-container h-[40%] rounded-t-sm relative group">
+<div class="absolute bottom-0 w-full bg-primary/40 h-[70%] rounded-t-sm"></div>
+</div>
+</div>
+</div>
+<div class="lg:col-span-4 bg-primary text-white p-lg rounded-xl shadow-lg relative overflow-hidden flex flex-col justify-between">
+<!-- Subtle background decoration -->
+<div class="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
+<div>
+<h4 class="font-headline-sm text-headline-sm mb-xs">异常警告</h4>
+<p class="text-white/80 text-sm leading-relaxed">检测到在过去 24 小时内有 3 个核心模版的提交失败率异常偏高。建议检查模版逻辑或服务器响应。</p>
+</div>
+<div class="space-y-sm">
+<div class="bg-white/10 p-sm rounded border border-white/20 flex justify-between items-center">
+<span class="text-xs font-bold">库存清点表单</span>
+<span class="px-2 py-0.5 bg-red-500 rounded text-[10px]">Error 12%</span>
+</div>
+<div class="bg-white/10 p-sm rounded border border-white/20 flex justify-between items-center">
+<span class="text-xs font-bold">销售周报</span>
+<span class="px-2 py-0.5 bg-amber-500 rounded text-[10px]">Warning 5%</span>
+</div>
+</div>
+<button class="w-full bg-white text-primary font-bold py-2 rounded text-sm mt-md hover:bg-white/90 transition-colors">
+                        立即诊断异常
+                    </button>
+</div>
+</div>
+</main>
+</div>
+<!-- Micro-interaction Scripts -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Hover effect for table rows
+            const rows = document.querySelectorAll('.zebra-row');
+            rows.forEach(row => {
+                row.addEventListener('mouseenter', () => {
+                    row.style.transform = 'translateX(4px)';
+                    row.style.transition = 'all 0.2s ease-out';
+                });
+                row.addEventListener('mouseleave', () => {
+                    row.style.transform = 'translateX(0)';
+                });
+            });
+
+            // Smooth fade for stats counters (mock)
+            const stats = document.querySelectorAll('.text-display-lg');
+            stats.forEach(stat => {
+                const val = stat.innerText;
+                stat.style.opacity = '0';
+                stat.style.transform = 'translateY(10px)';
+                setTimeout(() => {
+                    stat.style.transition = 'all 0.5s ease-out';
+                    stat.style.opacity = '1';
+                    stat.style.transform = 'translateY(0)';
+                }, 100);
+            });
+        });
+    </script>
+</body></html>
