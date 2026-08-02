@@ -19,6 +19,8 @@ public class FlowTask {
     private Long id;
 
     private Long templateId;
+    /** 下发批次ID（同一次下发/跟进共享，= 组内首条任务ID，用于「任务→人员」分组） */
+    private Long dispatchId;
     /** 锁定模板版本，防止模板修改影响已有任务 */
     private Integer templateVersion;
     private String taskName;

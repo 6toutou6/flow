@@ -17,6 +17,14 @@ export function getTaskDetail(id) {
   })
 }
 
+// 任务组详情（数据后台 level 2：组头 + 全部成员）
+export function getTaskGroupDetail(dispatchId) {
+  return request({
+    url: `/flow-task/dispatch/${dispatchId}`,
+    method: 'get'
+  })
+}
+
 // 下发任务
 export function createTask(data) {
   return request({

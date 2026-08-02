@@ -8,6 +8,7 @@ import com.zqk.house.flowtask.vo.MyTodoVO;
 import com.zqk.house.flowtask.vo.NodeSubmitDTO;
 import com.zqk.house.flowtask.vo.TaskCreateDTO;
 import com.zqk.house.flowtask.vo.TaskDetailVO;
+import com.zqk.house.flowtask.vo.TaskGroupVO;
 import com.zqk.house.flowtask.vo.TaskProgressVO;
 import com.zqk.house.util.PageResult;
 import com.zqk.house.util.Result;
@@ -25,8 +26,15 @@ public class FlowTaskController {
     private FlowTaskService flowTaskService;
 
     @PostMapping("/list")
-    public Result<PageResult<FlowTask>> list(@RequestBody FlowTaskQueryForm form) {
+    public Result<PageResult<TaskGroupVO>> list(@RequestBody FlowTaskQueryForm form) {
         return Result.success("获取成功", flowTaskService.getPage(form));
+    }
+
+    /** 任务组详情：组头 + 全部成员（数据后台 level 2） */
+    @GetMapping("/dispatch/{dispatchId}")
+    public Result<TaskGroupVO> dispatchDetail(@PathVariable Long dispatchId) {
+        TaskGroupVO vo = flowTaskService.getDispatchDetail(dispatchId);
+        return vo != null ? Result.success("获取成功", vo) : Result.notFound("任务组不存在");
     }
 
     @GetMapping("/{id}")

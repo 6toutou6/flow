@@ -25,6 +25,7 @@
               <span class="step-no">{{ idx + 1 }}</span>
               <span class="step-name">{{ item.nodeName }}</span>
               <span class="step-badge" :class="'badge-' + item.status">{{ statusLabel(item.status) }}</span>
+              <span v-if="item.status === 'current'" class="cur-stage-tag">当前阶段</span>
             </div>
             <div class="step-meta">
               <template v-if="item.taskNode && item.taskNode.submitStatus === 1">
@@ -35,21 +36,27 @@
                 <span v-if="item.taskNode.action === 0 && item.taskNode.passComment" class="meta-pass" :title="item.taskNode.passComment">意见：{{ item.taskNode.passComment }}</span>
               </template>
               <template v-else-if="item.taskNode && item.taskNode.submitStatus === 0">
-                <span><i class="el-icon-user" /> {{ item.taskNode.handlerName || '待处理' }}</span>
+                <span><i class="el-icon-user" /> {{ item.pendingNames || item.taskNode.handlerName || '待处理' }}</span>
+                <span v-if="item.taskNode.rejectReason" class="meta-reason"><i class="el-icon-warning-outline" /> 退回建议：{{ item.taskNode.rejectReason }}</span>
               </template>
               <template v-else>
                 <span class="meta-pending">未到</span>
               </template>
             </div>
-            <!-- 展开历史表单 -->
+            <!-- 展开历史表单（退回节点不显示表单） -->
             <div v-if="(item.status === 'done' || item.status === 'rejected') && expandedNodeId === item.nodeId" class="step-form" @click.stop>
-              <div v-if="item.taskNode && item.taskNode.formDataList && item.taskNode.formDataList.length > 0">
-                <div v-for="(fd, fi) in item.taskNode.formDataList" :key="fi" class="form-row">
-                  <span class="fr-label">{{ fd.fieldLabel }}</span>
-                  <span class="fr-value">{{ fd.fieldValue || '—' }}</span>
+              <template v-if="item.status === 'rejected'">
+                <div class="form-empty">该节点已退回，无需显示表单</div>
+              </template>
+              <template v-else>
+                <div v-if="item.taskNode && item.taskNode.formDataList && item.taskNode.formDataList.length > 0">
+                  <div v-for="(fd, fi) in item.taskNode.formDataList" :key="fi" class="form-row">
+                    <span class="fr-label">{{ fd.fieldLabel }}</span>
+                    <span class="fr-value">{{ fd.fieldValue || '—' }}</span>
+                  </div>
                 </div>
-              </div>
-              <div v-else class="form-empty">该节点未填写表单数据</div>
+                <div v-else class="form-empty">该节点未填写表单数据</div>
+              </template>
             </div>
           </div>
         </div>
@@ -58,7 +65,7 @@
       <!-- 动态表单 -->
       <div v-if="currentFields.length > 0" class="form-section">
         <div class="section-title">
-          填写表单
+          <span class="cur-stage-tag">当前阶段</span>{{ todo && todo.nodeName }}
           <span v-if="isRefill" class="refill-tag"><i class="el-icon-refresh-left" /> 已回填上次数据，可修改后重新提交</span>
         </div>
         <el-form ref="processForm" :model="formData" label-width="140px" class="process-form">
@@ -84,7 +91,7 @@
         </el-form>
       </div>
       <div v-else-if="!loading" class="form-section">
-        <div class="section-title">填写表单</div>
+        <div class="section-title"><span class="cur-stage-tag">当前阶段</span>{{ todo && todo.nodeName }}</div>
         <div class="empty-form">该节点无需填写字段</div>
       </div>
 
@@ -242,27 +249,56 @@ export default {
       const ui = this.$store.getters.userInfo || {}
       return ui.id != null ? ui.id : null
     },
-    /** 合并模板完整节点链 + 当前处理人的 task_node（取最新一条用于链状态展示） */
+    /** 合并模板完整节点链 + 任务的 task_node（任务绑定，展示全部节点及提交记录，不按登录人过滤） */
     flowChain() {
       if (!this.detail) return []
       const tplNodes = this.detail.templateNodes || []
       const taskNodes = this.detail.taskNodes || []
       const myUserId = this.currentUserId
-      const latestByNode = {}
+      const isPass = n => n.submitStatus === 1 && n.action !== 1
+      // 按 nodeId 分组：任务的全部节点记录，处理人能看到之前的节点信息和提交记录
+      const byNode = {}
       taskNodes.forEach(tn => {
-        if (myUserId != null && tn.handlerUserId !== myUserId) return
-        const existing = latestByNode[tn.nodeId]
-        if (!existing || tn.taskNodeId > existing.taskNodeId) latestByNode[tn.nodeId] = tn
+        if (!byNode[tn.nodeId]) byNode[tn.nodeId] = []
+        byNode[tn.nodeId].push(tn)
       })
       return tplNodes.map(tpl => {
-        const tn = latestByNode[tpl.id] || null
+        const nodes = byNode[tpl.id] || []
+        // 退回重做判定：节点存在晚于“最近一次已处理记录”的待办 → 被退回重做，状态为处理中
+        const latestHandledId = nodes.filter(n => n.submitStatus === 1).reduce((m, n) => Math.max(m, n.taskNodeId || 0), 0)
+        const newerPending = nodes.some(n => n.submitStatus === 0 && (n.taskNodeId || 0) > latestHandledId)
+        // 代表记录：退回重做时用待办代表；否则优先“有真实提交”的节点（有 formRecordId），
+        // 排除“任一完成即可”自动完成的无表单分支；其次当前登录人的待办；其次最新
+        let rep = null
+        if (nodes.length > 0) {
+          const submitted = nodes.filter(n => n.submitStatus === 1 && n.formRecordId != null)
+          const passed = nodes.filter(isPass)
+          const minePending = myUserId != null ? nodes.filter(n => n.handlerUserId === myUserId && n.submitStatus === 0) : []
+          let pick
+          if (newerPending) {
+            pick = minePending.length > 0 ? minePending : nodes.filter(n => n.submitStatus === 0)
+          } else {
+            pick = submitted.length > 0 ? submitted
+              : (passed.length > 0 ? passed
+                : (minePending.length > 0 ? minePending : nodes))
+          }
+          rep = pick.reduce((a, b) => ((b.taskNodeId || 0) > (a.taskNodeId || 0) ? b : a))
+        }
         let status = 'pending'
-        if (tn) {
-          if (tn.submitStatus === 0) status = 'current'
-          else if (tn.action === 1) status = 'rejected'
+        if (rep) {
+          if (newerPending) status = 'current'
+          else if (rep.submitStatus === 0) status = 'current'
+          else if (rep.action === 1) status = 'rejected'
           else status = 'done'
         }
-        return { nodeId: tpl.id, nodeName: tpl.nodeName, nodeType: tpl.nodeType, sortNum: tpl.sortNum, taskNode: tn, status }
+        // 节点待办处理人（同一节点多处理人全部展示）
+        const pendingNames = nodes
+          .filter(n => n.submitStatus === 0)
+          .map(n => n.handlerName)
+          .filter(Boolean)
+          .filter((v, i, a) => a.indexOf(v) === i)
+          .join('、')
+        return { nodeId: tpl.id, nodeName: tpl.nodeName, nodeType: tpl.nodeType, sortNum: tpl.sortNum, taskNode: rep, pendingNames, status }
       })
     },
     /** 可退回的目标节点：当前处理人已 done 且 sortNum < 当前节点的节点（按 nodeId 去重） */
@@ -283,13 +319,13 @@ export default {
       })
       return Object.values(map).sort((a, b) => (a.sortNum || 0) - (b.sortNum || 0))
     },
-    /** 完整操作历史：当前处理人已提交的通过/退回记录（按时间正序），展示在弹窗右侧 */
+    /** 完整操作历史：任务全部已提交的通过/退回记录（任务绑定，按时间正序），展示在弹窗右侧 */
     allHistory() {
       if (!this.detail) return []
-      const myUserId = this.currentUserId
       const tns = this.detail.taskNodes || []
       return tns
-        .filter(tn => tn.submitStatus === 1 && (myUserId == null || tn.handlerUserId === myUserId))
+        // 仅真实提交记录（排除“任一完成即可”自动完成的无表单分支）
+        .filter(tn => tn.submitStatus === 1 && tn.formRecordId != null)
         .sort((a, b) => (a.taskNodeId || 0) - (b.taskNodeId || 0))
     }
   },
@@ -467,6 +503,7 @@ $border: #e4beba;
   i { margin-right: 3px; }
 }
 .refill-tag { font-size: 12px; color: #b7791f; background: rgba(183,121,31,0.1); padding: 2px 8px; border-radius: 4px; font-weight: 500; }
+.cur-stage-tag { font-size: 11px; color: #fff; background: $primary; padding: 2px 8px; border-radius: 4px; font-weight: 700; letter-spacing: .5px; }
 
 // 流程链
 .chain-section { padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid #f0f0f0; }

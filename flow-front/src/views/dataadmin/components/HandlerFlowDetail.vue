@@ -16,6 +16,7 @@
             <span class="step-no">{{ idx + 1 }}</span>
             <span class="step-name">{{ item.nodeName }}</span>
             <span class="step-badge" :class="'badge-' + item.status">{{ statusLabel(item.status) }}</span>
+            <span v-if="item.status === 'current'" class="cur-stage-tag">当前阶段</span>
             <span v-if="item.isMine" class="mine-tag">该人员处理</span>
             <span v-if="item.branchCount > 1" class="branch-tag">{{ item.branchCount }} 分支</span>
           </div>
@@ -27,6 +28,7 @@
             <template v-else-if="item.hasPending">
               <span><i class="el-icon-user" /> {{ item.pendingHandlerNames || '待处理' }}</span>
             </template>
+            <span v-if="item.rejectReason" class="step-reject-reason"><i class="el-icon-warning-outline" /> 退回建议：{{ item.rejectReason }}</span>
           </div>
           <!-- 展开内容：左表单 + 右操作历史 -->
           <div v-if="item.status === 'done' && expandedNodeIds.includes(item.nodeId)" class="step-expanded" @click.stop>
@@ -108,23 +110,21 @@ export default {
     }
   },
   computed: {
-    /** 去重流程链：按选中处理人过滤，显示该人员开始到当前节点的流程 */
+    /** 流程链：展示该任务从开始到当前节点的完整流转；节点有多个处理人时全部展示（高亮选中成员） */
     flowChain() {
       if (!this.taskDetail) return []
       const tplNodes = this.taskDetail.templateNodes || []
       const taskNodes = this.taskDetail.taskNodes || []
       const handlerId = this.selectedHandler ? this.selectedHandler.id : null
-      if (!handlerId) return []
-      // 只取该处理人的 task_node，按 nodeId 分组
-      const myNodes = taskNodes.filter(tn => tn.handlerUserId === handlerId)
+      // 全部 task_node 按 nodeId 分组（不按人过滤，节点多处理人时都能看到）
       const byNode = {}
-      myNodes.forEach(tn => {
+      taskNodes.forEach(tn => {
         if (!byNode[tn.nodeId]) byNode[tn.nodeId] = []
         byNode[tn.nodeId].push(tn)
       })
-      // 该处理人走到的最大 sortNum（决定流程链显示到哪）
+      // 任务走到的最远节点（决定流程链显示到哪）
       let maxSort = -Infinity
-      myNodes.forEach(tn => { if (tn.sortNum != null && tn.sortNum > maxSort) maxSort = tn.sortNum })
+      taskNodes.forEach(tn => { if (tn.sortNum != null && tn.sortNum > maxSort) maxSort = tn.sortNum })
       if (maxSort === -Infinity) return []
       return tplNodes
         .filter(tpl => tpl.sortNum != null && tpl.sortNum <= maxSort)
@@ -133,14 +133,24 @@ export default {
           const pendingNodes = nodes.filter(tn => tn.submitStatus === 0)
           const doneNodes = nodes.filter(tn => tn.submitStatus === 1)
           const hasPending = pendingNodes.length > 0
-          const latestDone = doneNodes.length > 0
-            ? doneNodes.reduce((a, b) => (a.taskNodeId > b.taskNodeId ? a : b))
-            : null
+          // 退回重做判定：节点存在晚于“最近一次已处理记录”的待办 → 被退回重做，状态为处理中
+          const latestHandledId = doneNodes.reduce((m, tn) => Math.max(m, tn.taskNodeId || 0), 0)
+          const newerPending = pendingNodes.some(tn => (tn.taskNodeId || 0) > latestHandledId)
+          // 表单数据：优先“有真实提交”的节点（有 formRecordId），
+          // 自动完成的分支（任一处理人完成即可时其余分支被标记完成、无表单）不作为完成人展示
+          // 退回重做中不展示旧表单
+          const submittedDone = doneNodes.filter(tn => tn.formRecordId != null)
+          const latestDone = newerPending ? null
+            : (submittedDone.length > 0
+              ? submittedDone.reduce((a, b) => (a.taskNodeId > b.taskNodeId ? a : b))
+              : (doneNodes.length > 0 ? doneNodes.reduce((a, b) => (a.taskNodeId > b.taskNodeId ? a : b)) : null))
           let status = 'pending'
-          if (hasPending) status = 'current'
-          else if (doneNodes.length > 0) status = 'done'
-          // 操作历史：该处理人已提交 task_node（按时间正序）
+          if (newerPending) status = 'current'
+          else if (doneNodes.length > 0) status = (latestDone && latestDone.action === 1) ? 'rejected' : 'done'
+          else if (pendingNodes.length > 0) status = 'current'
+          // 操作历史：该节点真实提交记录（排除“任一完成即可”自动完成的分支，按时间正序）
           const actionHistory = doneNodes
+            .filter(tn => tn.formRecordId != null)
             .slice().sort((a, b) => (a.taskNodeId || 0) - (b.taskNodeId || 0))
             .map(tn => ({
               action: tn.action,
@@ -149,35 +159,37 @@ export default {
               rejectReason: tn.rejectReason,
               passComment: tn.passComment
             }))
-          // 待处理人名
+          // 待处理人名（同一节点多处理人全部展示）
           const pendingHandlerNames = pendingNodes
             .map(tn => tn.handlerName)
             .filter(Boolean)
             .filter((v, i, arr) => arr.indexOf(v) === i)
             .join('、')
+          // 退回建议：优先取重做待办携带的（退回时写入），其次取该节点历史已退回记录
+          const rejectReason = (pendingNodes.find(n => n.rejectReason) || doneNodes.find(n => n.action === 1 && n.rejectReason) || {}).rejectReason
           return {
             nodeId: tpl.id,
             nodeName: tpl.nodeName,
             nodeType: tpl.nodeType,
             sortNum: tpl.sortNum,
-            isMine: true,
+            isMine: handlerId ? nodes.some(tn => tn.handlerUserId === handlerId) : true,
             status,
             hasPending,
             latestDone,
             pendingHandlerNames,
+            rejectReason,
             branchCount: nodes.length,
             actionHistory
           }
         })
     },
-    /** 完整操作历史：该处理人已提交的通过/退回记录（按时间正序），展示在右侧 */
+    /** 完整操作历史：任务的全部操作节点（不区分提交人员，每条显示提交人员），按时间正序 */
     allHistory() {
       if (!this.taskDetail) return []
-      const handlerId = this.selectedHandler ? this.selectedHandler.id : null
-      if (!handlerId) return []
       const tns = this.taskDetail.taskNodes || []
       return tns
-        .filter(tn => tn.submitStatus === 1 && tn.handlerUserId === handlerId)
+        // 仅真实提交记录（排除“任一完成即可”自动完成的无表单分支）
+        .filter(tn => tn.submitStatus === 1 && tn.formRecordId != null)
         .sort((a, b) => (a.taskNodeId || 0) - (b.taskNodeId || 0))
     }
   },
@@ -187,7 +199,7 @@ export default {
     }
   },
   methods: {
-    statusLabel(s) { return { done: '已通过', current: '处理中', pending: '未到' }[s] || '未到' },
+    statusLabel(s) { return { done: '已通过', current: '处理中', rejected: '已退回', pending: '未到' }[s] || '未到' },
     toggleNodeForm(item) {
       if (item.status !== 'done') return
       const idx = this.expandedNodeIds.indexOf(item.nodeId)
@@ -231,9 +243,11 @@ $border: #e4beba;
 .badge-pending { background: #e8e8e8; color: #999; }
 .mine-tag { padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; background: $primary; color: #fff; }
 .branch-tag { padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; background: rgba(0,89,111,0.1); color: #00596f; }
+.cur-stage-tag { padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 700; background: $primary; color: #fff; letter-spacing: .5px; }
 .step-meta { display: flex; gap: 16px; margin-top: 6px; padding-left: 32px; font-size: 12px; color: #757575;
   i { margin-right: 3px; }
 }
+.step-reject-reason { display: block; flex-basis: 100%; color: #b7791f; font-weight: 600; line-height: 1.5; }
 .step-expanded { display: flex; gap: 16px; margin-top: 12px; padding: 12px; background: #fff; border-radius: 6px; border: 1px dashed #e4beba; }
 .expanded-left { flex: 3; min-width: 0; }
 .expanded-right { flex: 1; min-width: 0; border-left: 1px solid #f0f0f0; padding-left: 16px; }

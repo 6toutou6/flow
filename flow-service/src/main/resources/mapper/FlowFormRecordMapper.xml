@@ -65,12 +65,27 @@
         WHERE r.id = #{id}
     </select>
 
-    <!-- 任务维度统计 -->
+    <!-- 任务维度统计（任务组口径：一次下发 = 一个任务；聚合规则与任务列表一致：
+         任一成员进行中→进行中；全部作废→作废；否则→已完成） -->
     <select id="selectStats" resultType="com.zqk.house.flowdata.vo.DataStatsVO">
         SELECT
-            (SELECT COUNT(*) FROM flow_task WHERE status IN (1,2)) AS totalTasks,
-            (SELECT COUNT(*) FROM flow_task WHERE status = 1) AS runningTasks,
-            (SELECT COUNT(*) FROM flow_task WHERE status = 2) AS finishedTasks,
+            (SELECT COUNT(*) FROM (
+                SELECT COALESCE(dispatch_id, id) FROM flow_task
+                GROUP BY COALESCE(dispatch_id, id)
+                HAVING SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) > 0
+                    OR SUM(CASE WHEN status = 3 THEN 1 ELSE 0 END) &lt; COUNT(*)
+            ) t) AS totalTasks,
+            (SELECT COUNT(*) FROM (
+                SELECT COALESCE(dispatch_id, id) FROM flow_task
+                GROUP BY COALESCE(dispatch_id, id)
+                HAVING SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) > 0
+            ) r) AS runningTasks,
+            (SELECT COUNT(*) FROM (
+                SELECT COALESCE(dispatch_id, id) FROM flow_task
+                GROUP BY COALESCE(dispatch_id, id)
+                HAVING SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) = 0
+                    AND SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) > 0
+            ) f) AS finishedTasks,
             (SELECT COUNT(*) FROM flow_task_node tn
              INNER JOIN flow_task t ON tn.task_id = t.id
              WHERE tn.handler_user_id = #{userId}

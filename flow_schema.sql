@@ -86,10 +86,11 @@ CREATE TABLE `flow_template_field` (
   KEY idx_node_id (`node_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='模板自定义表单字段';
 
--- 表5：flow_task 填报任务表（管理员下发一次任务生成一条任务）
--- 增加流转指针字段
+-- 表5：flow_task 填报任务表（一次下发 = 一个任务组；下发给每个人一条独立任务）
+-- 增加流转指针字段 + 下发批次ID（任务→人员分组键）
 CREATE TABLE `flow_task` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '任务主键',
+  `dispatch_id` bigint DEFAULT NULL COMMENT '下发批次ID（同一次下发/跟进的独立任务共享，= 组内首条任务ID）',
   `template_id` bigint NOT NULL COMMENT '关联流程模板ID',
   `template_version` int NOT NULL COMMENT '锁定模板版本，防止模板修改影响已有任务',
   `task_name` varchar(100) NOT NULL COMMENT '本次任务名称',
@@ -105,9 +106,10 @@ CREATE TABLE `flow_task` (
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  KEY idx_dispatch (`dispatch_id`),
   KEY idx_template_id (`template_id`),
   KEY idx_current_handler (`current_handler_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='填报任务（管理员下发任务）';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='填报任务（一次下发一个任务组，下发给每个人一条独立任务）';
 
 -- 表6：flow_task_user 任务填报人员关联表【废弃，保留兼容】
 -- 顺序流转模型改用 flow_task_node 承载处理人，此表停止使用，保留不删

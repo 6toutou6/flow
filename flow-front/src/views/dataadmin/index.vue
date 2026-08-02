@@ -9,7 +9,7 @@
               <span :class="{ active: level === 1, link: level > 1 }" @click="backToTasks">数据后台</span>
               <template v-if="level >= 2">
                 <span>/</span>
-                <span :class="{ active: level === 2, link: level > 2 }" @click="backToHandlers">{{ selectedTask && selectedTask.taskName }}</span>
+                <span :class="{ active: level === 2, link: level > 2 }" @click="backToMembers">{{ selectedGroup && selectedGroup.taskName }}</span>
               </template>
               <template v-if="level >= 3">
                 <span>/</span>
@@ -100,31 +100,35 @@
                   <th>任务名称</th>
                   <th>所属模板</th>
                   <th class="text-center">状态</th>
-                  <th>当前处理人</th>
-                  <th>进度</th>
+                  <th class="text-center">成员数</th>
+                  <th>成员状态概览</th>
                   <th>下发时间</th>
                   <th class="text-right">操作</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="row in taskList" :key="row.id" class="hover-row">
+                <tr v-for="row in taskList" :key="row.dispatchId" class="hover-row">
                   <td class="font-bold">{{ row.taskName }}</td>
                   <td>{{ tplName(row.templateId) }}</td>
                   <td class="text-center">
                     <span :class="taskStatusClass(row.status)">{{ taskStatusText(row.status) }}</span>
                   </td>
-                  <td>{{ userName(row.currentHandlerId) }}</td>
+                  <td class="text-center">{{ row.memberCount || 0 }} 人</td>
                   <td>
-                    <span class="progress-text">{{ row.finishedNodeCount || 0 }} / {{ row.totalNodeCount || 0 }}</span>
-                    <div class="progress-bar"><div class="progress-fill" :style="{ width: progressPercent(row) + '%' }" /></div>
+                    <div class="member-overview">
+                      <span v-if="row.runningCount" class="ov-running">{{ row.runningCount }} 进行中</span>
+                      <span v-if="row.finishedCount" class="ov-done">{{ row.finishedCount }} 已完成</span>
+                      <span v-if="row.cancelledCount" class="ov-cancel">{{ row.cancelledCount }} 作废</span>
+                      <span v-if="!row.runningCount && !row.finishedCount && !row.cancelledCount" class="ov-none">—</span>
+                    </div>
                   </td>
-                  <td>{{ row.createTime }}</td>
+                  <td>{{ row.dispatchTime }}</td>
                   <td class="text-right">
-                    <button class="action-link" @click="openTaskHandlers(row)"><i class="el-icon-user" /> 查看人员</button>
+                    <button class="action-link" @click="openTaskGroup(row)"><i class="el-icon-user" /> 查看成员</button>
                   </td>
                 </tr>
                 <tr v-if="!loading && taskList.length === 0">
-                  <td colspan="7" class="text-center" style="padding: 32px; color: #999;">暂无任务数据</td>
+                  <td colspan="7" class="text-center" style="padding: 32px; color: #999;">暂无下发任务</td>
                 </tr>
               </tbody>
             </table>
@@ -140,28 +144,34 @@
           </div>
         </template>
 
-        <!-- ===== 第二级：任务的处理人员 ===== -->
+        <!-- ===== 第二级：任务组成员（每个成员 = 一条独立人员任务） ===== -->
         <template v-if="level === 2">
           <div v-loading="detailLoading" class="handlers-wrap">
-            <div v-if="!detailLoading && handlers.length === 0" class="empty-state">
+            <div v-if="!detailLoading && members.length === 0" class="empty-state">
               <i class="el-icon-user" />
-              <p>该任务暂无处理人记录</p>
+              <p>该任务暂无人员</p>
             </div>
             <div v-else class="handler-grid">
-              <div v-for="h in handlers" :key="h.id" class="handler-card">
-                <div class="hc-left" @click="openHandlerFlow(h)">
-                  <div class="hc-avatar">{{ h.realName ? h.realName.charAt(0) : 'U' }}</div>
+              <div v-for="m in members" :key="m.taskId" class="handler-card">
+                <div class="hc-left" @click="openMemberFlow(m)">
+                  <div class="hc-avatar">{{ memberName(m).charAt(0) }}</div>
                   <div class="hc-info">
-                    <div class="hc-name">{{ h.realName }} <span class="hc-emp">{{ h.empNo }}</span></div>
-                    <div class="hc-dept">{{ h.deptName || '—' }}</div>
-                    <div class="hc-nodes">
-                      <span v-for="(n, ni) in h.nodes" :key="ni" class="node-chip" :class="nodeChipClass(n)">{{ n.nodeName }}</span>
+                    <div class="hc-name">{{ memberName(m) }}
+                      <span class="hc-emp">{{ m.ownerEmpNo || '—' }}</span>
+                      <span class="status-chip" :class="taskStatusClass(m.status)">{{ taskStatusText(m.status) }}</span>
                     </div>
+                    <div class="hc-dept">{{ m.ownerDept || '—' }}</div>
+                    <div class="hc-meta">
+                      <span><i class="el-icon-user" /> 当前处理人：{{ m.currentHandlerName || '—' }}</span>
+                      <span><i class="el-icon-s-claim" /> 当前节点：{{ m.currentNodeName || '—' }}</span>
+                      <span><i class="el-icon-odometer" /> 进度 {{ m.finishedNodeCount || 0 }}/{{ m.totalNodeCount || 0 }}</span>
+                    </div>
+                    <div class="progress-bar thin"><div class="progress-fill" :style="{ width: memberProgress(m) + '%' }" /></div>
                   </div>
                 </div>
                 <div class="hc-right">
-                  <button class="hc-delete" @click="onRemoveHandler(h)"><i class="el-icon-delete" /> 删除</button>
-                  <div class="hc-view" @click="openHandlerFlow(h)">
+                  <button class="hc-delete" @click="onRemoveMember(m)"><i class="el-icon-delete" /> 删除</button>
+                  <div class="hc-view" @click="openMemberFlow(m)">
                     <i class="el-icon-arrow-right" />
                     <span class="hc-action">查看流程</span>
                   </div>
@@ -197,10 +207,10 @@
       @close="dispatchVisible = false"
     />
 
-    <!-- 临时新增处理人弹窗（加入当前节点并行处理） -->
+    <!-- 临时新增处理人弹窗（进行中→加入当前节点并行处理；已完成→创建独立新任务） -->
     <UserPicker
       :visible="addHandlerVisible"
-      title="新增处理人（加入当前节点并行处理）"
+      :title="addHandlerTitle"
       :exclude-ids="handlerIdsInTask"
       @confirm="onConfirmAddHandler"
       @close="addHandlerVisible = false"
@@ -209,7 +219,7 @@
 </template>
 
 <script>
-import { getTaskList, getTaskDetail, addTaskHandlers, removeTaskHandler } from '@/api/task'
+import { getTaskList, getTaskDetail, getTaskGroupDetail, addTaskHandlers, deleteTask } from '@/api/task'
 import { getUserList } from '@/api/sysuser'
 import { getTemplateList } from '@/api/template'
 import { getDataStats } from '@/api/data'
@@ -234,33 +244,38 @@ export default {
       filters: { status: '', taskName: '' },
       // 任务下发弹窗
       dispatchVisible: false,
-      // 新增处理人弹窗
+      // 新增人员弹窗
       addHandlerVisible: false,
       // 映射
       userMap: {},
       tplMap: {},
-      // 第二级
+      // 第二级（任务组 + 成员）
       detailLoading: false,
-      selectedTask: null,
-      taskDetail: null,
-      handlers: [],
+      selectedGroup: null,
+      members: [],
       // 第三级
+      taskDetail: null,
       selectedHandler: null
     }
   },
   computed: {
     headingText() {
       if (this.level === 1) return '任务流转数据后台'
-      if (this.level === 2) return '任务处理人员'
+      if (this.level === 2) return '任务成员'
       return '流程处理详情'
     },
-    /** 是否可新增处理人：进行中或已完成（作废不可加） */
+    /** 是否可新增人员：主任务未作废（进行中/已完成均可） */
     canAddHandler() {
-      return this.selectedTask && (this.selectedTask.status === 1 || this.selectedTask.status === 2)
+      const g = this.selectedGroup
+      return g && g.primaryTaskStatus !== 3
     },
-    /** 当前任务已有处理人ID（新增时排除，避免重复） */
+    /** 组内已有成员（新增时排除，避免重复） */
     handlerIdsInTask() {
-      return this.handlers.map(h => h.id)
+      return this.members.map(m => m.ownerUserId).filter(Boolean)
+    },
+    /** 新增人员弹窗标题：为新增人员创建独立任务归入本组（每个下发任务独立，互不影响） */
+    addHandlerTitle() {
+      return '新增人员（为该人员创建独立任务，归入本任务组）'
     }
   },
   mounted() {
@@ -279,65 +294,41 @@ export default {
     },
     taskStatusText(s) { return { 1: '进行中', 2: '已完成', 3: '已作废' }[s] || '—' },
     taskStatusClass(s) { return { 1: 'status-chip status-running', 2: 'status-chip status-done', 3: 'status-chip status-cancel' }[s] || '' },
-    progressPercent(row) {
-      if (!row.totalNodeCount) return 0
-      return Math.round(((row.finishedNodeCount || 0) / row.totalNodeCount) * 100)
-    },
-    nodeChipClass(n) {
-      if (n.submitStatus === 0) return 'chip-current'
-      if (n.action === 1) return 'chip-rejected'
-      return 'chip-done'
+    memberName(m) { return m.ownerName || '—' },
+    memberProgress(m) {
+      if (!m.totalNodeCount) return 0
+      return Math.round(((m.finishedNodeCount || 0) / m.totalNodeCount) * 100)
     },
     onDispatchSuccess() {
       this.fetchTaskList()
       this.fetchStats()
     },
-    /** 新增处理人确认 */
+    /** 新增人员确认（目标为主任务：已完成→创建独立任务归入本组；进行中→加入当前节点并行） */
     async onConfirmAddHandler(users) {
       if (!users || users.length === 0) return
       try {
         const handlerIds = users.map(u => u.id)
-        const res = await addTaskHandlers({ taskId: this.selectedTask.id, handlerIds })
+        const res = await addTaskHandlers({ taskId: this.selectedGroup.primaryTaskId, handlerIds })
         this.$message.success(res.message || '新增成功')
         this.addHandlerVisible = false
-        await this.refreshHandlers()
+        await this.refreshMembers()
+        this.fetchStats()
       } catch (e) {
         this.$message.error((e && e.message) || '新增失败')
       }
     },
-    /** 刷新当前任务的处理人员列表 */
-    async refreshHandlers() {
-      if (!this.selectedTask) return
+    /** 刷新当前任务组成员 */
+    async refreshMembers() {
+      if (!this.selectedGroup) return
       this.detailLoading = true
       try {
-        const res = await getTaskDetail(this.selectedTask.id)
-        this.taskDetail = res.data
-        this.handlers = this.extractHandlers(this.taskDetail.taskNodes || [])
+        const res = await getTaskGroupDetail(this.selectedGroup.dispatchId)
+        this.selectedGroup = res.data || this.selectedGroup
+        this.members = (res.data && res.data.members) || []
       } catch (e) {
         console.error(e)
       } finally {
         this.detailLoading = false
-      }
-    },
-    /** 删除任务中的某个处理人（连同其所有提交记录） */
-    async onRemoveHandler(handler) {
-      try {
-        await this.$confirm('确定删除该人员？将一并删除其所有提交记录，且不可恢复', '删除确认', {
-          confirmButtonText: '删除',
-          cancelButtonText: '取消',
-          type: 'warning',
-          confirmButtonClass: 'el-button--danger'
-        })
-      } catch (e) {
-        return // 用户取消
-      }
-      try {
-        const res = await removeTaskHandler(this.selectedTask.id, handler.id)
-        this.$message.success(res.message || '删除成功')
-        await this.refreshHandlers()
-        this.fetchStats()
-      } catch (e) {
-        this.$message.error((e && e.message) || '删除失败')
       }
     },
     async loadMaps() {
@@ -382,69 +373,79 @@ export default {
       this.currentPage = 1
       this.fetchTaskList()
     },
-    /** 点击任务 → 查看处理人员 */
-    async openTaskHandlers(task) {
-      this.selectedTask = task
+    /** 点击任务组 → 查看成员 */
+    async openTaskGroup(group) {
+      this.selectedGroup = group
       this.level = 2
+      this.members = []
       this.detailLoading = true
-      this.taskDetail = null
-      this.handlers = []
       try {
-        const res = await getTaskDetail(task.id)
-        this.taskDetail = res.data
-        this.handlers = this.extractHandlers(this.taskDetail.taskNodes || [])
+        const res = await getTaskGroupDetail(group.dispatchId)
+        this.selectedGroup = res.data || group
+        this.members = (res.data && res.data.members) || []
       } catch (e) {
         console.error(e)
       } finally {
         this.detailLoading = false
       }
     },
-    /** 从 taskNodes 提取处理人列表（按 handlerUserId 去重） */
-    extractHandlers(taskNodes) {
-      const map = {}
-      const order = []
-      taskNodes.forEach(tn => {
-        if (!tn.handlerUserId) return
-        if (!map[tn.handlerUserId]) {
-          const u = this.userMap[tn.handlerUserId] || {}
-          map[tn.handlerUserId] = {
-            id: tn.handlerUserId,
-            realName: tn.handlerName || u.realName || '—',
-            empNo: u.empNo || '—',
-            deptName: u.deptName || '—',
-            nodes: []
-          }
-          order.push(tn.handlerUserId)
-        }
-        map[tn.handlerUserId].nodes.push({
-          nodeName: tn.nodeName,
-          nodeType: tn.nodeType,
-          submitStatus: tn.submitStatus,
-          action: tn.action,
-          handleTime: tn.handleTime
+    /** 删除任务成员（删除该任务全部提交数据，需确认防误触） */
+    async onRemoveMember(member) {
+      try {
+        await this.$confirm(`确定删除成员「${member.ownerName || member.taskId}」吗？将删除该任务及其全部提交记录，不可恢复。`, '删除成员确认', {
+          confirmButtonText: '删除',
+          cancelButtonText: '取消',
+          type: 'warning',
+          confirmButtonClass: 'el-button--danger'
         })
-      })
-      return order.map(id => map[id])
+      } catch (e) {
+        return // 用户取消
+      }
+      try {
+        const res = await deleteTask(member.taskId)
+        this.$message.success(res.message || '删除成功')
+        await this.refreshMembers()
+        if (this.members.length === 0) {
+          this.backToTasks()
+          this.fetchTaskList()
+        }
+        this.fetchStats()
+      } catch (e) {
+        this.$message.error((e && e.message) || '删除失败')
+      }
     },
-    /** 点击人员 → 查看流程详情 */
-    openHandlerFlow(handler) {
-      this.selectedHandler = handler
+    /** 点击成员 → 查看该人员的流程详情 */
+    async openMemberFlow(member) {
+      this.selectedHandler = {
+        id: member.ownerUserId,
+        realName: member.ownerName,
+        empNo: member.ownerEmpNo,
+        deptName: member.ownerDept
+      }
+      this.taskDetail = null
       this.level = 3
+      try {
+        const res = await getTaskDetail(member.taskId)
+        this.taskDetail = res.data
+      } catch (e) {
+        console.error(e)
+      }
     },
     goBack() {
-      if (this.level === 3) this.backToHandlers()
+      if (this.level === 3) this.backToMembers()
       else if (this.level === 2) this.backToTasks()
     },
     backToTasks() {
       this.level = 1
-      this.selectedTask = null
+      this.selectedGroup = null
+      this.members = []
       this.taskDetail = null
-      this.handlers = []
       this.selectedHandler = null
     },
-    backToHandlers() {
+    backToMembers() {
       this.level = 2
       this.selectedHandler = null
+      this.taskDetail = null
     }
   }
 }
@@ -533,6 +534,11 @@ $border: #e4beba;
 .progress-text { font-size: 12px; color: #757575; }
 .progress-bar { width: 80px; height: 6px; background: #f0f0f0; border-radius: 3px; margin-top: 4px; overflow: hidden; }
 .progress-fill { height: 100%; background: $primary; border-radius: 3px; transition: width .3s; }
+.member-overview { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; font-weight: 600; }
+.ov-running { color: $primary; }
+.ov-done { color: #266d00; }
+.ov-cancel { color: #ba1a1a; }
+.ov-none { color: #bbb; font-weight: 400; }
 .action-link { color: $primary; background: none; border: none; cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; gap: 3px;
   &:hover { text-decoration: underline; }
 }
@@ -563,11 +569,17 @@ $border: #e4beba;
 .hc-name { font-size: 15px; font-weight: 700; color: #1b1c1c; }
 .hc-emp { font-size: 12px; color: #757575; font-weight: 400; margin-left: 6px; font-family: monospace; }
 .hc-dept { font-size: 12px; color: #757575; margin-top: 2px; }
+.hc-name .status-chip { margin-left: 8px; }
+.hc-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: #757575; margin-top: 6px;
+  i { margin-right: 2px; }
+}
+.progress-bar.thin { width: 100%; margin-top: 8px; }
 .hc-nodes { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .node-chip { padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; }
 .chip-done { background: rgba(38,109,0,0.1); color: #266d00; }
 .chip-current { background: rgba(197,48,48,0.12); color: $primary; }
 .chip-rejected { background: rgba(183,121,31,0.15); color: #b7791f; }
+.chip-pending-count { margin-left: 3px; font-style: normal; color: $primary; font-weight: 700; }
 .hc-right { display: flex; flex-direction: column; align-items: center; gap: 6px; color: $primary; flex-shrink: 0; margin-left: 12px; }
 .hc-view { display: flex; flex-direction: column; align-items: center; cursor: pointer;
   i { font-size: 18px; }

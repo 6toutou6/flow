@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zqk.house.flowtask.mapper.FlowTaskMapper">
+
+    <!-- 任务组分页：每组一行，聚合状态口径与 selectDispatchCount / selectStats 保持一致：
+         任一成员进行中→1；全部作废→3；否则→2 -->
+    <select id="selectDispatchPage" resultType="com.zqk.house.flowtask.vo.TaskGroupVO">
+        SELECT COALESCE(dispatch_id, id) AS dispatchId,
+               MIN(id)                    AS primaryTaskId,
+               COUNT(*)                   AS memberCount,
+               SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS runningCount,
+               SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) AS finishedCount,
+               SUM(CASE WHEN status = 3 THEN 1 ELSE 0 END) AS cancelledCount,
+               MIN(create_time)           AS dispatchTime,
+               CASE
+                 WHEN SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) > 0 THEN 1
+                 WHEN SUM(CASE WHEN status = 3 THEN 1 ELSE 0 END) = COUNT(*) THEN 3
+                 ELSE 2
+               END AS status
+        FROM flow_task
+        <where>
+            <if test="taskName != null and taskName != ''">
+                AND task_name LIKE CONCAT('%', #{taskName}, '%')
+            </if>
+        </where>
+        GROUP BY COALESCE(dispatch_id, id)
+        <if test="status != null">
+            <choose>
+                <when test="status == 1"> HAVING SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) > 0 </when>
+                <when test="status == 2"> HAVING SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) = 0
+                                          AND SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) > 0 </when>
+                <when test="status == 3"> HAVING SUM(CASE WHEN status = 3 THEN 1 ELSE 0 END) = COUNT(*) </when>
+            </choose>
+        </if>
+        ORDER BY MIN(create_time) DESC, MIN(id) DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 任务组总数（同过滤口径） -->
+    <select id="selectDispatchCount" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM (
+            SELECT COALESCE(dispatch_id, id)
+            FROM flow_task
+            <where>
+                <if test="taskName != null and taskName != ''">
+                    AND task_name LIKE CONCAT('%', #{taskName}, '%')
+                </if>
+            </where>
+            GROUP BY COALESCE(dispatch_id, id)
+            <if test="status != null">
+                <choose>
+                    <when test="status == 1"> HAVING SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) > 0 </when>
+                    <when test="status == 2"> HAVING SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) = 0
+                                               AND SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) > 0 </when>
+                    <when test="status == 3"> HAVING SUM(CASE WHEN status = 3 THEN 1 ELSE 0 END) = COUNT(*) </when>
+                </choose>
+            </if>
+        ) d
+    </select>
+
+    <!-- 本页各组的代表行（组内 min-id 任务），用于填充组头字段 -->
+    <select id="selectPrimaryByDispatchIds" resultType="com.zqk.house.flowtask.entity.FlowTask">
+        SELECT t.* FROM flow_task t
+        INNER JOIN (
+            SELECT COALESCE(dispatch_id, id) AS dispatch_id, MIN(id) AS mid
+            FROM flow_task
+            WHERE COALESCE(dispatch_id, id) IN
+            <foreach collection="dispatchIds" item="d" open="(" separator="," close=")">#{d}</foreach>
+            GROUP BY COALESCE(dispatch_id, id)
+        ) g ON t.id = g.mid
+    </select>
+
+    <!-- 某组的全部成员（起始节点处理人 = 被下发者；按 id 升序，[0] 即主任务） -->
+    <select id="selectMembersByDispatch" resultType="com.zqk.house.flowtask.vo.TaskMemberVO">
+        SELECT t.id AS taskId, t.task_name AS taskName, t.template_id AS templateId,
+               t.status, t.current_node_id AS currentNodeId, t.current_handler_id AS currentHandlerId,
+               t.finished_node_count AS finishedNodeCount, t.total_node_count AS totalNodeCount,
+               t.create_time AS createTime,
+               s.handler_user_id AS ownerUserId,
+               u.real_name AS ownerName, u.emp_no AS ownerEmpNo, u.dept_name AS ownerDept,
+               -- 当前处理人 = 当前节点的全部待办处理人（任一完成即可）；无待办时回退为当前指针处理人
+               CASE
+                 WHEN EXISTS (SELECT 1 FROM flow_task_node tn3
+                              WHERE tn3.task_id = t.id AND tn3.node_id = t.current_node_id AND tn3.submit_status = 0)
+                 THEN (SELECT GROUP_CONCAT(u3.real_name SEPARATOR '、')
+                       FROM flow_task_node tn3
+                       LEFT JOIN sys_user u3 ON u3.id = tn3.handler_user_id
+                       WHERE tn3.task_id = t.id AND tn3.node_id = t.current_node_id AND tn3.submit_status = 0)
+                 ELSE cu.real_name
+               END AS currentHandlerName,
+               cn.node_name AS currentNodeName
+        FROM flow_task t
+        JOIN flow_task_node s ON s.node_type = 1
+             AND s.id = (SELECT MIN(id) FROM flow_task_node WHERE task_id = t.id AND node_type = 1)
+        LEFT JOIN sys_user u  ON u.id  = s.handler_user_id
+        LEFT JOIN sys_user cu ON cu.id = t.current_handler_id
+        LEFT JOIN flow_template_node cn ON cn.id = t.current_node_id
+        WHERE COALESCE(t.dispatch_id, t.id) = #{dispatchId}
+        ORDER BY t.id ASC
+    </select>
+
+</mapper>
