@@ -8,6 +8,10 @@
         <div class="info-row"><span class="il">任务名称</span><span class="iv">{{ todo && todo.taskName }}</span></div>
         <div class="info-row"><span class="il">所属模板</span><span class="iv">{{ todo && todo.templateName }}</span></div>
         <div class="info-row"><span class="il">当前节点</span><span class="iv">{{ todo && todo.nodeName }}</span></div>
+        <div v-if="taskDesc" class="info-row">
+          <span class="il">任务说明</span>
+          <span class="iv desc-text">{{ taskDesc }}</span>
+        </div>
       </div>
 
       <!-- 完整流程链（含未到节点灰色骨架） -->
@@ -238,6 +242,12 @@ export default {
     },
     isEndNode() {
       return this.todo && this.todo.nodeType === 3
+    },
+    /** 任务说明（下发时填写，处理人可见；detail.task 优先，兼容待办项带说明的情况） */
+    taskDesc() {
+      const d = this.detail && this.detail.task ? this.detail.task.taskDesc : null
+      if (d) return d
+      return (this.todo && this.todo.taskDesc) || ''
     },
     /** 是否回填了上次表单数据（退回重填场景） */
     isRefill() {
@@ -496,6 +506,9 @@ $border: #e4beba;
 .info-row { display: flex; padding: 6px 0; font-size: 14px; }
 .il { width: 90px; color: #757575; flex-shrink: 0; }
 .iv { color: #1b1c1c; flex: 1; }
+.desc-row { align-items: flex-start;
+  .desc-text { line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
+}
 .section-title { font-size: 15px; font-weight: 700; color: $primary; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .chain-hint { font-size: 12px; color: #999; font-weight: 400; margin-left: 0; }
 .req { color: $primary; }

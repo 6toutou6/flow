@@ -1,5 +1,10 @@
 <template>
   <div class="flow-detail-wrap">
+    <!-- 任务说明（下发时填写，管理员可见） -->
+    <div v-if="taskDesc" class="hfd-desc">
+      <span class="hfd-desc-label">任务说明</span>
+      <span class="hfd-desc-text">{{ taskDesc }}</span>
+    </div>
     <div class="hfd-cols">
     <!-- 左侧：完整流程链（去重：开始到当前节点，不显示退回重复步骤） -->
     <div v-if="flowChain.length > 0" class="chain-section hfd-left">
@@ -110,6 +115,10 @@ export default {
     }
   },
   computed: {
+    /** 任务说明（下发时填写） */
+    taskDesc() {
+      return (this.taskDetail && this.taskDetail.task && this.taskDetail.task.taskDesc) || ''
+    },
     /** 流程链：展示该任务从开始到当前节点的完整流转；节点有多个处理人时全部展示（高亮选中成员） */
     flowChain() {
       if (!this.taskDetail) return []
@@ -217,6 +226,10 @@ export default {
 $primary: #C53030;
 $border: #e4beba;
 .flow-detail-wrap { display: flex; flex-direction: column; gap: 16px; }
+.hfd-desc { display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; background: #FFF5F5; border: 1px dashed $border; border-radius: 8px; font-size: 13px;
+  .hfd-desc-label { width: 90px; color: #757575; flex-shrink: 0;line-height: 1.6 }
+  .hfd-desc-text { flex: 1; color: #5b403d; line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
+}
 .hfd-cols { display: flex; gap: 16px; align-items: flex-start; }
 .hfd-left { flex: 3; min-width: 0; }
 .hfd-right { flex: 1; min-width: 0; background: #fff; border: 1px solid $border; border-radius: 8px; padding: 20px; }

@@ -175,8 +175,11 @@
                   </div>
                 </div>
                 <div class="filter-actions">
-                  <span class="member-count">共 {{ memberTotal }} 人</span>
+                  <span class="member-count">共 {{ memberTotal }} 人<span v-if="selectedMemberIds.length" class="selected-count">已选 {{ selectedMemberIds.length }} 人</span></span>
                   <div class="filter-actions-right">
+                    <button class="btn-batch-delete" :disabled="batchDeleting || selectedMemberIds.length === 0" @click="onBatchDeleteMembers">
+                      <i v-if="batchDeleting" class="el-icon-loading" /><i v-else class="el-icon-delete" /> 批量删除 ({{ selectedMemberIds.length }})
+                    </button>
                     <button class="btn-reset" @click="resetMemberFilters">重置</button>
                     <button class="btn-search" @click="memberFilterSearch">查询</button>
                   </div>
@@ -187,7 +190,10 @@
                 <p>没有符合条件的人员</p>
               </div>
               <div v-else class="handler-grid">
-              <div v-for="m in members" :key="m.taskId" class="handler-card">
+              <div v-for="m in members" :key="m.taskId" class="handler-card" :class="{ selected: isMemberSelected(m) }">
+                <div class="hc-check" @click.stop>
+                  <el-checkbox :value="isMemberSelected(m)" @change="val => onMemberCheck(m, val)" />
+                </div>
                 <div class="hc-left" @click="openMemberFlow(m)">
                   <div class="hc-avatar">{{ memberName(m).charAt(0) }}</div>
                   <div class="hc-info">
@@ -205,7 +211,6 @@
                   </div>
                 </div>
                 <div class="hc-right">
-                  <button class="hc-delete" @click="onRemoveMember(m)"><i class="el-icon-delete" /> 删除</button>
                   <div class="hc-view" @click="openMemberFlow(m)">
                     <i class="el-icon-arrow-right" />
                     <span class="hc-action">查看流程</span>
@@ -311,6 +316,9 @@ export default {
       memberPageSize: 10,
       memberTotal: 0,
       memberTotalPages: 1,
+      // 成员批量删除
+      selectedMemberIds: [],
+      batchDeleting: false,
       // 第三级
       taskDetail: null,
       selectedHandler: null
@@ -487,6 +495,7 @@ export default {
       this.memberFilters = { name: '', dept: '', status: '' }
       this.memberPage = 1
       this.memberTotal = 0
+      this.selectedMemberIds = []
       try {
         const res = await getTaskGroupDetail(group.dispatchId)
         this.selectedGroup = res.data || group
@@ -496,9 +505,12 @@ export default {
       await this.fetchMembers()
     },
     /** 删除任务成员（删除该成员任务全部提交数据；主任务保留，删空后任务仍在可另行删除） */
-    async onRemoveMember(member) {
+    async onBatchDeleteMembers() {
+      const ids = this.selectedMemberIds
+      if (ids.length === 0) return
+      const names = this.members.filter(m => ids.includes(m.taskId)).map(m => m.ownerName || m.taskId).join('、')
       try {
-        await this.$confirm(`确定删除成员「${member.ownerName || member.taskId}」吗？将删除该任务及其全部提交记录，不可恢复。`, '删除成员确认', {
+        await this.$confirm(`确定删除已选的 ${ids.length} 名成员（${names}）吗？将删除各成员任务及其全部提交记录，不可恢复。`, '批量删除成员确认', {
           confirmButtonText: '删除',
           cancelButtonText: '取消',
           type: 'warning',
@@ -507,14 +519,31 @@ export default {
       } catch (e) {
         return // 用户取消
       }
+      this.batchDeleting = true
       try {
-        const res = await deleteTask(member.taskId)
-        this.$message.success(res.message || '删除成功')
+        for (const id of ids) {
+          await deleteTask(id)
+        }
+        this.$message.success(`已删除 ${ids.length} 名成员`)
+        this.selectedMemberIds = []
         // 主任务保留：无论删空与否都刷新成员（删空后显示空态，可在任务列表删除该任务）
         await this.refreshMembers()
         this.fetchStats()
       } catch (e) {
         this.$message.error((e && e.message) || '删除失败')
+      } finally {
+        this.batchDeleting = false
+      }
+    },
+    /** 成员是否已勾选（用于跨页保留选中状态） */
+    isMemberSelected(m) {
+      return this.selectedMemberIds.includes(m.taskId)
+    },
+    onMemberCheck(m, val) {
+      if (val) {
+        if (!this.selectedMemberIds.includes(m.taskId)) this.selectedMemberIds.push(m.taskId)
+      } else {
+        this.selectedMemberIds = this.selectedMemberIds.filter(id => id !== m.taskId)
       }
     },
     /** 删除主任务（任务组）：仅当组内无人员时才允许（后端再次校验） */
@@ -565,6 +594,7 @@ export default {
       this.members = []
       this.taskDetail = null
       this.selectedHandler = null
+      this.selectedMemberIds = []
     },
     backToMembers() {
       this.level = 2
@@ -629,6 +659,11 @@ $border: #e4beba;
 .filter-actions-right { display: flex; gap: 8px; margin-left: auto; }
 .member-filter { margin-bottom: 16px; }
 .member-count { font-size: 12px; color: #757575; }
+.selected-count { color: $primary; font-weight: 600; margin-left: 8px; }
+.btn-batch-delete { display: flex; align-items: center; gap: 4px; padding: 0 16px; height: 36px; border: none; border-radius: 4px; font-size: 13px; font-weight: bold; color: #fff; background: #ba1a1a; cursor: pointer;
+  &:hover { opacity: 0.9; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
 .member-pagination { margin-top: 16px; border: 1px solid $border; border-radius: 8px; justify-content: flex-end; }
 .pagination-left { display: flex; align-items: center; gap: 12px; }
 .page-size-select { height: 32px; border: 1px solid $border; border-radius: 4px; padding: 0 6px; font-size: 12px; color: #414755; outline: none; background: #fff; cursor: pointer;
@@ -696,7 +731,9 @@ $border: #e4beba;
 }
 .handler-card { display: flex; justify-content: space-between; align-items: center; background: #fff; border: 1px solid $border; border-radius: 8px; padding: 16px 18px; cursor: pointer; transition: all .2s;
   &:hover { box-shadow: 0 3px 10px rgba(197,48,48,0.12); border-color: $primary; }
+  &.selected { border-color: $primary; background: #FFF5F5; box-shadow: 0 0 0 1px $primary; }
 }
+.hc-check { display: flex; align-items: center; flex-shrink: 0; margin-right: 12px; cursor: pointer; }
 .hc-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
 .hc-avatar { width: 44px; height: 44px; border-radius: 50%; background: $primary; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600; flex-shrink: 0; }
 .hc-info { flex: 1; min-width: 0; }
@@ -719,10 +756,6 @@ $border: #e4beba;
   i { font-size: 18px; }
 }
 .hc-action { font-size: 11px; margin-top: 2px; }
-.hc-delete { display: flex; align-items: center; gap: 2px; padding: 2px 8px; background: none; border: 1px solid #e4beba; border-radius: 4px; color: #ba1a1a; cursor: pointer; font-size: 11px;
-  &:hover { background: #FFF5F5; border-color: #ba1a1a; }
-  i { font-size: 12px; }
-}
 
 // 第三级：流程详情
 .flow-detail-wrap { display: flex; flex-direction: column; gap: 16px; }
