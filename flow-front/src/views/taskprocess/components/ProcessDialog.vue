@@ -8,10 +8,18 @@
         <div class="info-row"><span class="il">任务名称</span><span class="iv">{{ todo && todo.taskName }}</span></div>
         <div class="info-row"><span class="il">所属模板</span><span class="iv">{{ todo && todo.templateName }}</span></div>
         <div class="info-row"><span class="il">当前节点</span><span class="iv">{{ todo && todo.nodeName }}</span></div>
-        <div v-if="taskDesc" class="info-row">
+        <div v-if="taskDesc" class="info-row desc-row">
           <span class="il">任务说明</span>
           <span class="iv desc-text">{{ taskDesc }}</span>
         </div>
+        <!-- 任务基础信息（模板级字段，创建人下发时赋值，处理人可见） -->
+        <template v-if="templateFieldRows.length > 0">
+          <div class="info-tpl-title"><i class="el-icon-collection" /> 任务基础信息</div>
+          <div v-for="r in templateFieldRows" :key="r.id" class="info-row desc-row">
+            <span class="il">{{ r.label }}</span>
+            <span class="iv desc-text">{{ r.value || '—' }}</span>
+          </div>
+        </template>
       </div>
 
       <!-- 完整流程链（含未到节点灰色骨架） -->
@@ -253,6 +261,17 @@ export default {
     isRefill() {
       const cf = this.detail && this.detail.currentFormData
       return cf && Array.isArray(cf) && cf.length > 0
+    },
+    /** 任务基础信息（模板级字段：配置 + 创建人下发的值，处理人只读可见） */
+    templateFieldRows() {
+      if (!this.detail) return []
+      const fields = this.detail.templateFields || []
+      const data = this.detail.templateData || {}
+      return fields.map(f => ({
+        id: f.id,
+        label: f.fieldLabel,
+        value: data[f.id] !== undefined && data[f.id] !== null ? String(data[f.id]) : ''
+      }))
     },
     /** 当前登录用户ID（用于按处理人过滤流程链/操作历史，避免看到他人的处理记录） */
     currentUserId() {
@@ -509,6 +528,7 @@ $border: #e4beba;
 .desc-row { align-items: flex-start;
   .desc-text { line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
 }
+.info-tpl-title { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: $primary; margin: 12px 0 4px; padding-top: 10px; border-top: 1px dashed #e4beba; }
 .section-title { font-size: 15px; font-weight: 700; color: $primary; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .chain-hint { font-size: 12px; color: #999; font-weight: 400; margin-left: 0; }
 .req { color: $primary; }

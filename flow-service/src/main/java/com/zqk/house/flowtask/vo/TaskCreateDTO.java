@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 任务下发入参：模板ID + 任务信息 + 一个或多个首节点处理人
@@ -21,4 +22,6 @@ public class TaskCreateDTO {
     private Date endTime;
     /** 首个（开始）节点处理人ID列表（支持批量下发，每人一个独立任务） */
     private List<Long> firstHandlerIds;
+    /** 模板级字段值（fieldId → value，创建人下发时赋值，如规章制度/采购说明） */
+    private Map<Long, String> templateData;
 }

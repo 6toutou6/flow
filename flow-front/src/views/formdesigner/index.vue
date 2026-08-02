@@ -10,7 +10,7 @@
         </div>
       </div>
       <div class="header-right">
-        <span class="field-count">共 {{ nodes.length }} 个节点 / {{ totalFieldCount }} 个字段</span>
+        <span class="field-count">共 {{ nodes.length }} 个节点 / {{ totalFieldCount }} 个字段<span v-if="templateFields.length" class="tfe-count">（含 {{ templateFields.length }} 个任务基础字段）</span></span>
         <button class="btn-save" :disabled="saving" @click="handleSave">
           <i v-if="saving" class="el-icon-loading" />
           <i v-else class="el-icon-check" />
@@ -24,6 +24,16 @@
       <aside class="node-chain">
         <div class="panel-title">流程节点链</div>
         <p class="panel-desc">按业务顺序排列，首位自动标记为「开始」、末位自动标记为「结束」，所有节点均可重命名/删除</p>
+
+        <!-- 任务基础字段入口（模板级字段，不依附节点，置顶展示） -->
+        <div class="tfe-entry" :class="{ active: viewMode === 'template' }" @click="selectTemplateFields">
+          <i class="el-icon-collection" />
+          <div class="tfe-entry-info">
+            <div class="tfe-entry-title">任务基础字段</div>
+            <div class="tfe-entry-desc">{{ templateFields.length }} 个字段 · 不依附节点</div>
+          </div>
+        </div>
+
         <div class="chain-list">
           <div v-if="nodes.length === 0" class="chain-empty">
             <i class="el-icon-set-up" />
@@ -34,7 +44,7 @@
           <div v-for="(item, idx) in nodes" :key="idx">
             <div
               class="node-item"
-              :class="{ active: selectedNodeIndex === idx }"
+              :class="{ active: viewMode === 'node' && selectedNodeIndex === idx }"
               @click="selectNode(idx)"
             >
               <div class="node-item-head">
@@ -45,10 +55,10 @@
               <div class="node-item-meta">
                 <span><i class="el-icon-edit" /> {{ (item.fields || []).length }} 个字段</span>
               </div>
-              <div class="node-item-actions" @click.stop>
-                <button class="op-btn" :disabled="idx === 0" title="上移" @click="moveNode(idx, -1)"><i class="el-icon-top" /></button>
-                <button class="op-btn" :disabled="idx === nodes.length - 1" title="下移" @click="moveNode(idx, 1)"><i class="el-icon-bottom" /></button>
-                <button class="op-btn op-del" :disabled="nodes.length <= 2" title="删除" @click="removeNode(idx)"><i class="el-icon-delete" /></button>
+              <div class="node-item-actions">
+                <button class="op-btn" :disabled="idx === 0" title="上移" @click.stop="selectNode(idx); moveNode(idx, -1)"><i class="el-icon-top" /></button>
+                <button class="op-btn" :disabled="idx === nodes.length - 1" title="下移" @click.stop="selectNode(idx); moveNode(idx, 1)"><i class="el-icon-bottom" /></button>
+                <button class="op-btn op-del" :disabled="nodes.length <= 2" title="删除" @click.stop="selectNode(idx); confirmRemoveNode(idx)"><i class="el-icon-delete" /></button>
               </div>
             </div>
             <div v-if="idx < nodes.length - 1" class="chain-arrow"><i class="el-icon-bottom" /></div>
@@ -57,18 +67,21 @@
         <button class="btn-add-node" @click="addNode"><i class="el-icon-plus" /> 添加节点</button>
       </aside>
 
-      <!-- 中栏：当前节点字段画布 -->
+      <!-- 中栏：当前节点/任务基础字段 画布 -->
       <section class="canvas-area">
         <div class="canvas-header">
           <span class="canvas-title">
-            当前节点：{{ currentNode ? currentNode.node.nodeName : '—' }}
-            <span v-if="currentNode" class="node-type-badge" :class="nodeTypeClass(currentNode.node.nodeType)">{{ nodeTypeText(currentNode.node.nodeType) }}</span>
+            <template v-if="viewMode === 'template'">任务基础字段<span class="node-type-badge badge-tpl">任务级</span></template>
+            <template v-else>
+              当前节点：{{ currentNode ? currentNode.node.nodeName : '—' }}
+              <span v-if="currentNode" class="node-type-badge" :class="nodeTypeClass(currentNode.node.nodeType)">{{ nodeTypeText(currentNode.node.nodeType) }}</span>
+            </template>
           </span>
         </div>
 
         <!-- 字段库 -->
         <div class="field-library-bar">
-          <span class="lib-label">点击添加字段到当前节点：</span>
+          <span class="lib-label">点击添加字段{{ viewMode === 'template' ? '到任务基础信息' : '到当前节点' }}：</span>
           <div class="field-cards">
             <div v-for="ft in allFieldTypes" :key="ft.type" class="field-card" @click="addField(ft.type)">
               <i :class="ft.icon" />
@@ -81,7 +94,7 @@
         <div class="canvas-list">
           <div
             v-for="(field, idx) in currentFields"
-            :key="idx"
+            :key="viewMode + '-' + idx"
             class="field-item"
             :class="{ active: selectedFieldIndex === idx }"
             @click="selectedFieldIndex = idx"
@@ -102,8 +115,8 @@
           </div>
           <div v-if="currentFields.length === 0" class="canvas-empty">
             <i class="el-icon-set-up" />
-            <p>当前节点暂无字段</p>
-            <p class="empty-tip">从上方字段库点击添加字段</p>
+            <p>{{ viewMode === 'template' ? '尚未配置任务基础字段' : '当前节点暂无字段' }}</p>
+            <p class="empty-tip">{{ viewMode === 'template' ? '任务基础字段由下发任务时填写，处理人与后台可见' : '从上方字段库点击添加字段' }}</p>
           </div>
         </div>
       </section>
@@ -112,8 +125,11 @@
       <aside class="property-panel">
         <!-- 节点属性 -->
         <div class="prop-section">
-          <div class="panel-title">节点属性</div>
-          <div v-if="!currentNode" class="panel-empty">请选择一个节点</div>
+          <div class="panel-title">{{ viewMode === 'template' ? '任务基础字段说明' : '节点属性' }}</div>
+          <div v-if="viewMode === 'template'" class="tfe-tip">
+            任务基础字段不依附于任何流程节点，是任务本身携带的信息（如规章制度、采购说明等），由下发任务时创建人填写，处理人在处理时与后台查看时均可见。
+          </div>
+          <div v-else-if="!currentNode" class="panel-empty">请选择一个节点</div>
           <div v-else class="prop-form">
             <div class="prop-group">
               <label class="prop-label">节点名称 <span class="req">*</span></label>
@@ -196,6 +212,10 @@ export default {
       templateName: '',
       template: {},
       nodes: [],
+      /** 模板级字段（不依附节点，如规章制度/采购说明等任务基础信息） */
+      templateFields: [],
+      /** 画布模式：node=节点字段，template=任务基础字段 */
+      viewMode: 'node',
       selectedNodeIndex: 0,
       selectedFieldIndex: -1,
       saving: false,
@@ -222,13 +242,14 @@ export default {
       return this.selectedNodeIndex >= 0 && this.selectedNodeIndex < this.nodes.length ? this.nodes[this.selectedNodeIndex] : null
     },
     currentFields() {
+      if (this.viewMode === 'template') return this.templateFields
       return this.currentNode && this.currentNode.fields ? this.currentNode.fields : []
     },
     selectedField() {
       return this.selectedFieldIndex >= 0 && this.selectedFieldIndex < this.currentFields.length ? this.currentFields[this.selectedFieldIndex] : null
     },
     totalFieldCount() {
-      return this.nodes.reduce((sum, n) => sum + ((n.fields || []).length), 0)
+      return this.nodes.reduce((sum, n) => sum + ((n.fields || []).length), 0) + this.templateFields.length
     }
   },
   watch: {
@@ -283,6 +304,7 @@ export default {
       try {
         const res = await getTemplateDetail(this.templateId)
         this.template = res.data.template || {}
+        this.templateFields = (res.data.templateFields || []).map(f => ({ ...f }))
         const nodes = res.data.nodes || []
         if (nodes.length === 0) {
           this.initDefaultNodes()
@@ -303,7 +325,13 @@ export default {
       }
     },
     selectNode(idx) {
+      this.viewMode = 'node'
       this.selectedNodeIndex = idx
+      this.selectedFieldIndex = -1
+    },
+    /** 切换到任务基础字段画布（模板级字段，不依附节点） */
+    selectTemplateFields() {
+      this.viewMode = 'template'
       this.selectedFieldIndex = -1
     },
     addNode() {
@@ -333,6 +361,17 @@ export default {
       if (this.selectedNodeIndex >= this.nodes.length) this.selectedNodeIndex = this.nodes.length - 1
       this.selectedFieldIndex = -1
     },
+    /** 删除节点前二次确认，防止误删 */
+    confirmRemoveNode(idx) {
+      this.$confirm(`确定删除节点「${this.nodes[idx].node.nodeName}」吗？该节点及其字段配置将一并移除。`, '删除节点确认', {
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger'
+      }).then(() => {
+        this.removeNode(idx)
+      }).catch(() => {})
+    },
     moveNode(idx, dir) {
       const target = idx + dir
       // 不允许把节点移到首位之前或末位之后；首位/末位固定为开始/结束
@@ -345,7 +384,6 @@ export default {
       this.selectedNodeIndex = target
     },
     addField(type) {
-      if (!this.currentNode) return
       const conf = this.allFieldTypes.find(f => f.type === type)
       const idx = this.currentFields.length + 1
       const newField = {
@@ -403,11 +441,25 @@ export default {
           return
         }
       }
+      // 校验任务基础字段标签
+      for (const f of this.templateFields) {
+        if (!f.fieldLabel || !f.fieldLabel.trim()) {
+          this.$message.warning('任务基础字段的字段标签不能为空')
+          return
+        }
+      }
       this.fixNodeTypes()
       this.saving = true
       try {
         const payload = {
           templateId: Number(this.templateId),
+          templateFields: this.templateFields.map((f, k) => ({
+            ...f,
+            id: null,
+            nodeId: null,
+            sortNum: k,
+            required: f.required || 0
+          })),
           nodes: this.nodes.map((item, i) => ({
             node: {
               ...item.node,
@@ -456,9 +508,26 @@ $border: #e4beba;
 .tpl-cat { padding: 2px 8px; background: rgba(197,48,48,0.1); color: $primary; border-radius: 4px; font-size: 12px; }
 .header-right { display: flex; align-items: center; gap: 16px; }
 .field-count { font-size: 13px; color: #757575; }
+.tfe-count { color: $primary; margin-left: 4px; }
 .btn-save { display: flex; align-items: center; gap: 4px; padding: 8px 20px; background: $primary; color: #fff; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer;
   &:hover { opacity: 0.9; } &:disabled { opacity: 0.6; cursor: not-allowed; }
 }
+
+// 任务基础字段入口
+.tfe-entry { display: flex; align-items: center; gap: 10px; margin: 12px 0 16px; padding: 12px; border: 1px dashed #cbd5e0; border-radius: 8px; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+  i { font-size: 20px; color: $primary; }
+  // hover 仅轻微提示，避免与选中态混淆
+  &:hover { background: #f7f8fa; border-color: #cbd5e0; }
+  // 选中态才显示红色系
+  &.active { border-color: $primary; background: #FFF5F5; box-shadow: 0 0 0 1px $primary;
+    i { color: $primary; }
+  }
+}
+.tfe-entry-info { display: flex; flex-direction: column; gap: 2px; }
+.tfe-entry-title { font-size: 13px; font-weight: 700; color: #1b1c1c; }
+.tfe-entry-desc { font-size: 11px; color: #999; }
+.tfe-tip { font-size: 12px; color: #999; line-height: 1.7; padding: 8px 0; }
+.badge-tpl { background: rgba(197,48,48,0.1); color: $primary; }
 
 // 三栏
 .designer-body { flex: 1; display: grid; grid-template-columns: 280px 1fr 320px; gap: 0; overflow: hidden; }
@@ -469,7 +538,8 @@ $border: #e4beba;
 .panel-desc { font-size: 12px; color: #999; margin-bottom: 16px; }
 .chain-list { flex: 1; overflow-y: auto; }
 .node-item { padding: 12px; border: 1px solid #e4e7ed; border-radius: 8px; margin-bottom: 0; cursor: pointer; transition: all 0.2s; position: relative;
-  &:hover { border-color: $primary; }
+  // hover 仅轻微提示，避免与选中态混淆
+  &:hover { background: #f7f8fa; }
   &.active { border-color: $primary; background: #FFF5F5; box-shadow: 0 0 0 1px $primary; }
 }
 .node-item-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
@@ -483,7 +553,7 @@ $border: #e4beba;
   i { margin-right: 2px; }
 }
 .assign-tag { color: $primary; }
-.node-item-actions { display: flex; gap: 4px; margin-top: 8px; }
+.node-item-actions { display: flex; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #eef0f2; }
 .chain-arrow { text-align: center; color: #c0c4cc; padding: 4px 0; font-size: 14px; }
 .chain-empty { text-align: center; padding: 40px 12px; color: #ccc;
   i { font-size: 40px; display: block; margin-bottom: 10px; }

@@ -61,9 +61,30 @@
           <textarea v-model="form.taskDesc" class="form-textarea" rows="3" placeholder="任务公告/填报要求说明（选填）" maxlength="500" />
         </div>
       </div>
+      <!-- 任务基础信息（模板级字段，创建人赋值，处理人与后台可见） -->
+      <div v-if="templateFields.length" class="form-card tpl-fields-card">
+        <div class="tpl-fields-title">
+          <i class="el-icon-collection" /> 任务基础信息
+          <span class="tpl-fields-tip">（由创建人填写，处理人与后台均可见）</span>
+        </div>
+        <div v-for="f in templateFields" :key="f.id" class="form-row">
+          <label class="form-label"><span v-if="f.required === 1" class="req">*</span> {{ f.fieldLabel }}</label>
+          <el-input v-if="f.fieldType === 'text'" v-model="templateForm[f.id]" :placeholder="f.placeholder || '请输入' + f.fieldLabel" :maxlength="f.maxLength || undefined" />
+          <el-input v-else-if="f.fieldType === 'textarea'" v-model="templateForm[f.id]" type="textarea" :rows="3" :placeholder="f.placeholder || '请输入' + f.fieldLabel" :maxlength="f.maxLength || undefined" />
+          <el-input v-else-if="f.fieldType === 'number'" v-model="templateForm[f.id]" type="number" :placeholder="f.placeholder || '请输入' + f.fieldLabel" />
+          <el-date-picker v-else-if="f.fieldType === 'date'" v-model="templateForm[f.id]" type="date" value-format="yyyy-MM-dd" :placeholder="f.placeholder || '选择日期'" style="width:100%" />
+          <el-select v-else-if="f.fieldType === 'radio'" v-model="templateForm[f.id]" :placeholder="f.placeholder || '请选择'" style="width:100%">
+            <el-option v-for="opt in parseOptions(f.enumOptions)" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+          <el-checkbox-group v-else-if="f.fieldType === 'checkbox'" v-model="templateForm[f.id]">
+            <el-checkbox v-for="opt in parseOptions(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-checkbox>
+          </el-checkbox-group>
+          <el-input v-else v-model="templateForm[f.id]" :placeholder="f.placeholder || '请输入' + f.fieldLabel" />
+        </div>
+      </div>
       <div class="step-actions">
         <button class="btn-prev" @click="step = 0"><i class="el-icon-arrow-left" /> 上一步</button>
-        <button class="btn-next" :disabled="!form.taskName || !form.startTime || !form.endTime" @click="step = 2">下一步 <i class="el-icon-arrow-right" /></button>
+        <button class="btn-next" :disabled="!form.taskName || !form.startTime || !form.endTime" @click="goStep3">下一步 <i class="el-icon-arrow-right" /></button>
       </div>
     </div>
 
@@ -155,6 +176,10 @@ export default {
       templates: [],
       tplLoading: false,
       form: { templateId: null, taskName: '', taskDesc: '', startTime: '', endTime: '' },
+      /** 模板级字段配置（node_id 为空，如规章制度/采购说明） */
+      templateFields: [],
+      /** 模板级字段值（fieldId → value，创建人填写） */
+      templateForm: {},
       firstHandlers: [],
       submitting: false,
       pickerVisible: false,
@@ -202,9 +227,34 @@ export default {
           this.$message.warning('该模板尚未设计流程节点，请先在设计流程中配置节点链')
           return
         }
+        this.templateFields = (res.data && res.data.templateFields) || []
+        this.templateForm = {}
         this.step = 1
       } catch (e) {
         console.error(e)
+      }
+    },
+    /** 步骤2 → 3：校验任务基础信息必填项 */
+    goStep3() {
+      for (const f of this.templateFields) {
+        if (f.required === 1) {
+          const v = this.templateForm[f.id]
+          const empty = v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)
+          if (empty) {
+            this.$message.warning(`请填写「${f.fieldLabel}」`)
+            return
+          }
+        }
+      }
+      this.step = 2
+    },
+    /** 解析枚举选项 JSON */
+    parseOptions(json) {
+      if (!json) return []
+      try {
+        return JSON.parse(json) || []
+      } catch (e) {
+        return []
       }
     },
     isAlreadySelected(row) {
@@ -252,13 +302,21 @@ export default {
       }
       this.submitting = true
       try {
+        // 模板级字段值：checkbox 数组 join(','), 其余转字符串
+        const templateData = {}
+        this.templateFields.forEach(f => {
+          const v = this.templateForm[f.id]
+          if (v === undefined || v === null || v === '') return
+          templateData[f.id] = Array.isArray(v) ? v.join(',') : String(v)
+        })
         const payload = {
           templateId: this.form.templateId,
           taskName: this.form.taskName,
           taskDesc: this.form.taskDesc,
           startTime: this.form.startTime,
           endTime: this.form.endTime,
-          firstHandlerIds: this.firstHandlers.map(h => h.id)
+          firstHandlerIds: this.firstHandlers.map(h => h.id),
+          templateData
         }
         const res = await createTask(payload)
         const count = (res && res.data) || this.firstHandlers.length
@@ -273,6 +331,8 @@ export default {
     },
     resetForm() {
       this.form = { templateId: null, taskName: '', taskDesc: '', startTime: '', endTime: '' }
+      this.templateFields = []
+      this.templateForm = {}
       this.firstHandlers = []
     },
     handleClose() {
@@ -318,6 +378,13 @@ $border: #e4beba;
 .form-textarea { border: 1px solid #dcdfe6; border-radius: 4px; padding: 8px 10px; font-size: 13px; outline: none; resize: vertical;
   &:focus { border-color: $primary; box-shadow: 0 0 0 1px rgba(197,48,48,0.2); }
 }
+
+// 任务基础信息（模板级字段）
+.tpl-fields-card { margin-top: 16px; padding: 16px; border: 1px dashed $border; border-radius: 8px; background: #FFF5F5; }
+.tpl-fields-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: #1b1c1c; margin-bottom: 14px;
+  i { color: $primary; }
+}
+.tpl-fields-tip { font-size: 12px; color: #999; font-weight: 400; }
 
 .selected-summary { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #414755; margin-bottom: 12px;
   b { color: $primary; }

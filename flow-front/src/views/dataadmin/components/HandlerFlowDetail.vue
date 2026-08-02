@@ -5,6 +5,16 @@
       <span class="hfd-desc-label">任务说明</span>
       <span class="hfd-desc-text">{{ taskDesc }}</span>
     </div>
+    <!-- 任务基础信息（模板级字段，创建人下发时赋值，后台可见） -->
+    <div v-if="templateFieldRows.length > 0" class="hfd-desc">
+      <span class="hfd-desc-label">任务基础信息</span>
+      <div class="hfd-desc-text">
+        <div v-for="r in templateFieldRows" :key="r.id" class="tpl-row">
+          <span class="tpl-label">{{ r.label }}</span>
+          <span class="tpl-value">{{ r.value || '—' }}</span>
+        </div>
+      </div>
+    </div>
     <div class="hfd-cols">
     <!-- 左侧：完整流程链（去重：开始到当前节点，不显示退回重复步骤） -->
     <div v-if="flowChain.length > 0" class="chain-section hfd-left">
@@ -119,6 +129,17 @@ export default {
     taskDesc() {
       return (this.taskDetail && this.taskDetail.task && this.taskDetail.task.taskDesc) || ''
     },
+    /** 任务基础信息（模板级字段：配置 + 创建人下发的值，后台只读可见） */
+    templateFieldRows() {
+      if (!this.taskDetail) return []
+      const fields = this.taskDetail.templateFields || []
+      const data = this.taskDetail.templateData || {}
+      return fields.map(f => ({
+        id: f.id,
+        label: f.fieldLabel,
+        value: data[f.id] !== undefined && data[f.id] !== null ? String(data[f.id]) : ''
+      }))
+    },
     /** 流程链：展示该任务从开始到当前节点的完整流转；节点有多个处理人时全部展示（高亮选中成员） */
     flowChain() {
       if (!this.taskDetail) return []
@@ -227,8 +248,12 @@ $primary: #C53030;
 $border: #e4beba;
 .flow-detail-wrap { display: flex; flex-direction: column; gap: 16px; }
 .hfd-desc { display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; background: #FFF5F5; border: 1px dashed $border; border-radius: 8px; font-size: 13px;
-  .hfd-desc-label { width: 90px; color: #757575; flex-shrink: 0;line-height: 1.6 }
+  .hfd-desc-label { width: 90px; color: #757575; flex-shrink: 0; line-height: 1.6; }
   .hfd-desc-text { flex: 1; color: #5b403d; line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
+}
+.tpl-row { display: flex; padding: 3px 0;
+  .tpl-label { width: 120px; color: #757575; flex-shrink: 0; }
+  .tpl-value { flex: 1; word-break: break-all; }
 }
 .hfd-cols { display: flex; gap: 16px; align-items: flex-start; }
 .hfd-left { flex: 3; min-width: 0; }

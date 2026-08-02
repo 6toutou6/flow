@@ -2,6 +2,8 @@ package com.zqk.house.flowtask.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zqk.house.flowdata.entity.FlowAttachment;
 import com.zqk.house.flowdata.entity.FlowFormData;
 import com.zqk.house.flowdata.entity.FlowFormRecord;
@@ -39,6 +41,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,6 +68,28 @@ public class FlowTaskService {
     private FlowFormDataMapper flowFormDataMapper;
     @Autowired
     private FlowAttachmentMapper flowAttachmentMapper;
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    /** 模板级字段值 Map → JSON（null/空返回 null） */
+    private String serializeTemplateData(Map<Long, String> data) {
+        if (data == null || data.isEmpty()) return null;
+        try {
+            return objectMapper.writeValueAsString(data);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** JSON → 模板级字段值 Map（null/空返回空 Map） */
+    private Map<Long, String> deserializeTemplateData(String json) {
+        if (!StringUtils.hasText(json)) return new HashMap<>();
+        try {
+            return objectMapper.readValue(json, new TypeReference<Map<Long, String>>() {});
+        } catch (Exception e) {
+            return new HashMap<>();
+        }
+    }
 
     /** 主任务分页：一次下发 = 一条主任务，组级不含“当前处理人”；成员各自独立（当前处理人/进度在成员上） */
     public PageResult<TaskGroupVO> getPage(FlowTaskQueryForm form) {
@@ -249,6 +274,12 @@ public class FlowTaskService {
         }
         // 回填各已处理节点的历史表单数据（点击查看用）
         fillHistoryFormData(progress, task.getTemplateId());
+        // 模板级字段配置（node_id 为空，不依附节点）+ 创建人下发的值
+        LambdaQueryWrapper<FlowTemplateField> tfw = new LambdaQueryWrapper<>();
+        tfw.eq(FlowTemplateField::getTemplateId, task.getTemplateId()).isNull(FlowTemplateField::getNodeId)
+           .orderByAsc(FlowTemplateField::getSortNum);
+        vo.setTemplateFields(flowTemplateFieldMapper.selectList(tfw));
+        vo.setTemplateData(deserializeTemplateData(task.getTemplateData()));
         return vo;
     }
 
@@ -332,12 +363,15 @@ public class FlowTaskService {
 
         LoginUser loginUser = SecurityUtils.getLoginUser();
         Long creatorId = loginUser == null ? null : loginUser.getId();
+        // 模板级字段值（下发时创建人赋值，各成员任务共享同一份）
+        String templateDataJson = serializeTemplateData(dto.getTemplateData());
         // 先建主任务（一次下发 = 一条主任务，人员删空后仍保留）
         FlowTaskDispatch dispatch = new FlowTaskDispatch();
         dispatch.setTemplateId(dto.getTemplateId());
         dispatch.setTemplateVersion(tpl.getVersion());
         dispatch.setTaskName(dto.getTaskName());
         dispatch.setTaskDesc(dto.getTaskDesc());
+        dispatch.setTemplateData(templateDataJson);
         dispatch.setStartTime(dto.getStartTime());
         dispatch.setEndTime(dto.getEndTime());
         dispatch.setCreatorId(creatorId);
@@ -350,6 +384,7 @@ public class FlowTaskService {
             task.setTemplateId(dto.getTemplateId());
             task.setTaskName(dto.getTaskName());
             task.setTaskDesc(dto.getTaskDesc());
+            task.setTemplateData(templateDataJson);
             task.setStartTime(dto.getStartTime());
             task.setEndTime(dto.getEndTime());
             task.setStatus(1);
@@ -422,6 +457,7 @@ public class FlowTaskService {
             task.setTemplateId(dispatch.getTemplateId());
             task.setTaskName(dispatch.getTaskName());
             task.setTaskDesc(dispatch.getTaskDesc());
+            task.setTemplateData(dispatch.getTemplateData());
             task.setStartTime(dispatch.getStartTime());
             task.setEndTime(dispatch.getEndTime());
             task.setStatus(1);

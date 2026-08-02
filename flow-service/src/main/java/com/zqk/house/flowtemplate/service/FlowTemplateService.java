@@ -59,8 +59,10 @@ public class FlowTemplateService {
         LambdaQueryWrapper<FlowTemplateField> fw = new LambdaQueryWrapper<>();
         fw.eq(FlowTemplateField::getTemplateId, id).orderByAsc(FlowTemplateField::getNodeId, FlowTemplateField::getSortNum);
         List<FlowTemplateField> allFields = flowTemplateFieldMapper.selectList(fw);
+        // 仅按节点分组（模板级字段 node_id 为 null，不参与节点分组，避免 groupingBy 对 null key 抛异常）
         Map<Long, List<FlowTemplateField>> fieldMap = allFields.stream()
-                .collect(Collectors.groupingBy(f -> f.getNodeId()));
+                .filter(f -> f.getNodeId() != null)
+                .collect(Collectors.groupingBy(FlowTemplateField::getNodeId));
         List<TemplateNodeWithFieldsVO> nodes = new ArrayList<>();
         for (FlowTemplateNode node : nodeList) {
             TemplateNodeWithFieldsVO nv = new TemplateNodeWithFieldsVO();
@@ -71,6 +73,11 @@ public class FlowTemplateService {
         TemplateDetailVO vo = new TemplateDetailVO();
         vo.setTemplate(template);
         vo.setNodes(nodes);
+        // 模板级字段（node_id 为空，不依附节点，如规章制度/采购说明）
+        LambdaQueryWrapper<FlowTemplateField> tfw = new LambdaQueryWrapper<>();
+        tfw.eq(FlowTemplateField::getTemplateId, id).isNull(FlowTemplateField::getNodeId)
+           .orderByAsc(FlowTemplateField::getSortNum);
+        vo.setTemplateFields(flowTemplateFieldMapper.selectList(tfw));
         return vo;
     }
 
@@ -104,6 +111,16 @@ public class FlowTemplateService {
         src.setStatus(0);
         flowTemplateMapper.insert(src);
         Long newId = src.getId();
+        // 复制模板级字段（node_id 为空，不依附节点）
+        LambdaQueryWrapper<FlowTemplateField> tfw = new LambdaQueryWrapper<>();
+        tfw.eq(FlowTemplateField::getTemplateId, id).isNull(FlowTemplateField::getNodeId)
+           .orderByAsc(FlowTemplateField::getSortNum);
+        for (FlowTemplateField f : flowTemplateFieldMapper.selectList(tfw)) {
+            f.setId(null);
+            f.setTemplateId(newId);
+            f.setNodeId(null);
+            flowTemplateFieldMapper.insert(f);
+        }
         // 复制节点链 + 字段
         LambdaQueryWrapper<FlowTemplateNode> nw = new LambdaQueryWrapper<>();
         nw.eq(FlowTemplateNode::getTemplateId, id).orderByAsc(FlowTemplateNode::getSortNum);
@@ -165,6 +182,18 @@ public class FlowTemplateService {
         LambdaQueryWrapper<FlowTemplateNode> nw = new LambdaQueryWrapper<>();
         nw.eq(FlowTemplateNode::getTemplateId, templateId);
         flowTemplateNodeMapper.delete(nw);
+        // 插模板级字段（node_id 为空，不依附节点）
+        if (dto.getTemplateFields() != null) {
+            for (int k = 0; k < dto.getTemplateFields().size(); k++) {
+                FlowTemplateField f = dto.getTemplateFields().get(k);
+                f.setId(null);
+                f.setTemplateId(templateId);
+                f.setNodeId(null);
+                f.setSortNum(k);
+                if (f.getRequired() == null) f.setRequired(0);
+                flowTemplateFieldMapper.insert(f);
+            }
+        }
         // 插新 nodes + fields
         for (int i = 0; i < nodes.size(); i++) {
             TemplateFlowSaveDTO.NodeItem item = nodes.get(i);
