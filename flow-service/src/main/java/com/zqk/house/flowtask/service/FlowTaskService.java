@@ -19,6 +19,7 @@ import com.zqk.house.flowtask.mapper.FlowTaskMapper;
 import com.zqk.house.flowtask.mapper.FlowTaskNodeMapper;
 import com.zqk.house.flowtask.vo.FormDataItemVO;
 import com.zqk.house.flowtask.vo.MyTodoVO;
+import com.zqk.house.flowtask.vo.MemberNodeStepVO;
 import com.zqk.house.flowtask.vo.NodeSubmitDTO;
 import com.zqk.house.flowtask.vo.TaskCreateDTO;
 import com.zqk.house.flowtask.vo.TaskDetailVO;
@@ -40,6 +41,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -112,8 +115,71 @@ public class FlowTaskService {
         String n = (name == null || name.trim().isEmpty()) ? null : name.trim();
         String d = (dept == null || dept.trim().isEmpty()) ? null : dept.trim();
         List<TaskMemberVO> list = flowTaskMapper.selectMembersPage(dispatchId, n, d, status, offset, l);
+        for (TaskMemberVO m : list) fillMemberNodeSteps(m);
         Long total = flowTaskMapper.selectMembersCount(dispatchId, n, d, status);
         return new PageResult<>(list, total);
+    }
+
+    /** 为成员填充流程节点步骤（done/current/rejected/pending），供成员卡片横向展示 */
+    private void fillMemberNodeSteps(TaskMemberVO m) {
+        if (m == null || m.getTemplateId() == null || m.getTaskId() == null) return;
+        List<FlowTemplateNode> tplNodes = flowTemplateNodeMapper.selectList(
+                new LambdaQueryWrapper<FlowTemplateNode>()
+                        .eq(FlowTemplateNode::getTemplateId, m.getTemplateId())
+                        .orderByAsc(FlowTemplateNode::getSortNum));
+        if (tplNodes.isEmpty()) return;
+        List<FlowTaskNode> taskNodes = flowTaskNodeMapper.selectList(
+                new LambdaQueryWrapper<FlowTaskNode>()
+                        .eq(FlowTaskNode::getTaskId, m.getTaskId()));
+        // legacy nodeId → 当前模板节点（处理悬空引用：direct id / sortNum / nodeName 逐级匹配）
+        Map<Long, FlowTemplateNode> remap = new HashMap<>();
+        Map<Integer, FlowTemplateNode> bySort = new HashMap<>();
+        Map<String, FlowTemplateNode> byName = new HashMap<>();
+        for (FlowTemplateNode n : tplNodes) {
+            if (n.getSortNum() != null) bySort.putIfAbsent(n.getSortNum(), n);
+            if (n.getNodeName() != null) byName.putIfAbsent(n.getNodeName(), n);
+        }
+        for (FlowTaskNode tn : taskNodes) {
+            if (tn.getNodeId() == null || remap.containsKey(tn.getNodeId())) continue;
+            FlowTemplateNode direct = flowTemplateNodeMapper.selectById(tn.getNodeId());
+            if (direct != null && m.getTemplateId().equals(direct.getTemplateId())) {
+                remap.put(tn.getNodeId(), direct);
+                continue;
+            }
+            FlowTemplateNode hit = (tn.getSortNum() != null) ? bySort.get(tn.getSortNum()) : null;
+            if (hit == null && tn.getNodeName() != null) hit = byName.get(tn.getNodeName());
+            if (hit == null) hit = tplNodes.get(tplNodes.size() - 1);
+            remap.put(tn.getNodeId(), hit);
+        }
+        // 按当前模板节点聚合 task_node
+        Map<Long, List<FlowTaskNode>> byNode = new HashMap<>();
+        for (FlowTaskNode tn : taskNodes) {
+            FlowTemplateNode t = remap.get(tn.getNodeId());
+            if (t == null) continue;
+            byNode.computeIfAbsent(t.getId(), k -> new ArrayList<>()).add(tn);
+        }
+        List<MemberNodeStepVO> steps = new ArrayList<>();
+        int stepNo = 1;
+        for (FlowTemplateNode tpl : tplNodes) {
+            List<FlowTaskNode> ns = byNode.getOrDefault(tpl.getId(), Collections.emptyList());
+            MemberNodeStepVO s = new MemberNodeStepVO();
+            s.setStepNo(stepNo++);
+            s.setNodeId(tpl.getId());
+            s.setNodeName(tpl.getNodeName());
+            boolean done = ns.stream().anyMatch(t -> t.getSubmitStatus() != null && t.getSubmitStatus() == 1);
+            boolean hasPending = ns.stream().anyMatch(t -> t.getSubmitStatus() != null && t.getSubmitStatus() == 0);
+            if (done) {
+                // 最新一条已处理记录若为退回 → rejected，否则 done
+                boolean rejected = ns.stream()
+                        .filter(t -> t.getSubmitStatus() != null && t.getSubmitStatus() == 1)
+                        .max(Comparator.comparing(FlowTaskNode::getId))
+                        .map(t -> t.getAction() != null && t.getAction() == 1).orElse(false);
+                s.setStatus(rejected ? "rejected" : "done");
+            } else if (hasPending) s.setStatus("current");
+            else s.setStatus("pending");
+            steps.add(s);
+        }
+        m.setNodeSteps(steps);
     }
 
     /** 主任务详情：组头 + 全部成员（level 2 展示）。空组（无成员）仍返回，便于补员/删除 */

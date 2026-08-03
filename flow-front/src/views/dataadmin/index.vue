@@ -208,6 +208,16 @@
                       <span><i class="el-icon-odometer" /> 进度 {{ m.finishedNodeCount || 0 }}/{{ m.totalNodeCount || 0 }}</span>
                     </div>
                     <div class="progress-bar thin"><div class="progress-fill" :style="{ width: memberProgress(m) + '%' }" /></div>
+                    <!-- 流程节点横向展示：已通过绿 / 处理中红 / 未到灰 -->
+                    <div class="hc-nodes">
+                      <span
+                        v-for="(st, si) in (m.nodeSteps || [])"
+                        :key="si"
+                        class="node-chip"
+                        :class="'chip-' + st.status"
+                        :title="st.nodeName"
+                      >{{ st.stepNo }}.{{ st.nodeName }}</span>
+                    </div>
                   </div>
                 </div>
                 <div class="hc-right">
@@ -726,9 +736,7 @@ $border: #e4beba;
   i { font-size: 48px; display: block; margin-bottom: 12px; }
   p { font-size: 14px; margin: 0; }
 }
-.handler-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
-  @media (max-width: 900px) { grid-template-columns: 1fr; }
-}
+.handler-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .handler-card { display: flex; justify-content: space-between; align-items: center; background: #fff; border: 1px solid $border; border-radius: 8px; padding: 16px 18px; cursor: pointer; transition: all .2s;
   &:hover { box-shadow: 0 3px 10px rgba(197,48,48,0.12); border-color: $primary; }
   &.selected { border-color: $primary; background: #FFF5F5; box-shadow: 0 0 0 1px $primary; }
@@ -745,11 +753,15 @@ $border: #e4beba;
   i { margin-right: 2px; }
 }
 .progress-bar.thin { width: 100%; margin-top: 8px; }
-.hc-nodes { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-.node-chip { padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; }
-.chip-done { background: rgba(38,109,0,0.1); color: #266d00; }
-.chip-current { background: rgba(197,48,48,0.12); color: $primary; }
-.chip-rejected { background: rgba(183,121,31,0.15); color: #b7791f; }
+.hc-nodes { display: flex; align-items: center; gap: 4px; margin-top: 6px; overflow-x: auto; white-space: nowrap;
+  &::-webkit-scrollbar { height: 4px; }
+  &::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+}
+.node-chip { padding: 2px 9px; border-radius: 4px; font-size: 11px; font-weight: 600; flex-shrink: 0; line-height: 1.6; }
+.chip-done { background: #266d00; color: #fff; }
+.chip-current { background: rgba(197,48,48,0.14); color: $primary; border: 1px solid rgba(197,48,48,0.4); }
+.chip-rejected { background: rgba(183,121,31,0.16); color: #b7791f; border: 1px solid rgba(183,121,31,0.45); }
+.chip-pending { background: #f0f0f0; color: #aaa; }
 .chip-pending-count { margin-left: 3px; font-style: normal; color: $primary; font-weight: 700; }
 .hc-right { display: flex; flex-direction: column; align-items: center; gap: 6px; color: $primary; flex-shrink: 0; margin-left: 12px; }
 .hc-view { display: flex; flex-direction: column; align-items: center; cursor: pointer;

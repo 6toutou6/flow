@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  * 任务组成员 = 一条独立的人员任务（flow_task）。
@@ -34,6 +35,9 @@ public class TaskMemberVO {
 
     private Integer finishedNodeCount;
     private Integer totalNodeCount;
+
+    /** 流程节点步骤（横向展示用）：done/current/pending */
+    private List<MemberNodeStepVO> nodeSteps;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;
