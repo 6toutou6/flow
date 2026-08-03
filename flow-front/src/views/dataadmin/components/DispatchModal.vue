@@ -61,13 +61,13 @@
           <textarea v-model="form.taskDesc" class="form-textarea" rows="3" placeholder="任务公告/填报要求说明（选填）" maxlength="500" />
         </div>
       </div>
-      <!-- 任务基础信息（模板级字段，创建人赋值，处理人与后台可见） -->
-      <div v-if="templateFields.length" class="form-card tpl-fields-card">
+      <!-- 任务基础信息（模板级字段，创建人填写，处理人与后台可见） -->
+      <div v-if="creatorFields.length" class="form-card tpl-fields-card">
         <div class="tpl-fields-title">
           <i class="el-icon-collection" /> 任务基础信息
           <span class="tpl-fields-tip">（由创建人填写，处理人与后台均可见）</span>
         </div>
-        <div v-for="f in templateFields" :key="f.id" class="form-row">
+        <div v-for="f in creatorFields" :key="f.id" class="form-row">
           <label class="form-label"><span v-if="f.required === 1" class="req">*</span> {{ f.fieldLabel }}</label>
           <el-input v-if="f.fieldType === 'text'" v-model="templateForm[f.id]" :placeholder="f.placeholder || '请输入' + f.fieldLabel" :maxlength="f.maxLength || undefined" />
           <el-input v-else-if="f.fieldType === 'textarea'" v-model="templateForm[f.id]" type="textarea" :rows="3" :placeholder="f.placeholder || '请输入' + f.fieldLabel" :maxlength="f.maxLength || undefined" />
@@ -193,6 +193,10 @@ export default {
     dialogVisible: {
       get() { return this.visible },
       set(val) { if (!val) this.handleClose() }
+    },
+    /** 仅创建人填写的任务基础字段（处理人填写字段不在下发时展示） */
+    creatorFields() {
+      return (this.templateFields || []).filter(f => f.fieldRole !== 2)
     }
   },
   watch: {
@@ -236,7 +240,7 @@ export default {
     },
     /** 步骤2 → 3：校验任务基础信息必填项 */
     goStep3() {
-      for (const f of this.templateFields) {
+      for (const f of this.creatorFields) {
         if (f.required === 1) {
           const v = this.templateForm[f.id]
           const empty = v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)
@@ -302,9 +306,9 @@ export default {
       }
       this.submitting = true
       try {
-        // 模板级字段值：checkbox 数组 join(','), 其余转字符串
+        // 模板级字段值：checkbox 数组 join(','), 其余转字符串（仅创建人填写字段）
         const templateData = {}
-        this.templateFields.forEach(f => {
+        this.creatorFields.forEach(f => {
           const v = this.templateForm[f.id]
           if (v === undefined || v === null || v === '') return
           templateData[f.id] = Array.isArray(v) ? v.join(',') : String(v)

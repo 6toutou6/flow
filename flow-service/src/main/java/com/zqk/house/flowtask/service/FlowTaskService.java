@@ -45,6 +45,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -328,8 +329,9 @@ public class FlowTaskService {
         }
         // 当前处理人查看时，返回当前节点字段配置（resolve 到当前模板节点以防悬空引用）
         LoginUser loginUser = SecurityUtils.getLoginUser();
+        FlowTemplateNode currentNode = null;
         if (loginUser != null && task.getStatus() == 1) {
-            FlowTemplateNode currentNode = resolveTemplateNode(task.getTemplateId(), task.getCurrentNodeId(), id);
+            currentNode = resolveTemplateNode(task.getTemplateId(), task.getCurrentNodeId(), id);
             if (currentNode != null) {
                 LambdaQueryWrapper<FlowTemplateField> fw = new LambdaQueryWrapper<>();
                 fw.eq(FlowTemplateField::getNodeId, currentNode.getId()).orderByAsc(FlowTemplateField::getSortNum);
@@ -340,13 +342,97 @@ public class FlowTaskService {
         }
         // 回填各已处理节点的历史表单数据（点击查看用）
         fillHistoryFormData(progress, task.getTemplateId());
+        // 回填各已处理节点处理人填写的任务基础字段（fieldRole=2）
+        fillBaseData(progress, task.getTemplateId());
         // 模板级字段配置（node_id 为空，不依附节点）+ 创建人下发的值
         LambdaQueryWrapper<FlowTemplateField> tfw = new LambdaQueryWrapper<>();
         tfw.eq(FlowTemplateField::getTemplateId, task.getTemplateId()).isNull(FlowTemplateField::getNodeId)
            .orderByAsc(FlowTemplateField::getSortNum);
         vo.setTemplateFields(flowTemplateFieldMapper.selectList(tfw));
         vo.setTemplateData(deserializeTemplateData(task.getTemplateData()));
+        // 处理人填写的任务基础字段配置（fieldRole=2，绑定到当前节点的才展示：仅处理该节点时填写）
+        if (currentNode != null) {
+            LambdaQueryWrapper<FlowTemplateField> hbw = new LambdaQueryWrapper<>();
+            hbw.eq(FlowTemplateField::getTemplateId, task.getTemplateId())
+               .isNull(FlowTemplateField::getNodeId)
+               .eq(FlowTemplateField::getFieldRole, 2)
+               .eq(FlowTemplateField::getBindNodeId, currentNode.getId())
+               .orderByAsc(FlowTemplateField::getSortNum);
+            vo.setHandlerBaseFields(flowTemplateFieldMapper.selectList(hbw));
+            // 当前处理人最近一次提交值（退回重做回填，仅回填绑定节点的）
+            vo.setCurrentBaseData(loadCurrentBaseData(task));
+        }
+        // 处理人填写的任务基础字段汇总值：各绑定节点已提交的最新值，同步展示在任务基础信息区
+        vo.setHandlerBaseData(loadAllBaseData(progress));
         return vo;
+    }
+
+    /** 聚合任务全部已提交节点中处理人填写的任务基础字段值（fieldId → 最新提交值） */
+    private Map<Long, String> loadAllBaseData(List<TaskProgressVO> progress) {
+        if (progress == null || progress.isEmpty()) return null;
+        List<Long> tnIds = progress.stream().map(TaskProgressVO::getTaskNodeId)
+                .filter(java.util.Objects::nonNull).collect(Collectors.toList());
+        if (tnIds.isEmpty()) return null;
+        List<FlowTaskNode> tns = flowTaskNodeMapper.selectBatchIds(tnIds);
+        // 按节点记录ID升序合并，后提交的值覆盖先提交的值（同一字段可能被退回重做多次填写）
+        tns.sort(java.util.Comparator.comparing(FlowTaskNode::getId, java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder())));
+        Map<Long, String> result = new LinkedHashMap<>();
+        for (FlowTaskNode tn : tns) {
+            if (tn.getSubmitStatus() == null || tn.getSubmitStatus() != 1) continue;
+            if (tn.getBaseData() == null || tn.getBaseData().trim().isEmpty()) continue;
+            Map<Long, String> map = deserializeTemplateData(tn.getBaseData());
+            if (map.isEmpty()) continue;
+            result.putAll(map);
+        }
+        return result.isEmpty() ? null : result;
+    }
+
+    /** 加载当前节点当前处理人最近一次提交的处理人任务基础字段值（退回重做回填，仅回填本人的） */
+    private Map<Long, String> loadCurrentBaseData(FlowTask task) {
+        if (task.getCurrentNodeId() == null) return null;
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        if (loginUser == null) return null;
+        LambdaQueryWrapper<FlowTaskNode> tnw = new LambdaQueryWrapper<>();
+        tnw.eq(FlowTaskNode::getTaskId, task.getId())
+           .eq(FlowTaskNode::getNodeId, task.getCurrentNodeId())
+           .eq(FlowTaskNode::getHandlerUserId, loginUser.getId())
+           .eq(FlowTaskNode::getSubmitStatus, 1)
+           .orderByDesc(FlowTaskNode::getId).last("LIMIT 1");
+        FlowTaskNode lastDone = flowTaskNodeMapper.selectOne(tnw);
+        if (lastDone == null || lastDone.getBaseData() == null || lastDone.getBaseData().trim().isEmpty()) return null;
+        Map<Long, String> map = deserializeTemplateData(lastDone.getBaseData());
+        return map.isEmpty() ? null : map;
+    }
+
+    /** 回填各已处理 task_node 的处理人填写任务基础字段（base_data，fieldRole=2） */
+    private void fillBaseData(List<TaskProgressVO> progress, Long templateId) {
+        if (progress == null || progress.isEmpty()) return;
+        List<Long> tnIds = progress.stream().map(TaskProgressVO::getTaskNodeId)
+                .filter(java.util.Objects::nonNull).collect(Collectors.toList());
+        if (tnIds.isEmpty()) return;
+        List<FlowTaskNode> tns = flowTaskNodeMapper.selectBatchIds(tnIds);
+        // 模板字段 label 映射（fieldLabel 展示用）
+        LambdaQueryWrapper<FlowTemplateField> tfw = new LambdaQueryWrapper<>();
+        tfw.eq(FlowTemplateField::getTemplateId, templateId);
+        Map<Long, String> labelMap = flowTemplateFieldMapper.selectList(tfw).stream()
+                .collect(Collectors.toMap(FlowTemplateField::getId, FlowTemplateField::getFieldLabel, (a, b) -> a));
+        Map<Long, List<FormDataItemVO>> byTn = new HashMap<>();
+        for (FlowTaskNode tn : tns) {
+            if (tn.getBaseData() == null || tn.getBaseData().trim().isEmpty()) continue;
+            Map<Long, String> map = deserializeTemplateData(tn.getBaseData());
+            if (map.isEmpty()) continue;
+            List<FormDataItemVO> items = map.entrySet().stream().map(e -> {
+                FormDataItemVO item = new FormDataItemVO();
+                item.setFieldLabel(labelMap.getOrDefault(e.getKey(), String.valueOf(e.getKey())));
+                item.setFieldValue(e.getValue());
+                return item;
+            }).collect(Collectors.toList());
+            byTn.put(tn.getId(), items);
+        }
+        for (TaskProgressVO p : progress) {
+            List<FormDataItemVO> items = byTn.get(p.getTaskNodeId());
+            if (items != null) p.setBaseDataList(items);
+        }
     }
 
     /** 加载当前节点当前处理人最近一次已提交表单数据（用于退回后表单回填，仅回填本人的） */
@@ -640,6 +726,8 @@ public class FlowTaskService {
         }
         // 4. 校验必填字段 + 插 form_record/form_data（退回时跳过必填校验，允许不填表单）
         Long recordId = saveFormRecordAndData(task, currentTaskNode, loginUser, dto.getFormData(), isReject);
+        // 4.1 处理人填写的任务基础字段（fieldRole=2），随本节点提交持久化
+        currentTaskNode.setBaseData(serializeTemplateData(dto.getBaseData()));
 
         if (isReject) {
             // ===== 退回到指定节点（当前处理人重做该节点） =====
@@ -843,7 +931,7 @@ public class FlowTaskService {
         return recordId;
     }
 
-    /** 我的待办：当前登录用户作为处理人且未处理的任务节点 */
+    /** 我的任务：当前登录用户参与的任务（待处理 + 已处理仅查看），按任务去重取最新节点 */
     public PageResult<MyTodoVO> myTodo(Integer page, Integer limit) {
         LoginUser loginUser = SecurityUtils.getLoginUser();
         if (loginUser == null) return new PageResult<>(new ArrayList<>(), 0L);

@@ -10,7 +10,7 @@
               <span>/</span>
               <span class="active">任务处理</span>
             </nav>
-            <h3 class="page-heading">我的待办任务</h3>
+            <h3 class="page-heading">我的任务</h3>
           </div>
           <button class="btn-refresh" @click="fetchData"><i class="el-icon-refresh" /> 刷新</button>
         </div>
@@ -26,7 +26,7 @@
                 <th>任务名称</th>
                 <th>所属模板</th>
                 <th>当前节点</th>
-                <th>节点提示</th>
+                <th>状态</th>
                 <th>下发时间</th>
                 <th class="text-right">操作</th>
               </tr>
@@ -39,23 +39,28 @@
                   <span class="node-badge" :class="nodeTypeClass(row.nodeType)">{{ nodeTypeText(row.nodeType) }}</span>
                   {{ row.nodeName }}
                 </td>
-                <td class="text-muted">{{ row.nodeTips || '—' }}</td>
+                <td>
+                  <span class="status-badge" :class="row.todoStatus === 1 ? 'st-done' : 'st-todo'">
+                    {{ row.todoStatus === 1 ? '已处理' : '待处理' }}
+                  </span>
+                </td>
                 <td>{{ row.taskCreateTime }}</td>
                 <td class="text-right">
-                  <button class="btn-process" @click="openProcess(row)"><i class="el-icon-s-claim" /> 处理</button>
+                  <button v-if="row.todoStatus !== 1" class="btn-process" @click="openProcess(row)"><i class="el-icon-s-claim" /> 处理</button>
+                  <button v-else class="btn-view" @click="openProcess(row)"><i class="el-icon-view" /> 查看详情</button>
                 </td>
               </tr>
               <tr v-if="!loading && list.length === 0">
                 <td colspan="6" class="text-center" style="padding: 40px; color: #999;">
                   <i class="el-icon-finished" style="font-size: 40px; display: block; margin-bottom: 8px;" />
-                  暂无待办任务
+                  暂无任务
                 </td>
               </tr>
             </tbody>
           </table>
           <!-- 分页 -->
           <div v-if="total > 0" class="pagination">
-            <span class="pagination-info">共计 {{ total }} 条待办</span>
+            <span class="pagination-info">共计 {{ total }} 条任务</span>
             <div class="pagination-controls">
               <button class="page-btn" :disabled="currentPage === 1" @click="prevPage"><i class="el-icon-arrow-left" /></button>
               <span class="page-current">{{ currentPage }} / {{ totalPages }}</span>
@@ -196,6 +201,13 @@ $border: #e4beba;
 .badge-end { background: rgba(197,48,48,0.1); color: $primary; }
 .btn-process { display: flex; align-items: center; gap: 4px; padding: 6px 14px; background: $primary; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;
   &:hover { opacity: 0.9; }
+}
+.btn-view { display: flex; align-items: center; gap: 4px; padding: 6px 14px; background: #fff; color: #545f72; border: 1px solid #d8dee9; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;
+  &:hover { background: #f0f3ff; border-color: #b7c3d8; }
+}
+.status-badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;
+  &.st-todo { background: rgba(197,48,48,0.1); color: $primary; }
+  &.st-done { background: rgba(38,109,0,0.1); color: #266d00; }
 }
 .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #faf9f9; border-top: 1px solid $border; }
 .pagination-info { font-size: 12px; color: #414755; }

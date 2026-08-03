@@ -182,19 +182,8 @@ public class FlowTemplateService {
         LambdaQueryWrapper<FlowTemplateNode> nw = new LambdaQueryWrapper<>();
         nw.eq(FlowTemplateNode::getTemplateId, templateId);
         flowTemplateNodeMapper.delete(nw);
-        // 插模板级字段（node_id 为空，不依附节点）
-        if (dto.getTemplateFields() != null) {
-            for (int k = 0; k < dto.getTemplateFields().size(); k++) {
-                FlowTemplateField f = dto.getTemplateFields().get(k);
-                f.setId(null);
-                f.setTemplateId(templateId);
-                f.setNodeId(null);
-                f.setSortNum(k);
-                if (f.getRequired() == null) f.setRequired(0);
-                flowTemplateFieldMapper.insert(f);
-            }
-        }
-        // 插新 nodes + fields
+        // 先插新 nodes + fields（模板级字段的 bindNodeIndex 需要映射到新节点 ID）
+        List<Long> newNodeIds = new ArrayList<>();
         for (int i = 0; i < nodes.size(); i++) {
             TemplateFlowSaveDTO.NodeItem item = nodes.get(i);
             FlowTemplateNode node = item.getNode();
@@ -203,6 +192,7 @@ public class FlowTemplateService {
             node.setSortNum(i);
             flowTemplateNodeMapper.insert(node);
             Long nodeId = node.getId();
+            newNodeIds.add(nodeId);
             if (item.getFields() != null) {
                 for (int j = 0; j < item.getFields().size(); j++) {
                     FlowTemplateField f = item.getFields().get(j);
@@ -213,6 +203,27 @@ public class FlowTemplateService {
                     if (f.getRequired() == null) f.setRequired(0);
                     flowTemplateFieldMapper.insert(f);
                 }
+            }
+        }
+        // 插模板级字段（node_id 为空，不依附节点）
+        if (dto.getTemplateFields() != null) {
+            for (int k = 0; k < dto.getTemplateFields().size(); k++) {
+                FlowTemplateField f = dto.getTemplateFields().get(k);
+                f.setId(null);
+                f.setTemplateId(templateId);
+                f.setNodeId(null);
+                f.setSortNum(k);
+                if (f.getRequired() == null) f.setRequired(0);
+                // 填写方式：1=创建人填写（默认） 2=处理人填写
+                if (f.getFieldRole() == null) f.setFieldRole(1);
+                // 处理人填写字段：bindNodeIndex（nodes 下标）→ 新节点 ID
+                if (f.getFieldRole() == 2 && f.getBindNodeIndex() != null
+                        && f.getBindNodeIndex() >= 0 && f.getBindNodeIndex() < newNodeIds.size()) {
+                    f.setBindNodeId(newNodeIds.get(f.getBindNodeIndex()));
+                } else {
+                    f.setBindNodeId(null);
+                }
+                flowTemplateFieldMapper.insert(f);
             }
         }
         // version+1

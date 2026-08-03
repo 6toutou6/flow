@@ -27,4 +27,10 @@ public class TaskDetailVO {
     private List<FlowTemplateField> templateFields;
     /** 模板级字段值（fieldId → value，创建人下发时赋值） */
     private Map<Long, String> templateData;
+    /** 处理人填写的任务基础字段配置（fieldRole=2，不依附节点，处理人处理时填写） */
+    private List<FlowTemplateField> handlerBaseFields;
+    /** 当前节点当前处理人最近一次提交的处理人任务基础字段值（退回重做回填） */
+    private Map<Long, String> currentBaseData;
+    /** 处理人填写的任务基础字段汇总值（fieldId → value，取各绑定节点最新一次提交，随任务流转同步展示） */
+    private Map<Long, String> handlerBaseData;
 }

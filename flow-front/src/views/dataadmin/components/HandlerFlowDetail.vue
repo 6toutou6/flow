@@ -10,7 +10,14 @@
       <span class="hfd-desc-label">任务基础信息</span>
       <div class="hfd-desc-text">
         <div v-for="r in templateFieldRows" :key="r.id" class="tpl-row">
-          <span class="tpl-label">{{ r.label }}</span>
+          <span class="tpl-label">
+            {{ r.label }}
+            <el-tooltip v-if="r.roleTip" :content="r.roleTip" placement="top">
+              <span class="role-hint-icon" :class="r.role === 2 ? 'role-handler' : 'role-creator'">
+                <i :class="r.role === 2 ? 'el-icon-user' : 'el-icon-s-custom'" />
+              </span>
+            </el-tooltip>
+          </span>
           <span class="tpl-value">{{ r.value || '—' }}</span>
         </div>
       </div>
@@ -56,6 +63,19 @@
                 </div>
               </div>
               <div v-else class="form-empty">该节点未填写表单数据</div>
+              <!-- 该节点处理人填写的任务基础字段（fieldRole=2） -->
+              <div v-if="item.latestDone && item.latestDone.baseDataList && item.latestDone.baseDataList.length > 0" class="bd-block">
+                <div class="expanded-sub-title bd-sub-title">
+                  任务基础信息
+                  <el-tooltip :content="`在「${item.nodeName}」节点由处理人填写`" placement="top">
+                    <span class="role-hint-icon role-handler"><i class="el-icon-user" /></span>
+                  </el-tooltip>
+                </div>
+                <div v-for="(bd, bi) in item.latestDone.baseDataList" :key="bi" class="form-row">
+                  <span class="fr-label">{{ bd.fieldLabel }}</span>
+                  <span class="fr-value">{{ bd.fieldValue || '—' }}</span>
+                </div>
+              </div>
             </div>
             <div class="expanded-right">
               <div class="expanded-sub-title">操作记录</div>
@@ -129,16 +149,27 @@ export default {
     taskDesc() {
       return (this.taskDetail && this.taskDetail.task && this.taskDetail.task.taskDesc) || ''
     },
-    /** 任务基础信息（模板级字段：配置 + 创建人下发的值，后台只读可见） */
+    /** 任务基础信息（模板级字段：创建人下发的值 + 处理人在各节点填写的汇总值，后台只读可见） */
     templateFieldRows() {
       if (!this.taskDetail) return []
       const fields = this.taskDetail.templateFields || []
       const data = this.taskDetail.templateData || {}
-      return fields.map(f => ({
-        id: f.id,
-        label: f.fieldLabel,
-        value: data[f.id] !== undefined && data[f.id] !== null ? String(data[f.id]) : ''
-      }))
+      const hbData = this.taskDetail.handlerBaseData || {}
+      const tplNodes = this.taskDetail.templateNodes || []
+      return fields.map(f => {
+        // 处理人填写字段（fieldRole=2）值来自各节点提交汇总；创建人填写字段来自下发值
+        const map = f.fieldRole === 2 ? hbData : data
+        const node = f.fieldRole === 2 ? tplNodes.find(n => n.id === f.bindNodeId) : null
+        return {
+          id: f.id,
+          label: f.fieldLabel,
+          role: f.fieldRole === 2 ? 2 : 1,
+          roleTip: f.fieldRole === 2
+            ? (node ? `在「${node.nodeName}」节点由处理人填写` : '由处理人填写')
+            : '创建人填写',
+          value: map[f.id] !== undefined && map[f.id] !== null ? String(map[f.id]) : ''
+        }
+      })
     },
     /** 流程链：展示该任务从开始到当前节点的完整流转；节点有多个处理人时全部展示（高亮选中成员） */
     flowChain() {
@@ -252,8 +283,12 @@ $border: #e4beba;
   .hfd-desc-text { flex: 1; color: #5b403d; line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
 }
 .tpl-row { display: flex; padding: 3px 0;
-  .tpl-label { width: 120px; color: #757575; flex-shrink: 0; }
+  .tpl-label { width: 120px; color: #757575; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; }
   .tpl-value { flex: 1; word-break: break-all; }
+}
+.role-hint-icon { width: 18px; height: 18px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: help; font-size: 12px;
+  &.role-creator { background: rgba(38,109,0,0.1); color: #266d00; }
+  &.role-handler { background: rgba(183,121,31,0.12); color: #b7791f; }
 }
 .hfd-cols { display: flex; gap: 16px; align-items: flex-start; }
 .hfd-left { flex: 3; min-width: 0; }
@@ -290,6 +325,8 @@ $border: #e4beba;
 .expanded-left { flex: 3; min-width: 0; }
 .expanded-right { flex: 1; min-width: 0; border-left: 1px solid #f0f0f0; padding-left: 16px; }
 .expanded-sub-title { font-size: 12px; font-weight: 700; color: #414755; margin-bottom: 8px; }
+.bd-block { margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e4beba; }
+.bd-sub-title { color: #b7791f; }
 .form-rows { display: flex; flex-direction: column; }
 .form-row { display: flex; padding: 5px 0; font-size: 13px; border-bottom: 1px solid #f5f5f5;
   &:last-child { border-bottom: none; }

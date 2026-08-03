@@ -22,6 +22,9 @@ public class MyTodoVO {
     /** 节点类型 1开始 2中间 3结束 */
     private Integer nodeType;
 
+    /** 待办状态 0待处理 1已处理（仅查看） */
+    private Integer todoStatus;
+
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date taskCreateTime;
 }

@@ -108,6 +108,12 @@
               <div class="field-item-ph">{{ field.placeholder || `请输入${field.fieldLabel}` }}</div>
             </div>
             <div class="field-item-actions" @click.stop>
+              <!-- 任务基础字段：填写方式悬停提示（处理人填写显示绑定节点，创建人填写不显示节点） -->
+              <el-tooltip v-if="viewMode === 'template'" :content="roleTip(field)" placement="top">
+                <span class="role-hint-icon" :class="field.fieldRole === 2 ? 'role-handler' : 'role-creator'">
+                  <i :class="field.fieldRole === 2 ? 'el-icon-user' : 'el-icon-s-custom'" />
+                </span>
+              </el-tooltip>
               <button class="op-btn" :disabled="idx === 0" title="上移" @click="moveField(idx, -1)"><i class="el-icon-top" /></button>
               <button class="op-btn" :disabled="idx === currentFields.length - 1" title="下移" @click="moveField(idx, 1)"><i class="el-icon-bottom" /></button>
               <button class="op-btn op-del" title="删除" @click="removeField(idx)"><i class="el-icon-delete" /></button>
@@ -127,7 +133,8 @@
         <div class="prop-section">
           <div class="panel-title">{{ viewMode === 'template' ? '任务基础字段说明' : '节点属性' }}</div>
           <div v-if="viewMode === 'template'" class="tfe-tip">
-            任务基础字段不依附于任何流程节点，是任务本身携带的信息（如规章制度、采购说明等），由下发任务时创建人填写，处理人在处理时与后台查看时均可见。
+            任务基础字段不依附于任何流程节点，是任务本身携带的信息（如规章制度、采购说明等）。
+            创建人填写：下发任务时由创建人赋值，处理人与后台均可见；处理人填写：由处理人处理时填写，随节点提交保存。
           </div>
           <div v-else-if="!currentNode" class="panel-empty">请选择一个节点</div>
           <div v-else class="prop-form">
@@ -171,6 +178,33 @@
             <div class="prop-group prop-row">
               <label class="prop-label">是否必填</label>
               <el-switch v-model="selectedField.required" :active-value="1" :inactive-value="0" active-color="#C53030" />
+            </div>
+
+            <!-- 任务基础字段：填写方式（创建人填写 / 处理人填写） -->
+            <div v-if="viewMode === 'template'" class="prop-group">
+              <label class="prop-label">填写方式</label>
+              <div class="field-role-select">
+                <button
+                  class="role-btn"
+                  :class="{ active: selectedField.fieldRole !== 2 }"
+                  @click="selectedField.fieldRole = 1"
+                >创建人填写</button>
+                <button
+                  class="role-btn"
+                  :class="{ active: selectedField.fieldRole === 2 }"
+                  @click="selectedField.fieldRole = 2"
+                >处理人填写</button>
+              </div>
+              <div class="role-tip">{{ selectedField.fieldRole === 2 ? '处理人处理指定节点时填写，随提交保存' : '下发任务时由创建人赋值' }}</div>
+            </div>
+
+            <!-- 处理人填写字段：绑定流程节点（仅该节点处理时显示填写） -->
+            <div v-if="viewMode === 'template' && selectedField.fieldRole === 2" class="prop-group">
+              <label class="prop-label">绑定流程节点 <span class="req">*</span></label>
+              <el-select v-model="selectedField.bindNodeIndex" placeholder="选择填写该字段的流程节点" style="width: 100%">
+                <el-option v-for="(n, ni) in nodes" :key="ni" :label="(ni + 1) + '. ' + n.node.nodeName" :value="ni" />
+              </el-select>
+              <div class="role-tip">仅当流程到达该节点时，处理人需要填写此任务基础字段</div>
             </div>
 
             <template v-if="['text', 'textarea'].includes(selectedField.fieldType)">
@@ -282,6 +316,21 @@ export default {
     typeLabel(type) {
       return this.allFieldTypes.find(f => f.type === type)?.label || type
     },
+    /** 处理人填写字段绑定的节点名（bindNodeIndex 为节点链下标） */
+    bindNodeName(field) {
+      if (field.fieldRole !== 2) return ''
+      if (field.bindNodeIndex === null || field.bindNodeIndex === undefined) return ''
+      const n = this.nodes[field.bindNodeIndex]
+      return n ? n.node.nodeName : ''
+    },
+    /** 任务基础字段填写方式悬停提示：处理人填写显示绑定节点，创建人填写不显示节点 */
+    roleTip(field) {
+      if (field.fieldRole === 2) {
+        const nodeName = this.bindNodeName(field)
+        return nodeName ? `在「${nodeName}」节点由处理人填写` : '由处理人填写'
+      }
+      return '创建人填写'
+    },
     /** 根据位置自动修正节点类型：首位=开始(1)，末位=结束(3)，中间=2 */
     fixNodeTypes() {
       this.nodes.forEach((item, idx) => {
@@ -304,7 +353,6 @@ export default {
       try {
         const res = await getTemplateDetail(this.templateId)
         this.template = res.data.template || {}
-        this.templateFields = (res.data.templateFields || []).map(f => ({ ...f }))
         const nodes = res.data.nodes || []
         if (nodes.length === 0) {
           this.initDefaultNodes()
@@ -314,6 +362,15 @@ export default {
             fields: (n.fields || []).map(f => ({ ...f }))
           }))
         }
+        // 模板级字段：bindNodeId（数据库节点ID）→ bindNodeIndex（节点链下标）
+        this.templateFields = (res.data.templateFields || []).map(f => {
+          const tf = { ...f }
+          if (tf.fieldRole === 2 && tf.bindNodeId != null) {
+            const ni = this.nodes.findIndex(n => n.node.id === tf.bindNodeId)
+            if (ni >= 0) tf.bindNodeIndex = ni
+          }
+          return tf
+        })
         if (this.$route.query.name == null && this.template.templateName) {
           this.templateName = this.template.templateName
         }
@@ -389,6 +446,9 @@ export default {
       const newField = {
         id: null,
         nodeId: null,
+        fieldRole: 1,
+        bindNodeId: null,
+        bindNodeIndex: null,
         fieldKey: 'field_' + Date.now().toString(36) + '_' + idx,
         fieldLabel: conf.label,
         fieldType: type,
@@ -447,6 +507,11 @@ export default {
           this.$message.warning('任务基础字段的字段标签不能为空')
           return
         }
+        // 处理人填写字段必须绑定流程节点
+        if (f.fieldRole === 2 && (f.bindNodeIndex === null || f.bindNodeIndex === undefined || f.bindNodeIndex < 0)) {
+          this.$message.warning(`任务基础字段「${f.fieldLabel}」需绑定流程节点（仅该节点处理时填写）`)
+          return
+        }
       }
       this.fixNodeTypes()
       this.saving = true
@@ -458,7 +523,10 @@ export default {
             id: null,
             nodeId: null,
             sortNum: k,
-            required: f.required || 0
+            required: f.required || 0,
+            // 处理人填写字段：以 bindNodeIndex（节点下标）传给后端，由后端映射为新节点ID
+            bindNodeId: null,
+            bindNodeIndex: f.fieldRole === 2 ? f.bindNodeIndex : null
           })),
           nodes: this.nodes.map((item, i) => ({
             node: {
@@ -528,6 +596,11 @@ $border: #e4beba;
 .tfe-entry-desc { font-size: 11px; color: #999; }
 .tfe-tip { font-size: 12px; color: #999; line-height: 1.7; padding: 8px 0; }
 .badge-tpl { background: rgba(197,48,48,0.1); color: $primary; }
+.field-role-select { display: flex; gap: 8px; }
+.role-btn { flex: 1; padding: 6px 0; border: 1px solid #ddd; border-radius: 5px; background: #fff; color: #555; font-size: 13px; cursor: pointer;
+  &.active { border-color: $primary; color: $primary; background: rgba(197,48,48,0.06); font-weight: 600; }
+}
+.role-tip { font-size: 11px; color: #999; margin-top: 5px; }
 
 // 三栏
 .designer-body { flex: 1; display: grid; grid-template-columns: 280px 1fr 320px; gap: 0; overflow: hidden; }
@@ -589,7 +662,11 @@ $border: #e4beba;
 .req { color: $primary; font-weight: 700; }
 .field-type-tag { padding: 1px 6px; background: #f0f3ff; color: #545f72; border-radius: 3px; font-size: 11px; font-weight: 500; }
 .field-item-ph { font-size: 12px; color: #999; margin-top: 4px; }
-.field-item-actions { display: flex; gap: 4px; }
+.field-item-actions { display: flex; gap: 4px; align-items: center; }
+.role-hint-icon { width: 22px; height: 22px; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: help; font-size: 13px;
+  &.role-creator { background: rgba(38,109,0,0.1); color: #266d00; }
+  &.role-handler { background: rgba(183,121,31,0.12); color: #b7791f; }
+}
 .op-btn { width: 28px; height: 28px; border: 1px solid #e4e7ed; background: #fff; border-radius: 4px; cursor: pointer; color: #606266; display: flex; align-items: center; justify-content: center;
   &:hover:not(:disabled) { border-color: $primary; color: $primary; }
   &:disabled { opacity: 0.4; cursor: not-allowed; }

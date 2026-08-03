@@ -36,4 +36,6 @@ public class TaskProgressVO {
     private String passComment;
     /** 该节点提交的表单数据（已处理时回填，用于点击查看历史） */
     private List<FormDataItemVO> formDataList;
+    /** 该节点处理人填写的任务基础字段（fieldRole=2，已处理时回填） */
+    private List<FormDataItemVO> baseDataList;
 }

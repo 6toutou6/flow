@@ -4,6 +4,7 @@ import com.zqk.house.flowdata.entity.FlowFormData;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 节点提交入参（任务流转核心）
@@ -17,6 +18,8 @@ public class NodeSubmitDTO {
     private Long taskNodeId;
     /** 表单数据（file/image 类型字段值存文件名文本） */
     private List<FlowFormData> formData;
+    /** 处理人填写的任务基础字段值（fieldId → value，模板级字段 fieldRole=2） */
+    private Map<Long, String> baseData;
     /** 下一节点处理人ID列表（多选，每人一个独立分支；通过且非结束节点必填） */
     private List<Long> nextHandlerIds;
     /** 下一节点处理人ID（单值，已废弃，向后兼容保留；submit 优先读 nextHandlerIds） */

@@ -1,6 +1,7 @@
 package com.zqk.house.flowtemplate.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -22,6 +23,13 @@ public class FlowTemplateField {
     private Long templateId;
     /** 归属节点ID flow_template_node.id */
     private Long nodeId;
+    /** 填写方式 1=创建人填写（下发时） 2=处理人填写（流程中填写，nodeId 为空时生效） */
+    private Integer fieldRole;
+    /** 处理人填写字段的绑定节点ID（fieldRole=2 时生效：仅处理该节点时需填写） */
+    private Long bindNodeId;
+    /** 前端设计器保存用的绑定节点索引（nodes 列表下标，非数据库列，保存时转换为新节点ID） */
+    @TableField(exist = false)
+    private Integer bindNodeIndex;
     private String fieldKey;
     private String fieldLabel;
     /** 字段类型：text/textarea/number/date/radio/checkbox/file/image */

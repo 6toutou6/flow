@@ -36,6 +36,8 @@ public class FlowTaskNode {
     private Long nextHandlerUserId;
     /** 本节点提交的表单记录ID flow_form_record.id */
     private Long formRecordId;
+    /** 处理人填写的任务基础字段值（JSON fieldId→value，模板级字段 fieldRole=2） */
+    private String baseData;
     /** 操作类型 0通过 1退回 */
     private Integer action;
     /** 退回原因（action=1 时填写） */
