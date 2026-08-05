@@ -58,6 +58,7 @@
               <div class="node-item-actions">
                 <button class="op-btn" :disabled="idx === 0" title="上移" @click.stop="selectNode(idx); moveNode(idx, -1)"><i class="el-icon-top" /></button>
                 <button class="op-btn" :disabled="idx === nodes.length - 1" title="下移" @click.stop="selectNode(idx); moveNode(idx, 1)"><i class="el-icon-bottom" /></button>
+                <button class="op-btn" title="复制节点（含字段）" @click.stop="selectNode(idx); copyNode(idx)"><i class="el-icon-copy-document" /></button>
                 <button class="op-btn op-del" :disabled="nodes.length <= 2" title="删除" @click.stop="selectNode(idx); confirmRemoveNode(idx)"><i class="el-icon-delete" /></button>
               </div>
             </div>
@@ -216,11 +217,11 @@
                 <div class="enum-list">
                   <div v-for="(opt, oi) in enumOptions" :key="oi" class="enum-row">
                     <input v-model="opt.label" class="enum-input" placeholder="显示名称">
-                    <input v-model="opt.value" class="enum-input enum-value" placeholder="值">
-                    <button class="enum-del" @click="enumOptions.splice(oi, 1)"><i class="el-icon-close" /></button>
+                    <span class="enum-value-tag">值 {{ oi + 1 }}</span>
+                    <button class="enum-del" @click="removeEnumOption(oi)"><i class="el-icon-close" /></button>
                   </div>
                 </div>
-                <button class="enum-add" @click="enumOptions.push({ label: '', value: '' })"><i class="el-icon-plus" /> 添加选项</button>
+                <button class="enum-add" @click="addEnumOption"><i class="el-icon-plus" /> 添加选项</button>
               </div>
             </template>
 
@@ -404,6 +405,42 @@ export default {
       this.selectedNodeIndex = insertAt
       this.selectedFieldIndex = -1
     },
+    /** 复制节点（连同其字段配置），插到原节点之后（不越过结束节点），副本自动转为中间节点 */
+    copyNode(idx) {
+      const src = this.nodes[idx]
+      const copyItem = {
+        node: {
+          id: null,
+          nodeName: (src.node.nodeName || '未命名节点') + '（副本）',
+          sortNum: 0,
+          nodeType: 2,
+          nodeTips: src.node.nodeTips || ''
+        },
+        fields: (src.fields || []).map(f => ({
+          id: null,
+          nodeId: null,
+          fieldRole: f.fieldRole || 1,
+          bindNodeId: null,
+          bindNodeIndex: null,
+          fieldKey: 'field_' + Date.now().toString(36) + '_' + Math.floor(Math.random() * 1000),
+          fieldLabel: f.fieldLabel,
+          fieldType: f.fieldType,
+          sortNum: f.sortNum,
+          required: f.required || 0,
+          placeholder: f.placeholder || '',
+          fieldTips: f.fieldTips || '',
+          maxLength: f.maxLength,
+          enumOptions: f.enumOptions ? JSON.parse(JSON.stringify(f.enumOptions)) : null
+        }))
+      }
+      // 原节点是结束节点时插到其之前，否则插到原节点之后
+      const insertAt = Math.min(idx + 1, this.nodes.length - 1)
+      this.nodes.splice(insertAt, 0, copyItem)
+      this.fixNodeTypes()
+      this.selectedNodeIndex = insertAt
+      this.selectedFieldIndex = -1
+      this.$message.success(`已复制节点「${copyItem.node.nodeName}」，可在右侧画布继续编辑字段`)
+    },
     removeNode(idx) {
       if (this.nodes.length <= 2) {
         this.$message.warning('至少保留 2 个节点（首位为开始、末位为结束）')
@@ -426,10 +463,10 @@ export default {
       }).catch(() => {})
     },
     moveNode(idx, dir) {
-      const target = idx + dir
-      // 不允许把节点移到首位之前或末位之后；首位/末位固定为开始/结束
-      if (target <= 0 || target >= this.nodes.length - 1) return
+      // 首位（开始）/末位（结束）节点锁定不可移动，其余节点可自由调整位置
       if (idx === 0 || idx === this.nodes.length - 1) return
+      const target = idx + dir
+      if (target < 0 || target >= this.nodes.length) return
       const tmp = this.nodes[idx]
       this.$set(this.nodes, idx, this.nodes[target])
       this.$set(this.nodes, target, tmp)
@@ -482,8 +519,18 @@ export default {
     syncEnumToField() {
       const f = this.selectedField
       if (f && ['radio', 'checkbox'].includes(f.fieldType)) {
-        f.enumOptions = JSON.stringify(this.enumOptions.filter(o => o.label || o.value))
+        // value 按显示顺序自动编号，无需手动填写
+        f.enumOptions = JSON.stringify(this.enumOptions.map((o, i) => ({ label: o.label, value: String(i + 1) })).filter(o => o.label))
       }
+    },
+    /** 新增枚举选项：value 自动按序自增 */
+    addEnumOption() {
+      this.enumOptions.push({ label: '', value: String(this.enumOptions.length + 1) })
+    },
+    /** 删除枚举选项后重新编号 */
+    removeEnumOption(oi) {
+      this.enumOptions.splice(oi, 1)
+      this.enumOptions.forEach((o, i) => { o.value = String(i + 1) })
     },
     async handleSave() {
       if (this.nodes.length < 2) {
@@ -696,7 +743,7 @@ $border: #e4beba;
 .enum-input { flex: 1; height: 28px; border: 1px solid #dcdfe6; border-radius: 4px; padding: 0 6px; font-size: 12px; outline: none;
   &:focus { border-color: $primary; }
 }
-.enum-value { max-width: 80px; }
+.enum-value-tag { width: 80px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid #ebeef5; background: #f5f7fa; border-radius: 4px; color: #909399; font-size: 12px; flex-shrink: 0; }
 .enum-del { width: 28px; height: 28px; border: 1px solid #dcdfe6; background: #fff; border-radius: 4px; cursor: pointer; color: #ba1a1a; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .enum-add { width: 100%; padding: 6px; border: 1px dashed #cbd5e0; background: transparent; border-radius: 4px; cursor: pointer; color: $primary; font-size: 12px;
   &:hover { border-color: $primary; background: #FFF5F5; }

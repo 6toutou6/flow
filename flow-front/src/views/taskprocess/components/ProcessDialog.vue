@@ -144,6 +144,7 @@
       <div v-if="!isReadonly && currentFields.length > 0" class="form-section">
         <div class="section-title">
           <span class="cur-stage-tag">当前阶段</span>{{ todo && todo.nodeName }}
+          <span v-if="todo && todo.nodeTips" class="node-tip-inline"><i class="el-icon-bell" /> {{ todo.nodeTips }}</span>
           <span v-if="isRefill" class="refill-tag"><i class="el-icon-refresh-left" /> 已回填上次数据，可修改后重新提交</span>
         </div>
         <el-form ref="processForm" :model="formData" label-position="top" class="process-form">
@@ -174,35 +175,10 @@
         <div class="empty-form">该节点无需填写字段</div>
       </div>
 
-      <!-- 指定下一节点处理人（含节点提示） -->
-      <div v-if="!isReadonly && !isEndNode" class="next-section">
-        <div class="section-title">
-          指定下一节点处理人 <span class="req" v-if="!isRejecting">*</span>
-          <span v-if="todo && todo.nodeTips" class="node-tip-inline"><i class="el-icon-bell" /> {{ todo.nodeTips }}</span>
-          <span class="chain-hint" v-if="isRejecting">退回时无需指定</span>
-          <span class="chain-hint" v-else>多选，每人一个独立分支</span>
-        </div>
-        <div v-if="nextHandlers.length > 0" class="handler-list">
-          <div v-for="(h, i) in nextHandlers" :key="h.id" class="handler-card">
-            <div class="handler-info">
-              <div class="handler-avatar">{{ h.realName ? h.realName.charAt(0) : 'U' }}</div>
-              <div class="handler-detail">
-                <div class="handler-name">{{ h.realName }} <span class="handler-emp">{{ h.empNo }}</span></div>
-                <div class="handler-dept">{{ h.deptName || '—' }}</div>
-              </div>
-            </div>
-            <div class="handler-actions">
-              <span class="handler-idx">#{{ i + 1 }}</span>
-              <button class="action-link text-error" @click="removeHandler(h.id)"><i class="el-icon-close" /> 移除</button>
-            </div>
-          </div>
-        </div>
-        <button v-if="nextHandlers.length === 0" class="btn-pick-handler" :disabled="isRejecting" @click="openUserPicker"><i class="el-icon-plus" /> 选择下一节点处理人（可多选）</button>
-        <button v-else class="btn-pick-handler btn-add-more" :disabled="isRejecting" @click="openUserPicker"><i class="el-icon-plus" /> 继续添加</button>
-      </div>
-      <div v-else class="next-section">
+      <!-- 完成节点提示（结束节点显示；已办只读模式也保留提示） -->
+      <div v-if="isEndNode" class="next-section">
         <div class="section-title">完成节点</div>
-        <div class="end-tip"><i class="el-icon-success" /> 当前为结束节点，提交后任务将标记为已完成</div>
+        <div class="end-tip"><i class="el-icon-success" /> {{ isReadonly ? '该节点为结束节点，本节点处理完成即任务完成' : '当前为结束节点，提交后任务将标记为已完成' }}</div>
       </div>
       </div><!-- /pd-left -->
 
@@ -258,15 +234,6 @@
       <el-button @click="handleClose">{{ isReadonly ? '关闭' : '取消' }}</el-button>
     </div>
 
-    <!-- 多选选人弹窗 -->
-    <UserPicker
-      :visible="pickerVisible"
-      title="选择下一节点处理人（可多选，每人一个独立分支）"
-      :exclude-ids="nextHandlers.map(h => h.id)"
-      @confirm="onPickUsers"
-      @close="pickerVisible = false"
-    />
-
     <!-- 退回目标选择弹窗 -->
     <RejectTargetModal
       :visible="rejectTargetVisible"
@@ -275,11 +242,12 @@
       @close="rejectTargetVisible = false"
     />
 
-    <!-- 通过/退回确认弹窗 -->
+    <!-- 通过/退回确认弹窗（通过时在弹窗内选择下一处理人） -->
     <ConfirmActionModal
       :visible="confirmVisible"
       :action="confirmAction"
       :summary="confirmSummary"
+      :end-node="isEndNode"
       :loading="submitting"
       @confirm="onConfirmSubmit"
       @close="confirmVisible = false"
@@ -288,13 +256,12 @@
 </template>
 
 <script>
-import UserPicker from '@/components/UserPicker'
 import RejectTargetModal from './RejectTargetModal.vue'
 import ConfirmActionModal from './ConfirmActionModal.vue'
 
 export default {
   name: 'ProcessDialog',
-  components: { UserPicker, RejectTargetModal, ConfirmActionModal },
+  components: { RejectTargetModal, ConfirmActionModal },
   props: {
     visible: { type: Boolean, default: false },
     todo: { type: Object, default: null },
@@ -307,11 +274,9 @@ export default {
       formData: {},
       /** 处理人填写的任务基础字段值（fieldRole=2） */
       handlerBaseForm: {},
-      nextHandlers: [],
       expandedNodeId: null,
       isRejecting: false,
       // 子弹窗
-      pickerVisible: false,
       rejectTargetVisible: false,
       confirmVisible: false,
       confirmAction: 'pass',
@@ -481,7 +446,6 @@ export default {
       } else if (!val) {
         // 关闭主弹窗时，重置所有子弹窗状态（避免 append-to-body 的确认/选人弹窗残留）
         this.confirmVisible = false
-        this.pickerVisible = false
         this.rejectTargetVisible = false
       }
     },
@@ -542,7 +506,6 @@ export default {
         }
       })
       this.handlerBaseForm = base
-      this.nextHandlers = []
       this.expandedNodeId = null
       this.isRejecting = false
       this.pendingRejectToNodeId = null
@@ -551,19 +514,6 @@ export default {
     toggleNodeForm(item) {
       if (item.status !== 'done' && item.status !== 'rejected') return
       this.expandedNodeId = this.expandedNodeId === item.nodeId ? null : item.nodeId
-    },
-    openUserPicker() {
-      this.pickerVisible = true
-    },
-    onPickUsers(users) {
-      const existing = new Set(this.nextHandlers.map(h => h.id))
-      users.forEach(u => {
-        if (!existing.has(u.id)) this.nextHandlers.push({ ...u })
-      })
-      this.pickerVisible = false
-    },
-    removeHandler(id) {
-      this.nextHandlers = this.nextHandlers.filter(h => h.id !== id)
     },
     /** 表单必填校验（通过和退回共用） */
     validateForm() {
@@ -593,18 +543,13 @@ export default {
       }
       return true
     },
-    /** 点击通过：校验后弹确认 */
+    /** 点击通过：校验后打开确认弹窗（弹窗内选择下一处理人） */
     onPassClick() {
-      if (!this.isEndNode && this.nextHandlers.length === 0) {
-        this.$message.warning('请指定下一节点处理人')
-        return
-      }
       if (!this.validateForm()) return
       if (!this.validateBaseForm()) return
       this.isRejecting = false
       this.confirmAction = 'pass'
-      const names = this.nextHandlers.map(h => h.realName).join('、')
-      this.confirmSummary = this.isEndNode ? '提交后任务将标记为已完成' : `将流转给 ${this.nextHandlers.length} 人：${names}`
+      this.confirmSummary = this.isEndNode ? '提交后任务将标记为已完成' : '确认后将流转至下一节点，请在弹窗中选择处理人'
       this.confirmVisible = true
     },
     /** 点击退回：选目标节点+原因，再弹确认（退回不校验表单，可不填） */
@@ -660,7 +605,7 @@ export default {
       } else {
         payload.passComment = (modalPayload && modalPayload.passComment) || ''
         if (!this.isEndNode) {
-          payload.nextHandlerIds = this.nextHandlers.map(h => h.id)
+          payload.nextHandlerIds = (modalPayload && modalPayload.nextHandlerIds) || []
         }
       }
       this.$emit('submit', payload)
@@ -685,12 +630,12 @@ $border: #e4beba;
   &.info-item-full { grid-column: 1 / -1; }
 }
 .info-label { font-size: 12px; color: #999; }
-.info-value { font-size: 14px; color: #1b1c1c; font-weight: 500; word-break: break-all; line-height: 1.5; }
+.info-value { font-size: 14px; color: #1b1c1c; font-weight: 500; word-break: break-all; line-height: 1.5; white-space: pre-wrap; }
 .tpl-header { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: $primary; margin: 18px 0 10px; padding-top: 14px; border-top: 1px dashed $border; }
 .tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 32px; }
 .tpl-item { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .tpl-label { font-size: 12px; color: #999; display: inline-flex; align-items: center; gap: 4px; }
-.tpl-value { font-size: 14px; color: #5b403d; font-weight: 500; word-break: break-all; line-height: 1.5; }
+.tpl-value { font-size: 14px; color: #5b403d; font-weight: 500; word-break: break-all; line-height: 1.5; white-space: pre-wrap; }
 .section-title { font-size: 15px; font-weight: 700; color: $primary; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .chain-hint { font-size: 12px; color: #999; font-weight: 400; margin-left: 0; }
 .req { color: $primary; }
@@ -745,15 +690,22 @@ $border: #e4beba;
   &:last-child { margin-bottom: 0; }
 }
 .fr-label { width: 120px; color: #757575; flex-shrink: 0; font-weight: 600; }
-.fr-value { color: #1b1c1c; flex: 1; word-break: break-all; }
+.fr-value { color: #1b1c1c; flex: 1; word-break: break-all; white-space: pre-wrap; line-height: 1.5; }
 .form-empty { font-size: 12px; color: #bbb; text-align: center; padding: 8px; }
 
 // 表单（el-form-item 为子组件内部元素，需 ::v-deep 深度选择器才能命中）
 .process-form { max-width: 640px;
   ::v-deep .el-form-item { margin-bottom: 16px; }
-  ::v-deep .el-form-item__label { line-height: 1.2; padding-bottom: 8px; margin-bottom: 0; font-weight: 600; color: #414755; }
+  ::v-deep .el-form-item__label { line-height: 1.2; padding-bottom: 12px; margin-bottom: 0; font-weight: 600; color: #414755; }
   ::v-deep .el-input, ::v-deep .el-textarea, ::v-deep .el-select, ::v-deep .el-date-editor { width: 100%; }
   ::v-deep .el-input-number { width: 100%; }
+  // 单选/多选枚举：标题与选项间距拉近，选项间紧凑排布
+  ::v-deep .el-form-item .el-radio-group,
+  ::v-deep .el-form-item .el-checkbox-group {
+    display: flex; flex-wrap: wrap; column-gap: 12px; row-gap: 0; margin-top: 0px;
+    .el-radio, .el-checkbox { margin-right: 0; height: 26px; line-height: 26px; }
+    .el-radio__label, .el-checkbox__label { padding-left: 4px; }
+  }
 }
 
 // 右侧操作历史时间线
@@ -770,39 +722,20 @@ $border: #e4beba;
 .tl-body { padding: 8px 10px; border-radius: 6px; background: #fafafa; font-size: 12px; }
 .tl-node { font-size: 13px; font-weight: 700; color: #1b1c1c; margin-bottom: 4px; }
 .tl-head { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
-.tl-badge { padding: 1px 7px; border-radius: 3px; font-weight: 700; font-size: 11px; color: #fff; flex-shrink: 0; }
+.tl-badge { padding: 3px 7px; border-radius: 3px; font-weight: 700; font-size: 11px; color: #fff; flex-shrink: 0; }
 .tl-pass .tl-badge { background: #266d00; }
 .tl-reject .tl-badge { background: #b7791f; }
 .tl-done .tl-badge { background: #266d00; }
 .tl-done .tl-node { color: #266d00; }
 .tl-user { color: #414755; i { margin-right: 2px; } }
 .tl-time { color: #999; i { margin-right: 2px; } }
-.tl-comment { margin-top: 5px; color: #266d00; line-height: 1.5; word-break: break-all; }
-.tl-reason { margin-top: 5px; color: #b7791f; line-height: 1.5; word-break: break-all; }
+.tl-comment { margin-top: 5px; color: #266d00; line-height: 1.5; word-break: break-all; white-space: pre-wrap; }
+.tl-reason { margin-top: 5px; color: #b7791f; line-height: 1.5; word-break: break-all; white-space: pre-wrap; }
 .history-empty { font-size: 13px; color: #bbb; text-align: center; padding: 32px 0; }
-.field-tip { font-size: 12px; color: #999; margin-top: 4px; }
+.field-tip { font-size: 12px; color: #999; margin-top: -8px; }
 .empty-form { font-size: 13px; color: #999; padding: 16px 0; }
 
-// 下一处理人
-.handler-list { display: flex; flex-direction: column; gap: 8px; }
-.handler-card { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border: 1px solid $border; border-radius: 8px; background: #FFF5F5; }
-.handler-info { display: flex; align-items: center; gap: 12px; }
-.handler-avatar { width: 38px; height: 38px; border-radius: 50%; background: $primary; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; }
-.handler-detail { display: flex; flex-direction: column; gap: 2px; }
-.handler-name { font-size: 14px; font-weight: 700; color: #1b1c1c; }
-.handler-emp { font-size: 12px; color: #757575; font-weight: 400; margin-left: 6px; font-family: monospace; }
-.handler-dept { font-size: 12px; color: #757575; }
-.handler-actions { display: flex; gap: 12px; align-items: center; }
-.handler-idx { font-size: 12px; color: #999; }
-.action-link { color: $primary; background: none; border: none; cursor: pointer; font-size: 13px;
-  &:hover { text-decoration: underline; }
-}
-.text-error { color: #ba1a1a; }
-.btn-pick-handler { display: flex; align-items: center; gap: 4px; padding: 12px 20px; background: #fff; border: 1px dashed $primary; border-radius: 8px; cursor: pointer; color: $primary; font-size: 14px; font-weight: 600;
-  &:hover { background: #FFF5F5; }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-}
-.btn-add-more { display: inline-flex; padding: 6px 14px; font-size: 13px; margin-top: 8px; }
+// 完成节点提示
 .end-tip { display: flex; align-items: center; gap: 8px; padding: 14px 16px; background: rgba(38,109,0,0.08); border-radius: 8px; color: #266d00; font-size: 14px;
   i { font-size: 18px; }
 }

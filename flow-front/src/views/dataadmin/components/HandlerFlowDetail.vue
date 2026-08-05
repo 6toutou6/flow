@@ -39,7 +39,7 @@
             <span class="step-name">{{ item.nodeName }}</span>
             <span class="step-badge" :class="'badge-' + item.status">{{ statusLabel(item.status) }}</span>
             <span v-if="item.status === 'current'" class="cur-stage-tag">当前阶段</span>
-            <span v-if="item.isMine" class="mine-tag">该人员处理</span>
+            <span class="mine-tag">{{ item.latestDone.handlerName || '该人员' }}已处理</span>
             <span v-if="item.branchCount > 1" class="branch-tag">{{ item.branchCount }} 分支</span>
           </div>
           <div class="step-meta">
@@ -300,7 +300,7 @@ $border: #e4beba;
 .tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 32px; }
 .tpl-item { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .tpl-label { font-size: 12px; color: #999; display: inline-flex; align-items: center; gap: 4px; }
-.tpl-value { font-size: 14px; color: #5b403d; font-weight: 500; word-break: break-all; line-height: 1.5; }
+.tpl-value { font-size: 14px; color: #5b403d; font-weight: 500; word-break: break-all; line-height: 1.5; white-space: pre-wrap; }
 .role-hint-icon { width: 18px; height: 18px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: help; font-size: 12px;
   &.role-creator { background: rgba(38,109,0,0.1); color: #266d00; }
   &.role-handler { background: rgba(183,121,31,0.12); color: #b7791f; }
@@ -335,7 +335,7 @@ $border: #e4beba;
 .step-meta { display: flex; gap: 16px; margin-top: 6px; padding-left: 32px; font-size: 12px; color: #757575;
   i { margin-right: 3px; }
 }
-.step-reject-reason { display: block; flex-basis: 100%; color: #b7791f; font-weight: 600; line-height: 1.5; }
+.step-reject-reason { display: block; flex-basis: 100%; color: #b7791f; font-weight: 600; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
 .step-expanded { display: flex; gap: 16px; margin-top: 12px; padding: 12px; background: #fff; border-radius: 6px; border: 1px dashed #e4beba; }
 .expanded-left { flex: 3; min-width: 0; }
 .expanded-right { flex: 1; min-width: 0; border-left: 1px solid #f0f0f0; padding-left: 16px; }
@@ -347,7 +347,7 @@ $border: #e4beba;
   &:last-child { margin-bottom: 0; }
 }
 .fr-label { width: 120px; color: #757575; flex-shrink: 0; font-weight: 600; }
-.fr-value { color: #1b1c1c; flex: 1; word-break: break-all; }
+.fr-value { color: #1b1c1c; flex: 1; word-break: break-all; white-space: pre-wrap; line-height: 1.5; }
 .form-empty { font-size: 12px; color: #bbb; text-align: center; padding: 8px 0; }
 .action-list { display: flex; flex-direction: column; gap: 6px; }
 .action-item { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; border-radius: 4px; font-size: 12px;
@@ -361,8 +361,8 @@ $border: #e4beba;
 .act-reject .action-badge { background: #b7791f; color: #fff; }
 .action-user { color: #414755; }
 .action-time { color: #999; margin-left: auto; }
-.action-reason { color: #b7791f; font-size: 12px; padding-left: 4px; line-height: 1.4; word-break: break-all; }
-.action-comment { color: #266d00; font-size: 12px; padding-left: 4px; line-height: 1.4; word-break: break-all; }
+.action-reason { color: #b7791f; font-size: 12px; padding-left: 4px; line-height: 1.4; word-break: break-all; white-space: pre-wrap; }
+.action-comment { color: #266d00; font-size: 12px; padding-left: 4px; line-height: 1.4; word-break: break-all; white-space: pre-wrap; }
 
 // 右侧操作历史时间线
 .history-timeline { position: relative; padding-left: 18px;
@@ -378,15 +378,15 @@ $border: #e4beba;
 .tl-body { padding: 8px 10px; border-radius: 6px; background: #fafafa; font-size: 12px; }
 .tl-node { font-size: 13px; font-weight: 700; color: #1b1c1c; margin-bottom: 4px; }
 .tl-head { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
-.tl-badge { padding: 1px 7px; border-radius: 3px; font-weight: 700; font-size: 11px; color: #fff; flex-shrink: 0; }
+.tl-badge { padding: 3px 7px; border-radius: 3px; font-weight: 700; font-size: 11px; color: #fff; flex-shrink: 0; }
 .tl-pass .tl-badge { background: #266d00; }
 .tl-reject .tl-badge { background: #b7791f; }
 .tl-done .tl-badge { background: #266d00; }
 .tl-done .tl-node { color: #266d00; }
 .tl-user { color: #414755; i { margin-right: 2px; } }
 .tl-time { color: #999; i { margin-right: 2px; } }
-.tl-comment { margin-top: 5px; color: #266d00; line-height: 1.5; word-break: break-all; }
-.tl-reason { margin-top: 5px; color: #b7791f; line-height: 1.5; word-break: break-all; }
+.tl-comment { margin-top: 5px; color: #266d00; line-height: 1.5; word-break: break-all; white-space: pre-wrap; }
+.tl-reason { margin-top: 5px; color: #b7791f; line-height: 1.5; word-break: break-all; white-space: pre-wrap; }
 .history-empty { font-size: 13px; color: #bbb; text-align: center; padding: 32px 0; }
 .empty-state { text-align: center; padding: 60px 20px; color: #bbb;
   i { font-size: 48px; display: block; margin-bottom: 12px; }

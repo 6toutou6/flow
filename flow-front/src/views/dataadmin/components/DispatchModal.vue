@@ -350,7 +350,7 @@ export default {
 $primary: #C53030;
 $border: #e4beba;
 .steps-card { background: #fff; border: 1px solid $border; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
-.step-panel { background: #fff; border: 1px solid $border; border-radius: 8px; padding: 20px; }
+.step-panel { background: #fff; border: 1px solid $border; border-radius: 8px; padding: 20px; max-height: 700px; overflow: auto; }
 .panel-hint { font-size: 14px; color: #606266; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
 .step-actions { display: flex; justify-content: space-between; margin-top: 20px; padding-top: 16px; border-top: 1px solid #f0f0f0; }
 

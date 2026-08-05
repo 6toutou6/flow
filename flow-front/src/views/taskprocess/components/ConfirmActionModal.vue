@@ -2,7 +2,7 @@
   <el-dialog
     :title="title"
     :visible.sync="dialogVisible"
-    width="480px"
+    width="560px"
     :close-on-click-modal="false"
     append-to-body
     @close="handleClose"
@@ -34,6 +34,28 @@
       <span>{{ action === 'reject' ? '退回后目标节点表单将回填上次数据，可修改后重新提交' : '请确认信息无误，提交后不可撤销' }}</span>
     </div>
 
+    <!-- 下一节点处理人（通过且非结束节点时，在确认弹窗内选择） -->
+    <div v-if="action === 'pass' && !endNode" class="handler-area">
+      <label class="comment-label">下一节点处理人 <span class="comment-optional">（必选，可多选，每人一个独立分支）</span></label>
+      <div v-if="nextHandlers.length > 0" class="handler-list">
+        <div v-for="(h, i) in nextHandlers" :key="h.id" class="handler-chip">
+          <span class="hc-avatar">{{ h.realName ? h.realName.charAt(0) : 'U' }}</span>
+          <span class="hc-name">{{ h.realName }} <span class="hc-emp">{{ h.empNo }}</span></span>
+          <i class="el-icon-close hc-remove" @click="removeHandler(h.id)" />
+        </div>
+      </div>
+      <button class="btn-pick" @click="pickerVisible = true">
+        <i class="el-icon-plus" /> {{ nextHandlers.length ? '继续添加' : '选择处理人' }}
+      </button>
+      <UserPicker
+        :visible="pickerVisible"
+        title="选择下一节点处理人（可多选，每人一个独立分支）"
+        :exclude-ids="nextHandlers.map(h => h.id)"
+        @confirm="onPickUsers"
+        @close="pickerVisible = false"
+      />
+    </div>
+
     <!-- 通过意见（仅通过时显示，非必填） -->
     <div v-if="action === 'pass'" class="comment-area">
       <label class="comment-label">通过意见 <span class="comment-optional">（选填）</span></label>
@@ -57,17 +79,25 @@
 </template>
 
 <script>
+import UserPicker from '@/components/UserPicker'
+
 export default {
   name: 'ConfirmActionModal',
+  components: { UserPicker },
   props: {
     visible: { type: Boolean, default: false },
     action: { type: String, default: 'pass' }, // 'pass' | 'reject'
     summary: { type: String, default: '' },
-    loading: { type: Boolean, default: false }
+    loading: { type: Boolean, default: false },
+    /** 当前节点是否为结束节点（通过时无需选择下一处理人） */
+    endNode: { type: Boolean, default: false }
   },
   data() {
     return {
-      passComment: ''
+      passComment: '',
+      /** 下一节点处理人（通过且非结束节点时在弹窗内选择，每人一个独立分支） */
+      nextHandlers: [],
+      pickerVisible: false
     }
   },
   computed: {
@@ -87,15 +117,38 @@ export default {
     visible(val) {
       if (val) {
         this.passComment = ''
+        this.nextHandlers = []
+        this.pickerVisible = false
       }
     }
   },
   methods: {
+    onPickUsers(users) {
+      const ids = this.nextHandlers.map(h => h.id)
+      ;(users || []).forEach(u => {
+        if (!ids.includes(u.id)) {
+          this.nextHandlers.push({ id: u.id, realName: u.realName, empNo: u.empNo })
+          ids.push(u.id)
+        }
+      })
+      this.pickerVisible = false
+    },
+    removeHandler(id) {
+      this.nextHandlers = this.nextHandlers.filter(h => h.id !== id)
+    },
     handleClose() {
       this.$emit('close')
     },
     handleConfirm() {
-      this.$emit('confirm', { passComment: this.passComment || '' })
+      // 通过且非结束节点：下一节点处理人为必选
+      if (this.action === 'pass' && !this.endNode && this.nextHandlers.length === 0) {
+        this.$message.warning('请选择下一节点处理人')
+        return
+      }
+      this.$emit('confirm', {
+        passComment: this.passComment || '',
+        nextHandlerIds: this.action === 'pass' ? this.nextHandlers.map(h => h.id) : []
+      })
     }
   }
 }
@@ -136,5 +189,19 @@ $primary: #C53030;
 .comment-area { margin-top: 16px; padding-top: 16px; border-top: 1px solid #f0f0f0; }
 .comment-label { display: block; font-size: 13px; font-weight: 600; color: #414755; margin-bottom: 8px; }
 .comment-optional { font-size: 12px; color: #999; font-weight: 400; }
+
+// 下一节点处理人选择区（通过且非结束节点）
+.handler-area { margin-top: 16px; padding-top: 16px; border-top: 1px solid #f0f0f0; }
+.handler-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.handler-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px 3px 4px; background: #f7f7f9; border: 1px solid #e8e8e8; border-radius: 16px; font-size: 12px; }
+.hc-avatar { width: 22px; height: 22px; border-radius: 50%; background: $primary; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.hc-name { color: #414755; font-weight: 600; }
+.hc-emp { color: #999; font-weight: 400; margin-left: 2px; }
+.hc-remove { cursor: pointer; color: #bbb; font-size: 13px;
+  &:hover { color: $primary; }
+}
+.btn-pick { width: 100%; height: 34px; border: 1px dashed #d3a7a0; border-radius: 6px; background: #FFF5F5; color: $primary; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 4px;
+  &:hover { border-color: $primary; background: rgba(197,48,48,0.08); }
+}
 .dialog-footer { text-align: right; }
 </style>
