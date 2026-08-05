@@ -164,10 +164,6 @@
               <input v-model="selectedField.fieldLabel" class="prop-input" placeholder="字段中文名称">
             </div>
             <div class="prop-group">
-              <label class="prop-label">字段标识</label>
-              <input v-model="selectedField.fieldKey" class="prop-input" placeholder="英文标识，如 name">
-            </div>
-            <div class="prop-group">
               <label class="prop-label">占位提示</label>
               <input v-model="selectedField.placeholder" class="prop-input" placeholder="输入框占位文字">
             </div>

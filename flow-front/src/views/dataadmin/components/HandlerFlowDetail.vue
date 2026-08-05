@@ -5,11 +5,11 @@
       <span class="hfd-desc-label">任务说明</span>
       <span class="hfd-desc-text">{{ taskDesc }}</span>
     </div>
-    <!-- 任务基础信息（模板级字段，创建人下发时赋值，后台可见） -->
-    <div v-if="templateFieldRows.length > 0" class="hfd-desc">
-      <span class="hfd-desc-label">任务基础信息</span>
-      <div class="hfd-desc-text">
-        <div v-for="r in templateFieldRows" :key="r.id" class="tpl-row">
+    <!-- 任务基础信息（模板级字段，创建人下发时赋值；处理人各节点填写同步汇总展示） -->
+    <div v-if="templateFieldRows.length > 0" class="hfd-tpl">
+      <div class="section-title">任务基础信息 <span class="chain-hint">创建人下发时赋值，处理人节点填写同步展示</span></div>
+      <div class="tpl-grid">
+        <div v-for="r in templateFieldRows" :key="r.id" class="tpl-item">
           <span class="tpl-label">
             {{ r.label }}
             <el-tooltip v-if="r.roleTip" :content="r.roleTip" placement="top">
@@ -121,6 +121,16 @@
             <div class="tl-time"><i class="el-icon-time" /> {{ h.handleTime || '—' }}</div>
             <div v-if="h.action === 0 && h.passComment" class="tl-comment">通过意见：{{ h.passComment }}</div>
             <div v-if="h.action === 1 && h.rejectReason" class="tl-reason">退回原因：{{ h.rejectReason }}</div>
+          </div>
+        </div>
+        <!-- 任务已全部完成：时间线末尾补完成节点 -->
+        <div v-if="taskFinished" class="tl-item tl-done">
+          <div class="tl-dot"><i class="el-icon-check" /></div>
+          <div class="tl-body">
+            <div class="tl-node">流程完成</div>
+            <div class="tl-head">
+              <span class="tl-badge">完成</span>
+            </div>
           </div>
         </div>
       </div>
@@ -244,6 +254,10 @@ export default {
           }
         })
     },
+    /** 任务是否已全部完成（操作历史时间线末尾补完成节点） */
+    taskFinished() {
+      return this.taskDetail && this.taskDetail.task && this.taskDetail.task.status === 2
+    },
     /** 完整操作历史：任务的全部操作节点（不区分提交人员，每条显示提交人员），按时间正序 */
     allHistory() {
       if (!this.taskDetail) return []
@@ -282,10 +296,11 @@ $border: #e4beba;
   .hfd-desc-label { width: 90px; color: #757575; flex-shrink: 0; line-height: 1.6; }
   .hfd-desc-text { flex: 1; color: #5b403d; line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
 }
-.tpl-row { display: flex; padding: 3px 0;
-  .tpl-label { width: 120px; color: #757575; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; }
-  .tpl-value { flex: 1; word-break: break-all; }
-}
+.hfd-tpl { background: #fff; border: 1px solid $border; border-radius: 8px; padding: 20px; }
+.tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 32px; }
+.tpl-item { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.tpl-label { font-size: 12px; color: #999; display: inline-flex; align-items: center; gap: 4px; }
+.tpl-value { font-size: 14px; color: #5b403d; font-weight: 500; word-break: break-all; line-height: 1.5; }
 .role-hint-icon { width: 18px; height: 18px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: help; font-size: 12px;
   &.role-creator { background: rgba(38,109,0,0.1); color: #266d00; }
   &.role-handler { background: rgba(183,121,31,0.12); color: #b7791f; }
@@ -328,10 +343,10 @@ $border: #e4beba;
 .bd-block { margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e4beba; }
 .bd-sub-title { color: #b7791f; }
 .form-rows { display: flex; flex-direction: column; }
-.form-row { display: flex; padding: 5px 0; font-size: 13px; border-bottom: 1px solid #f5f5f5;
-  &:last-child { border-bottom: none; }
+.form-row { display: flex; gap: 8px; padding: 7px 10px; font-size: 13px; background: #f7f7f9; border-radius: 4px; margin-bottom: 6px;
+  &:last-child { margin-bottom: 0; }
 }
-.fr-label { width: 120px; color: #757575; flex-shrink: 0; }
+.fr-label { width: 120px; color: #757575; flex-shrink: 0; font-weight: 600; }
 .fr-value { color: #1b1c1c; flex: 1; word-break: break-all; }
 .form-empty { font-size: 12px; color: #bbb; text-align: center; padding: 8px 0; }
 .action-list { display: flex; flex-direction: column; gap: 6px; }
@@ -359,12 +374,15 @@ $border: #e4beba;
 .tl-dot { position: absolute; left: -18px; top: 4px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,0.1); }
 .tl-pass .tl-dot { background: #266d00; }
 .tl-reject .tl-dot { background: #b7791f; }
+.tl-done .tl-dot { background: #266d00; width: 16px; height: 16px; left: -20px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; box-shadow: 0 0 0 1px rgba(38,109,0,0.4); }
 .tl-body { padding: 8px 10px; border-radius: 6px; background: #fafafa; font-size: 12px; }
 .tl-node { font-size: 13px; font-weight: 700; color: #1b1c1c; margin-bottom: 4px; }
 .tl-head { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
 .tl-badge { padding: 1px 7px; border-radius: 3px; font-weight: 700; font-size: 11px; color: #fff; flex-shrink: 0; }
 .tl-pass .tl-badge { background: #266d00; }
 .tl-reject .tl-badge { background: #b7791f; }
+.tl-done .tl-badge { background: #266d00; }
+.tl-done .tl-node { color: #266d00; }
 .tl-user { color: #414755; i { margin-right: 2px; } }
 .tl-time { color: #999; i { margin-right: 2px; } }
 .tl-comment { margin-top: 5px; color: #266d00; line-height: 1.5; word-break: break-all; }

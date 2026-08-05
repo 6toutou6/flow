@@ -228,6 +228,16 @@
               <div v-if="h.action === 1 && h.rejectReason" class="tl-reason">退回原因：{{ h.rejectReason }}</div>
             </div>
           </div>
+          <!-- 任务已全部完成：时间线末尾补完成节点 -->
+          <div v-if="taskFinished" class="tl-item tl-done">
+            <div class="tl-dot"><i class="el-icon-check" /></div>
+            <div class="tl-body">
+              <div class="tl-node">流程完成</div>
+              <div class="tl-head">
+                <span class="tl-badge">完成</span>
+              </div>
+            </div>
+          </div>
         </div>
         <div v-else class="history-empty">暂无操作记录</div>
       </div>
@@ -449,6 +459,10 @@ export default {
         }
       })
       return Object.values(map).sort((a, b) => (a.sortNum || 0) - (b.sortNum || 0))
+    },
+    /** 任务是否已全部完成（操作历史时间线末尾补完成节点） */
+    taskFinished() {
+      return this.detail && this.detail.task && this.detail.task.status === 2
     },
     /** 完整操作历史：任务全部已提交的通过/退回记录（任务绑定，按时间正序），展示在弹窗右侧 */
     allHistory() {
@@ -715,7 +729,7 @@ $border: #e4beba;
 // 展开的节点详情
 .step-detail { margin-top: 12px; padding: 14px 16px; background: #fff; border: 1px dashed $border; border-radius: 8px;
   .sd-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
-  .sd-no { width: 22px; height: 22px; border-radius: 50%; background: #e4beba; color: #5b403d; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .sd-no { width: 22px; height: 22px; border-radius: 50%; background: #266d00; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
   .sd-name { font-size: 14px; font-weight: 700; color: #1b1c1c; }
   .sd-meta { font-size: 12px; color: #757575; display: inline-flex; align-items: center; gap: 3px; i { margin-right: 2px; } }
   .sd-sub-title { font-size: 12px; font-weight: 700; color: #414755; margin: 6px 0 4px; }
@@ -727,10 +741,10 @@ $border: #e4beba;
   &.role-handler { background: rgba(183,121,31,0.12); color: #b7791f; }
 }
 .bd-form-section { background: #FFFBF5; }
-.form-row { display: flex; padding: 5px 0; font-size: 13px; border-bottom: 1px solid #f5f5f5;
-  &:last-child { border-bottom: none; }
+.form-row { display: flex; gap: 8px; padding: 7px 10px; font-size: 13px; background: #f7f7f9; border-radius: 4px; margin-bottom: 6px;
+  &:last-child { margin-bottom: 0; }
 }
-.fr-label { width: 130px; color: #757575; flex-shrink: 0; }
+.fr-label { width: 120px; color: #757575; flex-shrink: 0; font-weight: 600; }
 .fr-value { color: #1b1c1c; flex: 1; word-break: break-all; }
 .form-empty { font-size: 12px; color: #bbb; text-align: center; padding: 8px; }
 
@@ -752,12 +766,15 @@ $border: #e4beba;
 .tl-dot { position: absolute; left: -18px; top: 4px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,0.1); }
 .tl-pass .tl-dot { background: #266d00; }
 .tl-reject .tl-dot { background: #b7791f; }
+.tl-done .tl-dot { background: #266d00; width: 16px; height: 16px; left: -20px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; box-shadow: 0 0 0 1px rgba(38,109,0,0.4); }
 .tl-body { padding: 8px 10px; border-radius: 6px; background: #fafafa; font-size: 12px; }
 .tl-node { font-size: 13px; font-weight: 700; color: #1b1c1c; margin-bottom: 4px; }
 .tl-head { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
 .tl-badge { padding: 1px 7px; border-radius: 3px; font-weight: 700; font-size: 11px; color: #fff; flex-shrink: 0; }
 .tl-pass .tl-badge { background: #266d00; }
 .tl-reject .tl-badge { background: #b7791f; }
+.tl-done .tl-badge { background: #266d00; }
+.tl-done .tl-node { color: #266d00; }
 .tl-user { color: #414755; i { margin-right: 2px; } }
 .tl-time { color: #999; i { margin-right: 2px; } }
 .tl-comment { margin-top: 5px; color: #266d00; line-height: 1.5; word-break: break-all; }
