@@ -13,6 +13,10 @@ import java.util.List;
 @Data
 public class TemplateFlowSaveDTO {
     private Long templateId;
+    /** 保存方式：current=保存到当前版本（覆盖，版本号不变） new=保存为新版本（版本号+1，旧配置归档） */
+    private String saveMode;
+    /** 改动说明（保存版本时用户填写，写入模板/版本记录） */
+    private String versionDesc;
     /** 模板级字段（node_id 为空，如规章制度/采购说明等任务基础信息） */
     private List<FlowTemplateField> templateFields;
     private List<NodeItem> nodes;

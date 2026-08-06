@@ -1,12 +1,12 @@
 package com.zqk.house.flowtask.controller;
 
 import com.zqk.house.flowtask.entity.FlowTask;
+import com.zqk.house.flowtask.entity.FlowTaskLog;
 import com.zqk.house.flowtask.entity.FlowTaskQueryForm;
 import com.zqk.house.flowtask.service.FlowTaskService;
 import com.zqk.house.flowtask.vo.AddHandlersDTO;
 import com.zqk.house.flowtask.vo.MyTodoVO;
 import com.zqk.house.flowtask.vo.NodeSubmitDTO;
-import com.zqk.house.flowtask.vo.TaskCreateDTO;
 import com.zqk.house.flowtask.vo.TaskDetailVO;
 import com.zqk.house.flowtask.vo.TaskGroupVO;
 import com.zqk.house.flowtask.vo.TaskMemberVO;
@@ -55,17 +55,7 @@ public class FlowTaskController {
         return vo != null ? Result.success("获取成功", vo) : Result.notFound("任务不存在");
     }
 
-    @PostMapping("/create")
-    public Result<Integer> create(@RequestBody TaskCreateDTO dto) {
-        try {
-            int count = flowTaskService.create(dto);
-            return Result.success("成功下发 " + count + " 个任务", count);
-        } catch (RuntimeException e) {
-            return Result.fail(e.getMessage());
-        }
-    }
-
-    /** 新增人员：在主任务下为每个新增处理人创建独立成员任务 */
+    /** 新增人员：在期次下为每个新增人员创建独立成员任务 */
     @PostMapping("/add-handlers")
     public Result<Integer> addHandlers(@RequestBody AddHandlersDTO dto) {
         try {
@@ -118,6 +108,22 @@ public class FlowTaskController {
     @GetMapping("/progress/{taskId}")
     public Result<List<TaskProgressVO>> progress(@PathVariable Long taskId) {
         return Result.success("获取成功", flowTaskService.taskProgress(taskId));
+    }
+
+    /** 催办：向成员任务（进行中）发送催办通知并记录日志 */
+    @PostMapping("/urge/{taskId}")
+    public Result<Void> urge(@PathVariable Long taskId) {
+        try {
+            return flowTaskService.urgeTask(taskId) ? Result.success("催办通知已发送") : Result.fail("催办失败");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
+    /** 任务的流转/催办日志 */
+    @GetMapping("/logs/{taskId}")
+    public Result<List<FlowTaskLog>> logs(@PathVariable Long taskId) {
+        return Result.success("获取成功", flowTaskService.getTaskLogs(taskId));
     }
 
     @PutMapping("/update")

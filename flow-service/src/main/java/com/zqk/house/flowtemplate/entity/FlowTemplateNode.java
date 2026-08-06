@@ -25,6 +25,10 @@ public class FlowTemplateNode {
     /** 节点类型 1开始 2中间 3结束 */
     private Integer nodeType;
     private String nodeTips;
+    /** 节点填写说明（创建人配置，展示给处理人如何填写） */
+    private String guideText;
+    /** 节点说明文件 JSON [{"name":"","url":""}] */
+    private String guideFiles;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;

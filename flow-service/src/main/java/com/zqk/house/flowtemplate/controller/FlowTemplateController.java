@@ -2,6 +2,7 @@ package com.zqk.house.flowtemplate.controller;
 
 import com.zqk.house.flowtemplate.entity.FlowTemplate;
 import com.zqk.house.flowtemplate.entity.FlowTemplateQueryForm;
+import com.zqk.house.flowtemplate.entity.FlowTemplateVersion;
 import com.zqk.house.flowtemplate.service.FlowTemplateService;
 import com.zqk.house.flowtemplate.vo.TemplateDetailVO;
 import com.zqk.house.flowtemplate.vo.TemplateFlowSaveDTO;
@@ -75,5 +76,11 @@ public class FlowTemplateController {
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         }
+    }
+
+    /** 模板版本记录列表 */
+    @GetMapping("/versions/{id}")
+    public Result<List<FlowTemplateVersion>> versions(@PathVariable Long id) {
+        return Result.success("获取成功", flowTemplateService.getVersions(id));
     }
 }

@@ -306,7 +306,7 @@ $primary: #C53030;
 .stat-icon { width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; flex-shrink: 0;
   &.icon-total { background: $primary; }
   &.icon-active { background: #266d00; }
-  &.icon-rate { background: #00596f; }
+  &.icon-rate { background: #8f1d1d; }
 }
 .stat-body { flex: 1; }
 .stat-label { font-size: 13px; color: #757575; margin-bottom: 4px; }

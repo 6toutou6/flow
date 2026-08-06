@@ -928,7 +928,7 @@ export default {
 
 .loading-spinner {
   text-align: center;
-  color: #409EFF;
+  color: #C53030;
 
   .el-icon-loading {
     font-size: 40px;

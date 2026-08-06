@@ -24,4 +24,12 @@ public class TaskCreateDTO {
     private List<Long> firstHandlerIds;
     /** 模板级字段值（fieldId → value，创建人下发时赋值，如规章制度/采购说明） */
     private Map<Long, String> templateData;
+    /** 下发计划ID（flow_dispatch.id，周期下发的期次归属） */
+    private Long dispatchPlanId;
+    /** 是否立即下发：true=当期次（触发日已过则补发当期）；false=下一期次 */
+    private Boolean immediate;
+    /** 期次序号（同一计划下递增，服务端计算） */
+    private Integer periodNo;
+    /** 期次名称（默认由服务端按期次计算，用户可覆盖） */
+    private String periodName;
 }

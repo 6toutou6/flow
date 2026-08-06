@@ -11,13 +11,15 @@ import java.util.List;
 @Mapper
 public interface FlowTaskDispatchMapper extends BaseMapper<FlowTaskDispatch> {
 
-    /** 主任务分页：每组一行，含成员聚合计数与聚合状态（status=0 表示空组） */
-    List<TaskGroupVO> selectDispatchPage(@Param("taskName") String taskName,
+    /** 期次分页：每期一行，含成员聚合计数与聚合状态（status=0 表示空期次） */
+    List<TaskGroupVO> selectDispatchPage(@Param("taskId") Long taskId,
+                                         @Param("taskName") String taskName,
                                          @Param("status") Integer status,
                                          @Param("offset") int offset,
                                          @Param("limit") int limit);
 
-    /** 主任务总数（与 selectDispatchPage 同过滤口径） */
-    Long selectDispatchCount(@Param("taskName") String taskName,
+    /** 期次总数（与 selectDispatchPage 同过滤口径） */
+    Long selectDispatchCount(@Param("taskId") Long taskId,
+                             @Param("taskName") String taskName,
                              @Param("status") Integer status);
 }

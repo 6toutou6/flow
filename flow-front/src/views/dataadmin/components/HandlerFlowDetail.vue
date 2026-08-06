@@ -330,7 +330,7 @@ $border: #e4beba;
 .badge-current { background: rgba(197,48,48,0.12); color: $primary; }
 .badge-pending { background: #e8e8e8; color: #999; }
 .mine-tag { padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; background: $primary; color: #fff; }
-.branch-tag { padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; background: rgba(0,89,111,0.1); color: #00596f; }
+.branch-tag { padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; background: rgba(197,48,48,0.1); color: $primary; }
 .cur-stage-tag { padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 700; background: $primary; color: #fff; letter-spacing: .5px; }
 .step-meta { display: flex; gap: 16px; margin-top: 6px; padding-left: 32px; font-size: 12px; color: #757575;
   i { margin-right: 3px; }

@@ -2,12 +2,17 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.zqk.house.flowtask.mapper.FlowTaskDispatchMapper">
 
-    <!-- 主任务 + 成员聚合。聚合状态：任一进行中→1；无成员→0；全作废→3；否则→2 -->
+    <!-- 期次 + 成员聚合。聚合状态：任一进行中→1；无成员→0；全作废→3；否则→2 -->
     <sql id="dispatchAgg">
         SELECT d.id AS dispatchId,
+               d.task_id AS dispatchPlanId,
+               t.task_name AS planName,
                d.task_name AS taskName,
                d.task_desc AS taskDesc,
                d.template_id AS templateId,
+               d.period_no AS periodNo,
+               d.period_name AS periodName,
+               d.manual_flag AS manualFlag,
                d.start_time AS startTime,
                d.end_time AS endTime,
                d.create_time AS dispatchTime,
@@ -23,6 +28,7 @@
                  ELSE 2
                END AS status
         FROM flow_task_dispatch d
+        LEFT JOIN flow_dispatch t ON t.id = d.task_id
         LEFT JOIN (
             SELECT dispatch_id,
                    COUNT(*) AS memberCount,
@@ -38,6 +44,9 @@
         SELECT * FROM (
             <include refid="dispatchAgg"/>
             <where>
+                <if test="taskId != null">
+                    AND d.task_id = #{taskId}
+                </if>
                 <if test="taskName != null and taskName != ''">
                     AND d.task_name LIKE CONCAT('%', #{taskName}, '%')
                 </if>
@@ -51,7 +60,7 @@
                 <when test="status == 3"> WHERE g.status = 3 </when>
             </choose>
         </if>
-        ORDER BY g.dispatchTime DESC
+        ORDER BY g.dispatchTime DESC, g.dispatchId DESC
         LIMIT #{offset}, #{limit}
     </select>
 
@@ -59,6 +68,9 @@
         SELECT COUNT(*) FROM (
             <include refid="dispatchAgg"/>
             <where>
+                <if test="taskId != null">
+                    AND d.task_id = #{taskId}
+                </if>
                 <if test="taskName != null and taskName != ''">
                     AND d.task_name LIKE CONCAT('%', #{taskName}, '%')
                 </if>

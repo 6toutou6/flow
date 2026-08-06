@@ -11,7 +11,10 @@
       </div>
       <div class="header-right">
         <span class="field-count">共 {{ nodes.length }} 个节点 / {{ totalFieldCount }} 个字段<span v-if="templateFields.length" class="tfe-count">（含 {{ templateFields.length }} 个任务基础字段）</span></span>
-        <button class="btn-save" :disabled="saving" @click="handleSave">
+        <button class="btn-versions" @click="versionVisible = true">
+          <i class="el-icon-tickets" /> 版本记录<span v-if="template.version"> v{{ template.version }}</span>
+        </button>
+        <button class="btn-save" :disabled="saving" @click="onSaveClick">
           <i v-if="saving" class="el-icon-loading" />
           <i v-else class="el-icon-check" />
           保存流程
@@ -151,6 +154,22 @@
               <label class="prop-label">节点提示</label>
               <input v-model="currentNode.node.nodeTips" class="prop-input" placeholder="处理人看到的提示文案">
             </div>
+            <div class="prop-group">
+              <label class="prop-label">节点填写说明</label>
+              <textarea v-model="currentNode.node.guideText" class="prop-textarea" rows="4" placeholder="告诉处理人如何填写本节点（如：请填写需求编号与日期，并在附件上传需求文档）"></textarea>
+            </div>
+            <div class="prop-group">
+              <label class="prop-label">说明文件</label>
+              <div class="guide-files-editor">
+                <div v-for="(gf, gi) in guideFilesArr" :key="gi" class="guide-file-row">
+                  <i class="el-icon-paperclip" />
+                  <input v-model="gf.name" class="prop-input gf-input" placeholder="文件名（如：需求模板.docx）" @blur="syncGuideFiles">
+                  <button class="gf-del" title="删除" @click="removeGuideFile(gi)"><i class="el-icon-close" /></button>
+                </div>
+                <button class="gf-add" @click="addGuideFile"><i class="el-icon-plus" /> 添加说明文件</button>
+              </div>
+              <div class="role-tip">仅记录文件名（第一版存文件名文本），处理人在该节点处理时可见</div>
+            </div>
             <p v-if="currentNode.node.nodeType === 3" class="prop-hint">结束节点提交后任务即完成，无需指定下一处理人</p>
           </div>
         </div>
@@ -229,14 +248,34 @@
         </div>
       </aside>
     </div>
+
+    <!-- 保存流程弹窗（当前版本/新版本 + 改动说明） -->
+    <SaveFlowModal
+      :visible="saveVisible"
+      :loading="saving"
+      :template-version="template.version || 1"
+      @confirm="handleSaveWithMode"
+      @close="saveVisible = false"
+    />
+
+    <!-- 版本记录弹窗 -->
+    <VersionListModal
+      :visible="versionVisible"
+      :template-id="Number(templateId)"
+      :current-version="template"
+      @close="versionVisible = false"
+    />
   </div>
 </template>
 
 <script>
 import { getTemplateDetail, saveTemplateFlow } from '@/api/template'
+import SaveFlowModal from './components/SaveFlowModal.vue'
+import VersionListModal from './components/VersionListModal.vue'
 
 export default {
   name: 'FormDesigner',
+  components: { SaveFlowModal, VersionListModal },
   data() {
     return {
       templateId: null,
@@ -250,6 +289,9 @@ export default {
       selectedNodeIndex: 0,
       selectedFieldIndex: -1,
       saving: false,
+      // 保存/版本弹窗
+      saveVisible: false,
+      versionVisible: false,
       enumOptions: [],
       basicFields: [
         { type: 'text', label: '单行文本', icon: 'el-icon-edit' },
@@ -281,6 +323,17 @@ export default {
     },
     totalFieldCount() {
       return this.nodes.reduce((sum, n) => sum + ((n.fields || []).length), 0) + this.templateFields.length
+    },
+    /** 当前节点「说明文件」列表（guideFiles 为 JSON 字符串，解析为数组供编辑） */
+    guideFilesArr() {
+      const g = this.currentNode && this.currentNode.node && this.currentNode.node.guideFiles
+      if (!g) return []
+      try {
+        const arr = JSON.parse(g)
+        return Array.isArray(arr) ? arr : []
+      } catch (e) {
+        return []
+      }
     }
   },
   watch: {
@@ -397,7 +450,9 @@ export default {
           nodeName: '新节点',
           sortNum: insertAt,
           nodeType: 2,
-          nodeTips: ''
+          nodeTips: '',
+          guideText: '',
+          guideFiles: null
         },
         fields: []
       })
@@ -414,7 +469,9 @@ export default {
           nodeName: (src.node.nodeName || '未命名节点') + '（副本）',
           sortNum: 0,
           nodeType: 2,
-          nodeTips: src.node.nodeTips || ''
+          nodeTips: src.node.nodeTips || '',
+          guideText: src.node.guideText || '',
+          guideFiles: src.node.guideFiles || null
         },
         fields: (src.fields || []).map(f => ({
           id: null,
@@ -532,7 +589,31 @@ export default {
       this.enumOptions.splice(oi, 1)
       this.enumOptions.forEach((o, i) => { o.value = String(i + 1) })
     },
-    async handleSave() {
+    /** 新增说明文件行 */
+    addGuideFile() {
+      const arr = this.guideFilesArr.slice()
+      arr.push({ name: '' })
+      this.writeGuideFiles(arr)
+    },
+    /** 删除说明文件行 */
+    removeGuideFile(gi) {
+      const arr = this.guideFilesArr.slice()
+      arr.splice(gi, 1)
+      this.writeGuideFiles(arr)
+    },
+    /** 输入框失焦时把当前列表写回节点 JSON */
+    syncGuideFiles() {
+      this.writeGuideFiles(this.guideFilesArr)
+    },
+    /** 将文件列表序列化写回 currentNode.node.guideFiles（过滤空名称） */
+    writeGuideFiles(arr) {
+      const node = this.currentNode && this.currentNode.node
+      if (!node) return
+      const clean = (arr || []).filter(f => f && f.name && f.name.trim())
+      node.guideFiles = clean.length ? JSON.stringify(clean) : null
+    },
+    /** 保存按钮：先校验，再弹出保存方式（当前版本/新版本 + 改动说明） */
+    onSaveClick() {
       if (this.nodes.length < 2) {
         this.$message.warning('至少需要 2 个节点（首位自动标记为开始、末位为结束）')
         return
@@ -556,11 +637,18 @@ export default {
           return
         }
       }
+      this.saveVisible = true
+    },
+    /** 保存弹窗确认：携带 saveMode/versionDesc 与节点填写说明执行保存 */
+    async handleSaveWithMode({ saveMode, versionDesc }) {
+      this.saveVisible = false
       this.fixNodeTypes()
       this.saving = true
       try {
         const payload = {
           templateId: Number(this.templateId),
+          saveMode: saveMode || 'current',
+          versionDesc: versionDesc || '',
           templateFields: this.templateFields.map((f, k) => ({
             ...f,
             id: null,
@@ -576,7 +664,9 @@ export default {
               ...item.node,
               id: null,
               sortNum: i,
-              nodeType: item.node.nodeType
+              nodeType: item.node.nodeType,
+              guideText: item.node.guideText || '',
+              guideFiles: item.node.guideFiles || null
             },
             fields: (item.fields || []).map((f, j) => ({
               ...f,
@@ -588,7 +678,7 @@ export default {
           }))
         }
         await saveTemplateFlow(payload)
-        this.$message.success('流程保存成功')
+        this.$message.success(saveMode === 'new' ? '已保存为新版本 v' + (this.template.version + 1) : '流程保存成功')
         this.fetchDetail()
       } catch (e) {
         console.error(e)
@@ -620,6 +710,9 @@ $border: #e4beba;
 .header-right { display: flex; align-items: center; gap: 16px; }
 .field-count { font-size: 13px; color: #757575; }
 .tfe-count { color: $primary; margin-left: 4px; }
+.btn-versions { display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: transparent; border: 1px solid $border; border-radius: 6px; color: #5b403d; font-size: 13px; cursor: pointer;
+  &:hover { border-color: $primary; color: $primary; background: #FFF5F5; }
+}
 .btn-save { display: flex; align-items: center; gap: 4px; padding: 8px 20px; background: $primary; color: #fff; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer;
   &:hover { opacity: 0.9; } &:disabled { opacity: 0.6; cursor: not-allowed; }
 }
@@ -734,6 +827,20 @@ $border: #e4beba;
 .prop-label { font-size: 12px; color: #757575; font-weight: 600; }
 .prop-input { height: 32px; border: 1px solid #dcdfe6; border-radius: 4px; padding: 0 8px; font-size: 13px; outline: none; transition: all 0.2s;
   &:focus { border-color: $primary; box-shadow: 0 0 0 1px rgba(197,48,48,0.2); }
+}
+.prop-textarea { width: 100%; border: 1px solid #dcdfe6; border-radius: 4px; padding: 8px; font-size: 13px; font-family: inherit; line-height: 1.6; resize: vertical; outline: none; box-sizing: border-box; transition: all 0.2s;
+  &:focus { border-color: $primary; box-shadow: 0 0 0 1px rgba(197,48,48,0.2); }
+}
+.guide-files-editor { display: flex; flex-direction: column; gap: 6px; }
+.guide-file-row { display: flex; align-items: center; gap: 6px;
+  i { color: #909399; font-size: 13px; flex-shrink: 0; }
+}
+.gf-input { flex: 1; }
+.gf-del { width: 26px; height: 26px; border: 1px solid #dcdfe6; background: #fff; border-radius: 4px; cursor: pointer; color: #ba1a1a; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  &:hover { border-color: #ba1a1a; }
+}
+.gf-add { padding: 6px; border: 1px dashed #cbd5e0; background: transparent; border-radius: 4px; cursor: pointer; color: $primary; font-size: 12px; text-align: center;
+  &:hover { border-color: $primary; background: #FFF5F5; }
 }
 .prop-row { flex-direction: row; align-items: center; justify-content: space-between; }
 .node-type-readonly { font-size: 13px; color: #606266; padding: 6px 0; }

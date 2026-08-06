@@ -532,7 +532,7 @@ export default {
 }
 
 .stat-progress .stat-icon {
-  background: linear-gradient(135deg, #1e40af, #3b82f6);
+  background: linear-gradient(135deg, #8f1d1d, #C53030);
 }
 
 .stat-closed .stat-icon {
@@ -814,9 +814,9 @@ export default {
   font-weight: bold;
 
   &.status-progress {
-    background: #eff6ff;
-    color: #1e40af;
-    border: 1px solid #bfdbfe;
+    background: #FEF0F0;
+    color: #C53030;
+    border: 1px solid #E4BEBA;
   }
 
   &.status-closed {
@@ -1074,9 +1074,9 @@ export default {
   }
 
   &.round-status-progress {
-    background: #eff6ff;
-    color: #1e40af;
-    border: 1px solid #bfdbfe;
+    background: #FEF0F0;
+    color: #C53030;
+    border: 1px solid #E4BEBA;
   }
 
   &.round-status-pending {

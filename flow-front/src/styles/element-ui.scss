@@ -96,6 +96,16 @@ $--color-primary: #C53030;
   border-color: $--color-primary;
 }
 
+// 单选按钮组（radio-button）
+.el-radio-button__orig-radio:checked + .el-radio-button__inner {
+  background-color: $--color-primary;
+  border-color: $--color-primary;
+  box-shadow: -1px 0 0 0 $--color-primary;
+}
+.el-radio-button__orig-radio:checked + .el-radio-button__inner:hover {
+  color: #fff;
+}
+
 // 开关
 .el-switch.is-checked .el-switch__core {
   border-color: $--color-primary;
@@ -109,6 +119,17 @@ $--color-primary: #C53030;
     &:hover { color: $--color-primary; }
   }
   .btn-prev, .btn-next, .el-pager li:hover { color: $--color-primary; }
+}
+// 分页 background 模式：选中页码红色背景（替代默认蓝色）
+.el-pagination.is-background {
+  .el-pager li:not(.disabled).active {
+    background-color: $--color-primary;
+    color: #fff;
+    &:hover { background-color: $--color-primary; color: #fff; }
+  }
+  .btn-prev:not(:disabled):hover,
+  .btn-next:not(:disabled):hover,
+  .el-pager li:not(.disabled):hover { color: $--color-primary; }
 }
 
 // 步骤条

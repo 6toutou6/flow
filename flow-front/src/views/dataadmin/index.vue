@@ -6,24 +6,38 @@
         <div class="page-header">
           <div>
             <nav class="breadcrumb">
-              <span :class="{ active: level === 1, link: level > 1 }" @click="backToTasks">数据后台</span>
-              <template v-if="level >= 2">
+              <template v-if="fromDispatch">
+                <span class="link" @click="backToFlowDispatch">任务管理</span>
                 <span>/</span>
-                <span :class="{ active: level === 2, link: level > 2 }" @click="backToMembers">{{ selectedGroup && selectedGroup.taskName }}</span>
+                <span class="active">{{ selectedGroup ? (selectedGroup.periodName || selectedGroup.taskName) : '期次人员' }}</span>
+                <template v-if="level === 4">
+                  <span>/</span>
+                  <span class="active">{{ selectedHandler && selectedHandler.realName }} 的流程</span>
+                </template>
               </template>
-              <template v-if="level >= 3">
-                <span>/</span>
-                <span class="active">{{ selectedHandler && selectedHandler.realName }} 的流程</span>
+              <template v-else>
+                <span :class="{ active: level === 1, link: level > 1 }" @click="backToTasks">数据后台</span>
+                <template v-if="level >= 2">
+                  <span>/</span>
+                  <span :class="{ active: level === 2, link: level > 2 }" @click="backToPeriods">{{ selectedTask ? selectedTask.taskName : '任务' }}</span>
+                </template>
+                <template v-if="level >= 3">
+                  <span>/</span>
+                  <span :class="{ active: level === 3, link: level > 3 }" @click="backToMembers">{{ selectedGroup ? (selectedGroup.periodName || selectedGroup.taskName) : '期次' }}</span>
+                </template>
+                <template v-if="level >= 4">
+                  <span>/</span>
+                  <span class="active">{{ selectedHandler && selectedHandler.realName }} 的流程</span>
+                </template>
               </template>
             </nav>
             <h3 class="page-heading">{{ headingText }}</h3>
           </div>
           <div v-if="level === 1" class="header-actions">
-            <button class="btn-dispatch" @click="dispatchVisible = true"><i class="el-icon-s-promotion" /> 下发任务</button>
             <button class="btn-refresh" @click="fetchTaskList"><i class="el-icon-refresh" /> 刷新</button>
           </div>
           <div v-else class="header-actions">
-            <button v-if="level === 2 && canAddHandler" class="btn-dispatch" @click="addHandlerVisible = true"><i class="el-icon-plus" /> 新增人员</button>
+            <button v-if="level === 3 && canAddHandler" class="btn-dispatch" @click="addHandlerVisible = true"><i class="el-icon-plus" /> 新增人员</button>
             <button class="btn-refresh" @click="goBack"><i class="el-icon-arrow-left" /> 返回</button>
           </div>
         </div>
@@ -35,22 +49,22 @@
             <div class="stat-card">
               <div class="stat-icon icon-total"><i class="el-icon-files" /></div>
               <div class="stat-body">
-                <div class="stat-label">总任务数</div>
+                <div class="stat-label">任务总数</div>
                 <div class="stat-value">{{ stats.totalTasks || 0 }}</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon icon-period"><i class="el-icon-tickets" /></div>
+              <div class="stat-body">
+                <div class="stat-label">期次总数</div>
+                <div class="stat-value">{{ stats.totalPeriods || 0 }}</div>
               </div>
             </div>
             <div class="stat-card">
               <div class="stat-icon icon-running"><i class="el-icon-loading" /></div>
               <div class="stat-body">
-                <div class="stat-label">进行中</div>
-                <div class="stat-value">{{ stats.runningTasks || 0 }}</div>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon icon-done"><i class="el-icon-circle-check" /></div>
-              <div class="stat-body">
-                <div class="stat-label">已完成</div>
-                <div class="stat-value">{{ stats.finishedTasks || 0 }}</div>
+                <div class="stat-label">进行中期次</div>
+                <div class="stat-value">{{ stats.runningPeriods || 0 }}</div>
               </div>
             </div>
             <div class="stat-card">
@@ -69,14 +83,13 @@
                 <label class="filter-label">任务状态</label>
                 <select v-model="filters.status" class="filter-select">
                   <option value="">全部</option>
-                  <option :value="1">进行中</option>
-                  <option :value="2">已完成</option>
-                  <option :value="3">已作废</option>
+                  <option :value="1">启用</option>
+                  <option :value="0">停用</option>
                 </select>
               </div>
               <div class="filter-item">
                 <label class="filter-label">任务名称</label>
-                <input v-model="filters.taskName" class="filter-input" placeholder="输入任务名称搜索" @keyup.enter="handleSearch" />
+                <input v-model="filters.taskName" class="filter-input" placeholder="输入任务名称搜索" @keyup.enter="handleSearch">
               </div>
             </div>
             <div class="filter-actions">
@@ -98,7 +111,93 @@
               <thead>
                 <tr>
                   <th>任务名称</th>
+                  <th>流程模板</th>
+                  <th>周期</th>
+                  <th>触发日</th>
+                  <th class="text-center">期次数</th>
+                  <th class="text-center">人员数</th>
+                  <th class="text-center">状态</th>
+                  <th>创建时间</th>
+                  <th class="text-right">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in taskList" :key="row.id" class="hover-row">
+                  <td class="font-bold">{{ row.taskName }}
+                    <span v-if="row.taskDesc" class="sub-text" :title="row.taskDesc">{{ row.taskDesc }}</span>
+                  </td>
+                  <td>{{ tplName(row.templateId) }}</td>
+                  <td>{{ cycleText(row) }}</td>
+                  <td>{{ cycleDayText(row) }}</td>
+                  <td class="text-center">{{ row.periodCount || 0 }} 期</td>
+                  <td class="text-center">{{ row.memberCount || 0 }} 人</td>
+                  <td class="text-center">
+                    <span :class="row.status === 1 ? 'tag-active' : 'tag-inactive'">{{ row.status === 1 ? '启用' : '停用' }}</span>
+                  </td>
+                  <td>{{ row.createTime }}</td>
+                  <td class="text-right">
+                    <button class="action-link" @click="openPeriods(row)"><i class="el-icon-s-order" /> 查看期次</button>
+                  </td>
+                </tr>
+                <tr v-if="!loading && taskList.length === 0">
+                  <td colspan="9" class="text-center" style="padding: 32px; color: #999;">暂无任务</td>
+                </tr>
+              </tbody>
+            </table>
+            <!-- 分页 -->
+            <div class="pagination">
+              <span class="pagination-info">共计 {{ taskTotal }} 个任务</span>
+              <div class="pagination-controls">
+                <button class="page-btn" :disabled="currentPage === 1" @click="prevPage"><i class="el-icon-arrow-left" /></button>
+                <span class="page-current">{{ currentPage }} / {{ totalPages }}</span>
+                <button class="page-btn" :disabled="currentPage === totalPages" @click="nextPage"><i class="el-icon-arrow-right" /></button>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- ===== 第二级：期次列表 ===== -->
+        <template v-if="level === 2">
+          <!-- 筛选区 -->
+          <section class="filter-section">
+            <div class="filter-grid">
+              <div class="filter-item">
+                <label class="filter-label">期次状态</label>
+                <select v-model="periodFilters.status" class="filter-select">
+                  <option value="">全部</option>
+                  <option :value="0">暂无人员</option>
+                  <option :value="1">进行中</option>
+                  <option :value="2">已完成</option>
+                  <option :value="3">已作废</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <label class="filter-label">期次名称</label>
+                <input v-model="periodFilters.taskName" class="filter-input" placeholder="输入期次名称搜索" @keyup.enter="handlePeriodSearch">
+              </div>
+            </div>
+            <div class="filter-actions">
+              <div class="filter-actions-right">
+                <button class="btn-reset" :disabled="periodLoading" @click="resetPeriodFilters">重置</button>
+                <button class="btn-search" :disabled="periodLoading" @click="handlePeriodSearch">
+                  <i v-if="periodLoading" class="el-icon-loading" /><span v-else>查询</span>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- 期次表格 -->
+          <div class="table-card table-loading-wrapper">
+            <div v-if="periodLoading" class="loading-overlay">
+              <div class="loading-spinner"><i class="el-icon-loading spinning" /><p>加载中...</p></div>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>期次名称</th>
+                  <th>所属任务</th>
                   <th>所属模板</th>
+                  <th>截止时间</th>
                   <th class="text-center">状态</th>
                   <th class="text-center">成员数</th>
                   <th>成员状态概览</th>
@@ -107,9 +206,15 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="row in taskList" :key="row.dispatchId" class="hover-row">
-                  <td class="font-bold">{{ row.taskName }}</td>
+                <tr v-for="row in periodList" :key="row.dispatchId" class="hover-row">
+                  <td class="font-bold">
+                    {{ row.periodName || row.taskName }}
+                    <span v-if="row.manualFlag === 1" class="tag-manual">临时</span>
+                    <span v-if="row.periodName" class="sub-text">{{ row.taskName }}</span>
+                  </td>
+                  <td>{{ row.planName || '—' }}</td>
                   <td>{{ tplName(row.templateId) }}</td>
+                  <td>{{ row.endTime || '—' }}</td>
                   <td class="text-center">
                     <span :class="taskStatusClass(row.status)">{{ taskStatusText(row.status) }}</span>
                   </td>
@@ -124,33 +229,33 @@
                   </td>
                   <td>{{ row.dispatchTime }}</td>
                   <td class="text-right">
-                    <button class="action-link" @click="openTaskGroup(row)"><i class="el-icon-user" /> 查看成员</button>
-                    <button class="action-link text-error" :disabled="row.memberCount > 0" :title="row.memberCount > 0 ? '请先删除所有人员' : '删除任务'" @click="onDeleteGroup(row)"><i class="el-icon-delete" /> 删除任务</button>
+                    <button class="action-link" @click="openGroup(row)"><i class="el-icon-user" /> 查看人员</button>
+                    <button class="action-link text-error" :disabled="row.memberCount > 0" :title="row.memberCount > 0 ? '请先删除所有人员' : '删除期次'" @click="onDeleteGroup(row)"><i class="el-icon-delete" /> 删除</button>
                   </td>
                 </tr>
-                <tr v-if="!loading && taskList.length === 0">
-                  <td colspan="7" class="text-center" style="padding: 32px; color: #999;">暂无下发任务</td>
+                <tr v-if="!periodLoading && periodList.length === 0">
+                  <td colspan="9" class="text-center" style="padding: 32px; color: #999;">暂无期次</td>
                 </tr>
               </tbody>
             </table>
             <!-- 分页 -->
             <div class="pagination">
-              <span class="pagination-info">共计 {{ taskTotal }} 条任务</span>
+              <span class="pagination-info">共计 {{ periodTotal }} 个期次</span>
               <div class="pagination-controls">
-                <button class="page-btn" :disabled="currentPage === 1" @click="prevPage"><i class="el-icon-arrow-left" /></button>
-                <span class="page-current">{{ currentPage }} / {{ totalPages }}</span>
-                <button class="page-btn" :disabled="currentPage === totalPages" @click="nextPage"><i class="el-icon-arrow-right" /></button>
+                <button class="page-btn" :disabled="periodPage === 1" @click="periodPrevPage"><i class="el-icon-arrow-left" /></button>
+                <span class="page-current">{{ periodPage }} / {{ periodTotalPages }}</span>
+                <button class="page-btn" :disabled="periodPage === periodTotalPages" @click="periodNextPage"><i class="el-icon-arrow-right" /></button>
               </div>
             </div>
           </div>
         </template>
 
-        <!-- ===== 第二级：任务组成员（每个成员 = 一条独立人员任务） ===== -->
-        <template v-if="level === 2">
+        <!-- ===== 第三级：期次人员（每个成员 = 一条独立人员任务） ===== -->
+        <template v-if="level === 3">
           <div v-loading="detailLoading" class="handlers-wrap">
             <div v-if="!detailLoading && members.length === 0" class="empty-state">
               <i class="el-icon-user" />
-              <p>该任务暂无人员</p>
+              <p>该期次暂无人员</p>
             </div>
             <template v-else>
               <!-- 成员筛选（姓名/部门/状态，点击查询才查询） -->
@@ -158,11 +263,11 @@
                 <div class="filter-grid">
                   <div class="filter-item">
                     <label class="filter-label">姓名</label>
-                    <input v-model="memberFilters.name" class="filter-input" placeholder="输入姓名搜索" @keyup.enter="memberFilterSearch" />
+                    <input v-model="memberFilters.name" class="filter-input" placeholder="输入姓名搜索" @keyup.enter="memberFilterSearch">
                   </div>
                   <div class="filter-item">
                     <label class="filter-label">部门</label>
-                    <input v-model="memberFilters.dept" class="filter-input" placeholder="输入部门搜索" @keyup.enter="memberFilterSearch" />
+                    <input v-model="memberFilters.dept" class="filter-input" placeholder="输入部门搜索" @keyup.enter="memberFilterSearch">
                   </div>
                   <div class="filter-item">
                     <label class="filter-label">状态</label>
@@ -190,43 +295,47 @@
                 <p>没有符合条件的人员</p>
               </div>
               <div v-else class="handler-grid">
-              <div v-for="m in members" :key="m.taskId" class="handler-card" :class="{ selected: isMemberSelected(m) }">
-                <div class="hc-check" @click.stop>
-                  <el-checkbox :value="isMemberSelected(m)" @change="val => onMemberCheck(m, val)" />
-                </div>
-                <div class="hc-left" @click="openMemberFlow(m)">
-                  <div class="hc-avatar">{{ memberName(m).charAt(0) }}</div>
-                  <div class="hc-info">
-                    <div class="hc-name">{{ memberName(m) }}
-                      <span class="hc-emp">{{ m.ownerEmpNo || '—' }}</span>
-                      <span class="status-chip" :class="taskStatusClass(m.status)">{{ taskStatusText(m.status) }}</span>
+                <div v-for="m in members" :key="m.taskId" class="handler-card" :class="{ selected: isMemberSelected(m) }">
+                  <div class="hc-check" @click.stop>
+                    <el-checkbox :value="isMemberSelected(m)" @change="val => onMemberCheck(m, val)" />
+                  </div>
+                  <div class="hc-left" @click="openMemberFlow(m)">
+                    <div class="hc-avatar">{{ memberName(m).charAt(0) }}</div>
+                    <div class="hc-info">
+                      <div class="hc-name">{{ memberName(m) }}
+                        <span class="hc-emp">{{ m.ownerEmpNo || '—' }}</span>
+                        <span class="status-chip" :class="taskStatusClass(m.status)">{{ taskStatusText(m.status) }}</span>
+                      </div>
+                      <div class="hc-dept">{{ m.ownerDept || '—' }}</div>
+                      <div class="hc-meta">
+                        <span><i class="el-icon-user" /> 当前处理人：{{ m.currentHandlerName || '—' }}</span>
+                        <span><i class="el-icon-s-claim" /> 当前节点：{{ m.currentNodeName || '—' }}</span>
+                        <span><i class="el-icon-odometer" /> 进度 {{ m.finishedNodeCount || 0 }}/{{ m.totalNodeCount || 0 }}</span>
+                      </div>
+                      <div class="progress-bar thin"><div class="progress-fill" :style="{ width: memberProgress(m) + '%' }" /></div>
+                      <!-- 流程节点横向展示：已通过绿 / 处理中红 / 未到灰 -->
+                      <div class="hc-nodes">
+                        <span
+                          v-for="(st, si) in (m.nodeSteps || [])"
+                          :key="si"
+                          class="node-chip"
+                          :class="'chip-' + st.status"
+                          :title="st.nodeName"
+                        >{{ st.stepNo }}.{{ st.nodeName }}</span>
+                      </div>
                     </div>
-                    <div class="hc-dept">{{ m.ownerDept || '—' }}</div>
-                    <div class="hc-meta">
-                      <span><i class="el-icon-user" /> 当前处理人：{{ m.currentHandlerName || '—' }}</span>
-                      <span><i class="el-icon-s-claim" /> 当前节点：{{ m.currentNodeName || '—' }}</span>
-                      <span><i class="el-icon-odometer" /> 进度 {{ m.finishedNodeCount || 0 }}/{{ m.totalNodeCount || 0 }}</span>
-                    </div>
-                    <div class="progress-bar thin"><div class="progress-fill" :style="{ width: memberProgress(m) + '%' }" /></div>
-                    <!-- 流程节点横向展示：已通过绿 / 处理中红 / 未到灰 -->
-                    <div class="hc-nodes">
-                      <span
-                        v-for="(st, si) in (m.nodeSteps || [])"
-                        :key="si"
-                        class="node-chip"
-                        :class="'chip-' + st.status"
-                        :title="st.nodeName"
-                      >{{ st.stepNo }}.{{ st.nodeName }}</span>
+                  </div>
+                  <div class="hc-right">
+                    <button v-if="m.status === 1" class="hc-urge" :disabled="urgingId === m.taskId" :title="'催办「' + (m.currentHandlerName || m.ownerName || '') + '」尽快处理'" @click.stop="onUrgeTask(m)">
+                      <i v-if="urgingId === m.taskId" class="el-icon-loading" />
+                      <i v-else class="el-icon-alarm-clock" /> 催办
+                    </button>
+                    <div class="hc-view" @click="openMemberFlow(m)">
+                      <i class="el-icon-arrow-right" />
+                      <span class="hc-action">查看流程</span>
                     </div>
                   </div>
                 </div>
-                <div class="hc-right">
-                  <div class="hc-view" @click="openMemberFlow(m)">
-                    <i class="el-icon-arrow-right" />
-                    <span class="hc-action">查看流程</span>
-                  </div>
-                </div>
-              </div>
               </div>
               <!-- 成员分页（可切换每页条数） -->
               <div v-if="memberTotal > 0" class="pagination member-pagination">
@@ -249,8 +358,8 @@
           </div>
         </template>
 
-        <!-- ===== 第三级：流程详情 ===== -->
-        <template v-if="level === 3">
+        <!-- ===== 第四级：流程详情 ===== -->
+        <template v-if="level === 4">
           <div class="flow-detail-wrap">
             <div class="handler-bar">
               <div class="hb-avatar">{{ selectedHandler && selectedHandler.realName ? selectedHandler.realName.charAt(0) : 'U' }}</div>
@@ -268,14 +377,7 @@
       </section>
     </main>
 
-    <!-- 任务下发弹窗（独立组件） -->
-    <DispatchModal
-      :visible="dispatchVisible"
-      @success="onDispatchSuccess"
-      @close="dispatchVisible = false"
-    />
-
-    <!-- 临时新增处理人弹窗（进行中→加入当前节点并行处理；已完成→创建独立新任务） -->
+    <!-- 临时新增处理人弹窗（在期次内为新增人员创建独立任务） -->
     <UserPicker
       :visible="addHandlerVisible"
       :title="addHandlerTitle"
@@ -287,21 +389,23 @@
 </template>
 
 <script>
-import { getTaskList, getTaskDetail, getTaskGroupDetail, getTaskMembers, addTaskHandlers, deleteTask, deleteTaskGroup } from '@/api/task'
+import { getTaskList, getTaskDetail, getTaskGroupDetail, getTaskMembers, addTaskHandlers, deleteTask, deleteTaskGroup, urgeTask } from '@/api/task'
+import { getDispatchTaskList } from '@/api/flowDispatch'
 import { getUserList } from '@/api/sysuser'
 import { getTemplateList } from '@/api/template'
 import { getDataStats } from '@/api/data'
 import UserPicker from '@/components/UserPicker'
-import DispatchModal from './components/DispatchModal.vue'
 import HandlerFlowDetail from './components/HandlerFlowDetail.vue'
 
 export default {
   name: 'DataAdmin',
-  components: { DispatchModal, HandlerFlowDetail, UserPicker },
+  components: { HandlerFlowDetail, UserPicker },
   data() {
     return {
       level: 1,
-      // 第一级
+      // 从任务管理页携带 dispatchId 直达期次人员（不走层级导航）
+      fromDispatch: false,
+      // 第一级：任务
       loading: false,
       taskList: [],
       taskTotal: 0,
@@ -310,16 +414,22 @@ export default {
       totalPages: 1,
       stats: {},
       filters: { status: '', taskName: '' },
-      // 任务下发弹窗
-      dispatchVisible: false,
+      selectedTask: null,
+      // 第二级：期次
+      periodLoading: false,
+      periodList: [],
+      periodTotal: 0,
+      periodPage: 1,
+      periodFilters: { status: '', taskName: '' },
+      periodTotalPages: 1,
+      selectedGroup: null,
       // 新增人员弹窗
       addHandlerVisible: false,
       // 映射
       userMap: {},
       tplMap: {},
-      // 第二级（任务组 + 成员，分页）
+      // 第三级（成员，分页）
       detailLoading: false,
-      selectedGroup: null,
       members: [],
       memberFilters: { name: '', dept: '', status: '' },
       memberPage: 1,
@@ -329,18 +439,33 @@ export default {
       // 成员批量删除
       selectedMemberIds: [],
       batchDeleting: false,
-      // 第三级
+      // 催办中成员任务ID
+      urgingId: null,
+      // 第四级
       taskDetail: null,
       selectedHandler: null
     }
   },
   computed: {
     headingText() {
-      if (this.level === 1) return '任务流转数据后台'
-      if (this.level === 2) return '任务成员'
+      if (this.level === 1) return '任务数据后台'
+      if (this.level === 2) {
+        const t = this.selectedTask ? this.selectedTask.taskName : ''
+        return '期次列表' + (t ? ` · ${t}` : '')
+      }
+      if (this.level === 3) {
+        const g = this.selectedGroup
+        if (g) {
+          const period = g.periodName || (g.periodNo ? `第${g.periodNo}期` : '')
+          const plan = g.planName ? g.planName : ''
+          const extra = [plan, period].filter(Boolean).join(' / ')
+          return '期次人员' + (extra ? ` · ${extra}` : '')
+        }
+        return '期次人员'
+      }
       return '流程处理详情'
     },
-    /** 是否可新增人员：选中任务组即可（空组也能补员） */
+    /** 是否可新增人员：选中期次即可（空期次也能补员） */
     canAddHandler() {
       return !!this.selectedGroup
     },
@@ -348,17 +473,59 @@ export default {
     handlerIdsInTask() {
       return this.members.map(m => m.ownerUserId).filter(Boolean)
     },
-    /** 新增人员弹窗标题：为新增人员创建独立任务归入本组（每个下发任务独立，互不影响） */
+    /** 新增人员弹窗标题：为新增人员创建独立任务归入本期次 */
     addHandlerTitle() {
-      return '新增人员（为该人员创建独立任务，归入本任务组）'
+      return '新增人员（为该人员创建独立任务，归入本期次）'
     }
   },
-  mounted() {
+  async mounted() {
     this.loadMaps()
-    this.fetchTaskList()
     this.fetchStats()
+    await this.fetchTaskList()
+    this.handleRouteQuery()
   },
   methods: {
+    /** 从任务管理页「查看人员」跳转进来时，携带 dispatchId 直达期次人员；否则支持 taskId 打开期次列表 */
+    handleRouteQuery() {
+      const dispatchId = this.$route.query && this.$route.query.dispatchId
+      if (dispatchId) {
+        this.fromDispatch = true
+        this.openGroupById(Number(dispatchId))
+        return
+      }
+      const taskId = this.$route.query && this.$route.query.taskId
+      if (taskId) {
+        this.$nextTick(() => {
+          const found = this.taskList.find(t => String(t.id) === String(taskId))
+          if (found) {
+            this.openPeriods(found)
+          } else {
+            this.openPeriods({ id: Number(taskId), taskName: '任务 #' + taskId })
+          }
+        })
+      }
+    },
+    /** 按 dispatchId 直接打开期次人员层（任务管理页「查看人员」入口） */
+    async openGroupById(dispatchId) {
+      this.level = 3
+      this.members = []
+      this.memberFilters = { name: '', dept: '', status: '' }
+      this.memberPage = 1
+      this.memberTotal = 0
+      this.selectedMemberIds = []
+      try {
+        const res = await getTaskGroupDetail(dispatchId)
+        this.selectedGroup = res.data || { dispatchId }
+      } catch (e) {
+        console.error(e)
+        this.selectedGroup = { dispatchId }
+      }
+      await this.fetchMembers()
+    },
+    /** 从期次人员直接返回任务管理页 */
+    backToFlowDispatch() {
+      this.$router.push('/flow-dispatch/index')
+    },
     userName(id) {
       const u = this.userMap[id]
       return u ? u.realName : (id ? '用户' + id : '—')
@@ -367,8 +534,16 @@ export default {
       const t = this.tplMap[id]
       return t ? t.templateName : '—'
     },
-    taskStatusText(s) { return { 1: '进行中', 2: '已完成', 3: '已作废' }[s] || '—' },
-    taskStatusClass(s) { return { 1: 'status-chip status-running', 2: 'status-chip status-done', 3: 'status-chip status-cancel' }[s] || '' },
+    taskStatusText(s) { return { 0: '空', 1: '进行中', 2: '已完成', 3: '已作废' }[s] || '—' },
+    taskStatusClass(s) { return { 1: 'status-chip status-running', 2: 'status-chip status-done', 3: 'status-chip status-cancel', 0: 'status-chip status-empty' }[s] || '' },
+    cycleText(row) {
+      return { 1: '每周', 2: '每月', 3: '每季度', 4: '单次下发' }[row.cycleType] || '单次下发'
+    },
+    cycleDayText(row) {
+      if (row.cycleType === 4) return '—'
+      if (row.cycleType === 1) return ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'][row.cycleDay] || '—'
+      return `每月 ${row.cycleDay} 号`
+    },
     memberName(m) { return m.ownerName || '—' },
     memberProgress(m) {
       if (!m.totalNodeCount) return 0
@@ -426,11 +601,29 @@ export default {
       this.memberPage = 1
       this.fetchMembers()
     },
-    onDispatchSuccess() {
-      this.fetchTaskList()
-      this.fetchStats()
+    /** 催办：给任务当前节点处理人发送催办通知（写流转日志），防误点需二次确认 */
+    onUrgeTask(m) {
+      if (!m || !m.taskId) return
+      const target = m.currentHandlerName || m.ownerName || '该处理人'
+      this.$confirm(`确定向「${target}」发送催办通知吗？\n将提醒其在当前节点（${m.currentNodeName || '—'}）尽快处理。`, '催办确认', {
+        confirmButtonText: '发送催办',
+        cancelButtonText: '取消',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger'
+      }).then(async() => {
+        this.urgingId = m.taskId
+        try {
+          const res = await urgeTask(m.taskId)
+          this.$message.success(res.message || '催办通知已发送')
+          await this.fetchMembers()
+        } catch (e) {
+          this.$message.error((e && e.message) || '催办失败')
+        } finally {
+          this.urgingId = null
+        }
+      }).catch(() => {})
     },
-    /** 新增人员确认（在主任务下为每个人创建独立成员任务，空组也能补员） */
+    /** 新增人员确认（在本期次下为每个人创建独立成员任务，空期次也能补员） */
     async onConfirmAddHandler(users) {
       if (!users || users.length === 0) return
       try {
@@ -438,14 +631,14 @@ export default {
         const res = await addTaskHandlers({ dispatchId: this.selectedGroup.dispatchId, handlerIds })
         this.$message.success(res.message || '新增成功')
         this.addHandlerVisible = false
-        await this.refreshMembers()
+        await this.refreshGroup()
         this.fetchStats()
       } catch (e) {
         this.$message.error((e && e.message) || '新增失败')
       }
     },
-    /** 刷新当前任务组（组头 + 成员分页） */
-    async refreshMembers() {
+    /** 刷新当前期次（组头 + 成员分页） */
+    async refreshGroup() {
       if (!this.selectedGroup) return
       try {
         const res = await getTaskGroupDetail(this.selectedGroup.dispatchId)
@@ -471,9 +664,9 @@ export default {
       this.loading = true
       try {
         const params = { page: this.currentPage, limit: this.pageSize }
-        if (this.filters.status) params.status = Number(this.filters.status)
+        if (this.filters.status !== '') params.status = Number(this.filters.status)
         if (this.filters.taskName) params.taskName = this.filters.taskName
-        const res = await getTaskList(params)
+        const res = await getDispatchTaskList(params)
         this.taskList = res.data.records || []
         this.taskTotal = res.data.total || 0
         this.totalPages = Math.ceil(this.taskTotal / this.pageSize) || 1
@@ -482,6 +675,38 @@ export default {
       } finally {
         this.loading = false
       }
+    },
+    async fetchPeriods() {
+      if (!this.selectedTask) return
+      this.periodLoading = true
+      try {
+        const params = { page: this.periodPage, limit: this.pageSize, taskId: this.selectedTask.id }
+        if (this.periodFilters.status !== '') params.status = Number(this.periodFilters.status)
+        if (this.periodFilters.taskName) params.taskName = this.periodFilters.taskName
+        const res = await getTaskList(params)
+        this.periodList = res.data.records || []
+        this.periodTotal = res.data.total || 0
+        this.periodTotalPages = Math.ceil(this.periodTotal / this.pageSize) || 1
+      } catch (e) {
+        console.error(e)
+      } finally {
+        this.periodLoading = false
+      }
+    },
+    handlePeriodSearch() {
+      this.periodPage = 1
+      this.fetchPeriods()
+    },
+    resetPeriodFilters() {
+      this.periodFilters = { status: '', taskName: '' }
+      this.periodPage = 1
+      this.fetchPeriods()
+    },
+    periodPrevPage() {
+      if (this.periodPage > 1) { this.periodPage--; this.fetchPeriods() }
+    },
+    periodNextPage() {
+      if (this.periodPage < this.periodTotalPages) { this.periodPage++; this.fetchPeriods() }
     },
     async fetchStats() {
       try {
@@ -497,10 +722,20 @@ export default {
       this.currentPage = 1
       this.fetchTaskList()
     },
-    /** 点击任务组 → 查看成员（组头 + 成员分页第一页） */
-    async openTaskGroup(group) {
-      this.selectedGroup = group
+    /** 点击任务 → 查看该任务下的期次列表 */
+    openPeriods(task) {
+      this.selectedTask = task
       this.level = 2
+      this.periodPage = 1
+      this.periodFilters = { status: '', taskName: '' }
+      this.periodList = []
+      this.periodTotal = 0
+      this.fetchPeriods()
+    },
+    /** 点击期次 → 查看成员（组头 + 成员分页第一页） */
+    async openGroup(group) {
+      this.selectedGroup = group
+      this.level = 3
       this.members = []
       this.memberFilters = { name: '', dept: '', status: '' }
       this.memberPage = 1
@@ -514,7 +749,7 @@ export default {
       }
       await this.fetchMembers()
     },
-    /** 删除任务成员（删除该成员任务全部提交数据；主任务保留，删空后任务仍在可另行删除） */
+    /** 删除任务成员（删除该成员任务全部提交数据；期次保留，删空后仍可另行删除期次） */
     async onBatchDeleteMembers() {
       const ids = this.selectedMemberIds
       if (ids.length === 0) return
@@ -536,8 +771,8 @@ export default {
         }
         this.$message.success(`已删除 ${ids.length} 名成员`)
         this.selectedMemberIds = []
-        // 主任务保留：无论删空与否都刷新成员（删空后显示空态，可在任务列表删除该任务）
-        await this.refreshMembers()
+        // 期次保留：无论删空与否都刷新成员（删空后显示空态，可在期次列表删除该期次）
+        await this.refreshGroup()
         this.fetchStats()
       } catch (e) {
         this.$message.error((e && e.message) || '删除失败')
@@ -556,10 +791,10 @@ export default {
         this.selectedMemberIds = this.selectedMemberIds.filter(id => id !== m.taskId)
       }
     },
-    /** 删除主任务（任务组）：仅当组内无人员时才允许（后端再次校验） */
+    /** 删除期次（任务组）：仅当期次内无人员时才允许（后端再次校验） */
     async onDeleteGroup(group) {
       try {
-        await this.$confirm(`确定删除任务「${group.taskName}」吗？删除后不可恢复。`, '删除任务确认', {
+        await this.$confirm(`确定删除期次「${group.periodName || group.taskName}」吗？删除后不可恢复。`, '删除期次确认', {
           confirmButtonText: '删除',
           cancelButtonText: '取消',
           type: 'warning',
@@ -571,7 +806,7 @@ export default {
       try {
         const res = await deleteTaskGroup(group.dispatchId)
         this.$message.success(res.message || '删除成功')
-        this.fetchTaskList()
+        this.fetchPeriods()
         this.fetchStats()
       } catch (e) {
         this.$message.error((e && e.message) || '删除失败')
@@ -586,7 +821,7 @@ export default {
         deptName: member.ownerDept
       }
       this.taskDetail = null
-      this.level = 3
+      this.level = 4
       try {
         const res = await getTaskDetail(member.taskId)
         this.taskDetail = res.data
@@ -595,19 +830,36 @@ export default {
       }
     },
     goBack() {
-      if (this.level === 3) this.backToMembers()
+      // 从任务管理页直达：流程详情返回期次人员，期次人员返回任务管理页
+      if (this.fromDispatch) {
+        if (this.level === 4) this.backToMembers()
+        else this.backToFlowDispatch()
+        return
+      }
+      if (this.level === 4) this.backToMembers()
+      else if (this.level === 3) this.backToPeriods()
       else if (this.level === 2) this.backToTasks()
     },
     backToTasks() {
       this.level = 1
+      this.selectedTask = null
       this.selectedGroup = null
       this.members = []
       this.taskDetail = null
       this.selectedHandler = null
       this.selectedMemberIds = []
     },
-    backToMembers() {
+    backToPeriods() {
       this.level = 2
+      this.selectedGroup = null
+      this.members = []
+      this.taskDetail = null
+      this.selectedHandler = null
+      this.selectedMemberIds = []
+      this.fetchPeriods()
+    },
+    backToMembers() {
+      this.level = 3
       this.selectedHandler = null
       this.taskDetail = null
     }
@@ -644,9 +896,9 @@ $border: #e4beba;
 .stat-card { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid $border; border-radius: 8px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
 .stat-icon { width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; flex-shrink: 0;
   &.icon-total { background: $primary; }
+  &.icon-period { background: #8f1d1d; }
   &.icon-running { background: #b7791f; }
-  &.icon-done { background: #266d00; }
-  &.icon-todo { background: #00596f; }
+  &.icon-todo { background: #266d00; }
 }
 .stat-body { flex: 1; }
 .stat-label { font-size: 13px; color: #757575; margin-bottom: 4px; }
@@ -701,12 +953,17 @@ $border: #e4beba;
   .hover-row:hover { background: #FFF5F5; }
 }
 .font-bold { font-weight: 700; }
+.sub-text { display: block; font-size: 12px; color: #909399; font-weight: 400; margin-top: 2px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .text-center { text-align: center; }
 .text-right { text-align: right; }
+.tag-active { padding: 2px 10px; background: rgba(46,160,67,0.12); color: #2ea043; border-radius: 10px; font-size: 12px; }
+.tag-inactive { padding: 2px 10px; background: #f0f0f0; color: #909399; border-radius: 10px; font-size: 12px; }
+.tag-manual { padding: 1px 8px; background: rgba(183,121,31,0.14); color: #b7791f; border-radius: 10px; font-size: 11px; margin-left: 6px; font-weight: 600; }
 .status-chip { padding: 2px 8px; border-radius: 2px; font-size: 12px; font-weight: 600; display: inline-flex; border: 1px solid transparent; }
 .status-running { background: rgba(197,48,48,0.1); border-color: $primary; color: $primary; }
 .status-done { background: rgba(38,109,0,0.1); border-color: #266d00; color: #266d00; }
 .status-cancel { background: rgba(186,26,26,0.1); border-color: #ba1a1a; color: #ba1a1a; }
+.status-empty { background: rgba(144,147,153,0.1); border-color: #909399; color: #909399; }
 .progress-text { font-size: 12px; color: #757575; }
 .progress-bar { width: 80px; height: 6px; background: #f0f0f0; border-radius: 3px; margin-top: 4px; overflow: hidden; }
 .progress-fill { height: 100%; background: $primary; border-radius: 3px; transition: width .3s; }
@@ -723,14 +980,14 @@ $border: #e4beba;
 .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #faf9f9; border-top: 1px solid $border; }
 .pagination-info { font-size: 12px; color: #414755; }
 .pagination-controls { display: flex; align-items: center; gap: 8px; }
-.member-pagination { justify-content: flex-end; } /* 放在 .pagination 之后才能覆盖 space-between */
+.member-pagination { justify-content: flex-end; }
 .page-btn { width: 32px; height: 32px; border-radius: 4px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; font-size: 14px;
   &:hover:not(:disabled) { background: #efeded; }
   &:disabled { opacity: 0.3; cursor: not-allowed; }
 }
 .page-current { font-size: 13px; color: #414755; }
 
-// 第二级：处理人员
+// 第三级：处理人员
 .handlers-wrap { min-height: 200px; }
 .empty-state { text-align: center; padding: 60px 20px; color: #bbb;
   i { font-size: 48px; display: block; margin-bottom: 12px; }
@@ -764,12 +1021,16 @@ $border: #e4beba;
 .chip-pending { background: #f0f0f0; color: #aaa; }
 .chip-pending-count { margin-left: 3px; font-style: normal; color: $primary; font-weight: 700; }
 .hc-right { display: flex; flex-direction: column; align-items: center; gap: 6px; color: $primary; flex-shrink: 0; margin-left: 12px; }
+.hc-urge { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; border: 1px solid rgba(183,121,31,0.5); background: #FFFBF2; color: #b7791f; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  &:hover { background: rgba(183,121,31,0.12); border-color: #b7791f; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
 .hc-view { display: flex; flex-direction: column; align-items: center; cursor: pointer;
   i { font-size: 18px; }
 }
 .hc-action { font-size: 11px; margin-top: 2px; }
 
-// 第三级：流程详情
+// 第四级：流程详情
 .flow-detail-wrap { display: flex; flex-direction: column; gap: 16px; }
 .handler-bar { display: flex; align-items: center; gap: 14px; background: #fff; border: 1px solid $border; border-radius: 8px; padding: 16px 20px; }
 .hb-avatar { width: 48px; height: 48px; border-radius: 50%; background: $primary; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; flex-shrink: 0; }

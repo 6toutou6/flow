@@ -83,3 +83,11 @@ export function saveTemplateFlow(data) {
     data
   })
 }
+
+// 模板版本记录列表
+export function getTemplateVersions(id) {
+  return request({
+    url: `/flow-template/versions/${id}`,
+    method: 'get'
+  })
+}

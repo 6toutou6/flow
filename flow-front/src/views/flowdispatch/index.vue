@@ -1,0 +1,637 @@
+<template>
+  <div class="dashboard-container">
+    <main class="main-content">
+      <section class="page-content">
+        <!-- 页头 -->
+        <div class="page-header">
+          <div>
+            <nav class="breadcrumb">
+              <span>系统首页</span>
+              <span>/</span>
+              <span class="active">任务管理</span>
+            </nav>
+            <h3 class="page-heading">任务管理</h3>
+          </div>
+          <div class="header-actions">
+            <button class="btn-tpl" @click="$router.push('/flow-dispatch/config-template')"><i class="el-icon-setting" /> 下发配置模板</button>
+            <button class="btn-create" @click="openCreate"><i class="el-icon-plus" /> 新建任务</button>
+          </div>
+        </div>
+
+        <!-- 提示条 -->
+        <section class="tip-bar">
+          <i class="el-icon-info" />
+          展开任务可查看期次情况与下一期次下发时间；点「生成期次」可在弹窗中确认本期次人员后下发。
+        </section>
+
+        <!-- 筛选区 -->
+        <section class="filter-section">
+          <div class="filter-grid">
+            <div class="filter-item">
+              <label class="filter-label">任务名称</label>
+              <input v-model="filters.taskName" class="filter-input" placeholder="请输入任务名称" @keyup.enter="handleSearch">
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">状态</label>
+              <select v-model="filters.status" class="filter-select">
+                <option value="">全部状态</option>
+                <option :value="1">启用</option>
+                <option :value="0">停用</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <div class="filter-actions-right">
+              <button class="btn-reset" :disabled="loading" @click="resetFilters">重置</button>
+              <button class="btn-search" :disabled="loading" @click="handleSearch">
+                <i v-if="loading" class="el-icon-loading" /><span v-else>查询</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 任务折叠面板 -->
+        <div v-if="!loading && taskList.length === 0" class="empty-state">
+          <i class="el-icon-s-order" />
+          <p>暂无任务，点击右上角「新建任务」创建</p>
+        </div>
+        <div v-else class="task-collapse">
+          <div v-if="loading" class="loading-bar"><i class="el-icon-loading" /> 加载中...</div>
+          <div v-for="t in taskList" :key="t.id" class="task-panel" :class="{ 'is-open': isTaskOpen(t.id), 'flash-open': flashTasks.indexOf(t.id) >= 0 }">
+            <div class="tp-head" @click="toggleTask(t.id)">
+              <div class="ct-icon"><i class="el-icon-s-order" /></div>
+              <div class="ct-main">
+                <div class="ct-name-row">
+                  <span class="ct-name">{{ t.taskName }}</span>
+                  <span :class="t.status === 1 ? 'ct-status on' : 'ct-status off'">{{ t.status === 1 ? '启用' : '停用' }}</span>
+                </div>
+                <div class="ct-sub">{{ cycleText(t) }}<template v-if="t.cycleType !== 4"> · {{ cycleDayText(t) }}</template> · 已下发 {{ t.periodCount || 0 }} 期 · {{ t.memberCount || 0 }} 人</div>
+              </div>
+              <i class="el-icon-arrow-down tp-arrow" />
+            </div>
+
+            <!-- 展开内容 -->
+            <div v-show="isTaskOpen(t.id)" class="tp-body">
+              <div class="task-detail">
+                <!-- 概览 -->
+                <div class="overview-grid">
+                  <div class="ov-item">
+                    <i class="ov-icon el-icon-document" />
+                    <div>
+                      <span class="ov-label">流程模板</span>
+                      <span class="ov-value">{{ tplName(t.templateId) }}</span>
+                    </div>
+                  </div>
+                  <div class="ov-item">
+                    <i class="ov-icon el-icon-time" />
+                    <div>
+                      <span class="ov-label">周期</span>
+                      <span class="ov-value">{{ cycleText(t) }}<template v-if="t.cycleType !== 4"> · {{ cycleDayText(t) }}</template></span>
+                    </div>
+                  </div>
+                  <div class="ov-item">
+                    <i class="ov-icon el-icon-alarm-clock" />
+                    <div>
+                      <span class="ov-label">截止 / 催办</span>
+                      <span class="ov-value">{{ t.deadlineDays ? '触发后 ' + t.deadlineDays + ' 天' : '—' }}<template v-if="t.urgeDays"> · 提前 {{ t.urgeDays }} 天催办</template></span>
+                    </div>
+                  </div>
+                  <div class="ov-item">
+                    <i class="ov-icon el-icon-tickets" />
+                    <div>
+                      <span class="ov-label">下一期次下发</span>
+                      <span class="ov-value">{{ nextPeriodText(t) }}</span>
+                    </div>
+                  </div>
+                  <div class="ov-item">
+                    <i class="ov-icon el-icon-user" />
+                    <div>
+                      <span class="ov-label">配置人员</span>
+                      <span class="ov-value">{{ t.memberCount || 0 }} 人</span>
+                    </div>
+                  </div>
+                  <div class="ov-item">
+                    <i class="ov-icon el-icon-info" />
+                    <div>
+                      <span class="ov-label">任务说明</span>
+                      <span class="ov-value" :title="t.taskDesc">{{ t.taskDesc || '—' }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 操作行 -->
+                <div class="action-row">
+                  <button class="btn-gen" :disabled="t.status !== 1" :title="t.status !== 1 ? '请先启用任务' : '生成期次'" @click="openGen(t)">
+                    <i class="el-icon-s-promotion" /> 生成期次
+                  </button>
+                  <button class="btn-ghost" @click="openEdit(t)"><i class="el-icon-edit" /> 编辑</button>
+                  <button class="btn-ghost" @click="toggleStatus(t)"><i class="el-icon-refresh" /> {{ t.status === 1 ? '停用' : '启用' }}</button>
+                  <button class="btn-ghost text-error" @click="onDelete(t)"><i class="el-icon-delete" /> 删除</button>
+                </div>
+
+                <!-- 期次列表 -->
+                <div class="period-section">
+                  <div class="sec-title"><i class="el-icon-tickets" /> 期次列表 <span class="sec-sub">共 {{ taskData[t.id] ? taskData[t.id].periods.length : 0 }} 期</span></div>
+                  <!-- 拉取期次时的骨架占位 -->
+                  <el-skeleton v-if="taskData[t.id] && taskData[t.id].loading" :rows="5" animated class="period-skeleton" />
+                  <div v-else-if="taskData[t.id] && taskData[t.id].periods.length === 0" class="period-empty">暂无期次，点击上方「生成期次」下发</div>
+                  <table v-else-if="taskData[t.id] && taskData[t.id].periods.length > 0" class="period-table">
+                    <thead>
+                      <tr>
+                        <th>期次</th>
+                        <th class="text-center">成员</th>
+                        <th class="text-center">状态</th>
+                        <th>开始时间</th>
+                        <th>截止时间</th>
+                        <th>下发时间</th>
+                        <th class="text-right">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="p in periodSlice(t)" :key="p.dispatchId" class="hover-row">
+                        <td class="font-bold">
+                          {{ p.periodName || p.taskName }}
+                          <span v-if="p.manualFlag === 1" class="tag-manual">临时</span>
+                          <span v-if="p.periodName" class="sub-text">{{ p.taskName }}</span>
+                        </td>
+                        <td class="text-center">{{ p.memberCount || 0 }} 人</td>
+                        <td class="text-center">
+                          <span :class="taskStatusClass(p.status)">{{ taskStatusText(p.status) }}</span>
+                        </td>
+                        <td>{{ p.startTime || '—' }}</td>
+                        <td>{{ p.endTime || '—' }}</td>
+                        <td>{{ p.dispatchTime }}</td>
+                        <td class="text-right">
+                          <button class="action-link" @click="openPeriodUsers(t, p)"><i class="el-icon-user" /> 查看人员</button>
+                          <button class="action-link text-error" :disabled="p.memberCount > 0" :title="p.memberCount > 0 ? '请先删除所有人员' : '删除期次'" @click="onDeletePeriod(t, p)"><i class="el-icon-delete" /> 删除</button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <!-- 期次分页（每任务独立，最小 5/页） -->
+                  <div v-if="taskData[t.id] && taskData[t.id].periods.length > 0" class="period-pagination">
+                    <el-pagination
+                      small
+                      background
+                      layout="total, sizes, prev, pager, next"
+                      :total="taskData[t.id].periods.length"
+                      :current-page.sync="taskData[t.id].periodPage"
+                      :page-size="taskData[t.id].periodSize"
+                      :page-sizes="[5, 10, 20]"
+                      @size-change="s => onPeriodSizeChange(t.id, s)"
+                      @current-change="c => onPeriodPageChange(t.id, c)"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 分页 -->
+          <div class="pagination">
+            <el-pagination
+              background
+              layout="total, sizes, prev, pager, next"
+              :total="total"
+              :current-page.sync="page"
+              :page-size="limit"
+              :page-sizes="[5, 10, 20]"
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 生成期次弹窗（可临时增删本期次人员，不影响任务配置） -->
+    <GeneratePeriodModal
+      :visible="genVisible"
+      :task="genTask"
+      :members="genMembers"
+      @success="onGenSuccess"
+      @close="genVisible = false"
+      @edit-config="onEditConfig"
+    />
+  </div>
+</template>
+
+<script>
+import { getDispatchTaskList, toggleDispatchPlanStatus, deleteDispatchPlan, getTaskMembers, getPreviewPeriod } from '@/api/flowDispatch'
+import { getTaskList, deleteTaskGroup } from '@/api/task'
+import { getTemplateList } from '@/api/template'
+import GeneratePeriodModal from './components/GeneratePeriodModal.vue'
+
+export default {
+  name: 'FlowDispatch',
+  components: { GeneratePeriodModal },
+  data() {
+    return {
+      loading: false,
+      taskList: [],
+      total: 0,
+      page: 1,
+      limit: 5,
+      filters: { taskName: '', status: '' },
+      templates: [],
+      activeTasks: [],
+      // 跳转返回后需要红色双闪高亮的面板（来自 sessionStorage 恢复）
+      flashTasks: [],
+      taskData: {},
+      // 生成期次弹窗
+      genVisible: false,
+      genTask: null,
+      genMembers: []
+    }
+  },
+  computed: {},
+  created() {
+    // 恢复上次跳转前展开的面板（跳去编辑/数据后台再返回时保持展开，并红色双闪提示）
+    this.restoreExpandState()
+    this.fetchList()
+    this.loadTemplates()
+  },
+  methods: {
+    /** 从 sessionStorage 恢复展开状态，返回本页时只高亮闪烁「跳转来源」的那个面板 */
+    restoreExpandState() {
+      try {
+        const saved = sessionStorage.getItem('flowDispatchExpanded')
+        if (!saved) return
+        const ids = JSON.parse(saved)
+        if (!Array.isArray(ids) || ids.length === 0) return
+        this.activeTasks = ids
+        // 仅闪烁跳转来源任务（如编辑/查看人员跳转前记录的那一个）
+        const flashId = Number(sessionStorage.getItem('flowDispatchFlash'))
+        this.flashTasks = (Number.isInteger(flashId) && ids.indexOf(flashId) >= 0) ? [flashId] : []
+        if (this.flashTasks.length) {
+          setTimeout(() => { this.flashTasks = [] }, 2200)
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    },
+    /** 保存当前展开状态（跳转其他页面返回后恢复） */
+    saveExpandState() {
+      try {
+        sessionStorage.setItem('flowDispatchExpanded', JSON.stringify(this.activeTasks))
+      } catch (e) {
+        console.error(e)
+      }
+    },
+    /** 记录跳转来源任务 id（返回本页时该面板红色双闪） */
+    saveFlashId(id) {
+      try {
+        sessionStorage.setItem('flowDispatchFlash', String(id))
+      } catch (e) {
+        console.error(e)
+      }
+    },
+    async loadTemplates() {
+      try {
+        const res = await getTemplateList({ page: 1, limit: 500 })
+        this.templates = (res.data && res.data.records) || []
+      } catch (e) {
+        console.error(e)
+        this.templates = []
+      }
+    },
+    tplName(id) {
+      const t = this.templates.find(x => x.id === id)
+      return t ? t.templateName : '—'
+    },
+    cycleText(row) {
+      return { 1: '每周', 2: '每月', 3: '每季度', 4: '单次下发' }[row.cycleType] || '单次下发'
+    },
+    cycleDayText(row) {
+      if (row.cycleType === 4) return '—'
+      if (row.cycleType === 1) return ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'][row.cycleDay] || '—'
+      return `每月 ${row.cycleDay} 号`
+    },
+    taskStatusText(s) { return { 0: '空', 1: '进行中', 2: '已完成', 3: '已作废' }[s] || '—' },
+    taskStatusClass(s) { return { 1: 'tag-running', 2: 'tag-done', 3: 'tag-cancel', 0: 'tag-empty' }[s] || '' },
+    nextPeriodText(t) {
+      const d = this.taskData[t.id]
+      if (!d) return '展开查看'
+      if (t.status !== 1) return '任务已停用'
+      if (t.cycleType === 4) return '单次下发，生成时自定期次名'
+      if (d.nextPreview && d.nextPreview.periodName) {
+        return `${d.nextPreview.periodName} · ${d.nextPreview.startTime || '—'} 下发`
+      }
+      return '计算中...'
+    },
+    async fetchList() {
+      this.loading = true
+      try {
+        const res = await getDispatchTaskList({ page: this.page, limit: this.limit, ...this.filters })
+        this.taskList = (res.data && res.data.records) || []
+        this.total = (res.data && res.data.total) || 0
+      } catch (e) {
+        console.error(e)
+      } finally {
+        this.loading = false
+        // 恢复/保持展开的任务：自动补加载期次详情（避免返回本页时展开但无数据）
+        this.activeTasks.forEach(id => {
+          if (!this.taskData[id]) this.loadTaskDetail(id)
+        })
+      }
+    },
+    handleSearch() {
+      this.page = 1
+      this.fetchList()
+    },
+    resetFilters() {
+      this.filters = { taskName: '', status: '' }
+      this.page = 1
+      this.fetchList()
+    },
+    /** 任务分页：切换页大小（最小 5） */
+    handleSizeChange(size) {
+      this.limit = size
+      this.page = 1
+      this.fetchList()
+    },
+    handleCurrentChange(p) {
+      this.page = p
+      this.fetchList()
+    },
+    isTaskOpen(id) {
+      return this.activeTasks.indexOf(id) >= 0
+    },
+    toggleTask(id) {
+      const idx = this.activeTasks.indexOf(id)
+      if (idx >= 0) {
+        this.activeTasks = this.activeTasks.filter(x => x !== id)
+      } else {
+        this.activeTasks = this.activeTasks.concat(id)
+        this.loadTaskDetail(id)
+      }
+      this.saveExpandState()
+    },
+    /** 展开任务时加载：期次 + 下一期次预览 + 任务配置人员 */
+    async loadTaskDetail(taskId) {
+      const t = this.taskList.find(x => x.id === taskId)
+      if (!t) return
+      if (!this.taskData[taskId]) {
+        this.$set(this.taskData, taskId, {
+          loaded: false,
+          loading: true,
+          periods: [],
+          nextPreview: null,
+          members: [],
+          periodPage: 1,
+          periodSize: 5
+        })
+      }
+      const d = this.taskData[taskId]
+      d.loading = true
+      // 重新加载时回到第 1 页
+      d.periodPage = 1
+      try {
+        const [periodRes, previewRes, memberRes] = await Promise.all([
+          getTaskList({ page: 1, limit: 100, taskId }),
+          getPreviewPeriod(taskId, false),
+          getTaskMembers(taskId)
+        ])
+        d.periods = (periodRes.data && periodRes.data.records) || []
+        d.nextPreview = previewRes.data || null
+        d.members = (memberRes.data || []).map(m => ({ ...m }))
+        d.loaded = true
+      } catch (e) {
+        console.error(e)
+      } finally {
+        d.loading = false
+      }
+    },
+    /** 期次切片显示（前端分页） */
+    periodSlice(t) {
+      const d = this.taskData[t.id]
+      if (!d || !d.periods) return []
+      const ps = d.periodSize || 5
+      const pp = d.periodPage || 1
+      return d.periods.slice((pp - 1) * ps, pp * ps)
+    },
+    onPeriodSizeChange(taskId, size) {
+      const d = this.taskData[taskId]
+      if (d) {
+        d.periodSize = size
+        d.periodPage = 1
+      }
+    },
+    onPeriodPageChange(taskId, p) {
+      const d = this.taskData[taskId]
+      if (d) d.periodPage = p
+    },
+    /** 打开生成期次弹窗：加载本期次人员（默认抄用任务配置人员） */
+    async openGen(t) {
+      let members = []
+      const d = this.taskData[t.id]
+      if (d && d.loaded) {
+        members = d.members
+      } else {
+        try {
+          const res = await getTaskMembers(t.id)
+          members = (res.data || []).map(m => ({ ...m }))
+        } catch (e) {
+          console.error(e)
+        }
+      }
+      this.genTask = t
+      this.genMembers = members
+      this.genVisible = true
+    },
+    /** 生成成功：刷新该任务期次数据与任务列表 */
+    onGenSuccess() {
+      const taskId = this.genTask ? this.genTask.id : null
+      this.genVisible = false
+      this.genTask = null
+      this.genMembers = []
+      if (taskId && this.taskData[taskId]) {
+        this.loadTaskDetail(taskId)
+      }
+      this.fetchList()
+    },
+    openEdit(t) {
+      this.saveFlashId(t.id)
+      this.$router.push({ path: '/flow-dispatch/edit', query: { id: t.id }})
+    },
+    /** 生成期次弹窗内点击「去调整」：关闭弹窗并跳转编辑任务页（步骤2下发配置） */
+    onEditConfig() {
+      const t = this.genTask
+      this.genVisible = false
+      this.genTask = null
+      this.genMembers = []
+      if (t) this.openEdit(t)
+    },
+    openCreate() {
+      this.$router.push('/flow-dispatch/edit')
+    },
+    openPeriodUsers(t, p) {
+      this.saveFlashId(t.id)
+      this.$router.push({ path: '/data-admin/index', query: { dispatchId: p.dispatchId }})
+    },
+    async onDeletePeriod(t, p) {
+      try {
+        await this.$confirm(`确定删除期次「${p.periodName || p.taskName}」吗？删除后不可恢复。`, '删除期次确认', {
+          confirmButtonText: '删除',
+          cancelButtonText: '取消',
+          type: 'warning',
+          confirmButtonClass: 'el-button--danger'
+        })
+      } catch (e) {
+        return
+      }
+      try {
+        await deleteTaskGroup(p.dispatchId)
+        this.$message.success('删除成功')
+        await this.loadTaskDetail(t.id)
+        this.fetchList()
+      } catch (e) {
+        this.$message.error((e && e.message) || '删除失败')
+      }
+    },
+    toggleStatus(t) {
+      toggleDispatchPlanStatus(t.id).then(res => {
+        this.$message.success(res.message || '操作成功')
+        this.fetchList()
+      }).catch(e => {
+        console.error(e)
+        this.$message.error('操作失败')
+      })
+    },
+    onDelete(t) {
+      this.$confirm(`确定删除任务「${t.taskName}」吗？仅当任务下无任何期次时可删除。`, '删除确认', {
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        deleteDispatchPlan(t.id).then(res => {
+          this.$message.success(res.message || '删除成功')
+          this.fetchList()
+        }).catch(e => {
+          console.error(e)
+          this.$message.error((e && e.message) || '删除失败')
+        })
+      }).catch(() => {})
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+$primary: #C53030;
+$border: #e4beba;
+.dashboard-container { display: flex; min-height: 100vh; background-color: #F5F7FA; font-family: 'Inter', sans-serif; color: #1b1c1c; }
+.main-content { width: 100%; display: flex; flex-direction: column; min-height: 100vh; }
+.page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.page-header { display: flex; justify-content: space-between; align-items: flex-end; }
+.breadcrumb { display: flex; gap: 8px; font-size: 12px; line-height: 20px; color: #414755; margin-bottom: 8px;
+  .active { color: $primary; font-weight: 600; }
+}
+.page-heading { font-size: 30px; line-height: 38px; font-weight: 600; color: #1b1c1c; }
+.btn-create { display: flex; align-items: center; gap: 5px; padding: 10px 22px; background: $primary; color: #fff; border: none; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; box-shadow: 0 2px 8px rgba(197,48,48,0.25); transition: all .2s;
+  &:hover { opacity: 0.9; transform: translateY(-1px); }
+}
+.header-actions { display: flex; align-items: center; gap: 10px; }
+.btn-tpl { display: flex; align-items: center; gap: 5px; padding: 10px 16px; background: #fff; border: 1px solid $border; border-radius: 8px; color: #5b403d; font-weight: 600; font-size: 13px; cursor: pointer; transition: all .2s;
+  i { color: $primary; }
+  &:hover { border-color: $primary; color: $primary; background: #FFF9F9; }
+}
+.tip-bar { display: flex; align-items: center; gap: 8px; background: #FFF5F5; border: 1px solid $border; color: #8a4b46; font-size: 13px; border-radius: 10px; padding: 10px 14px;
+  i { color: $primary; }
+}
+.filter-section { background: #fff; border: 1px solid $border; border-radius: 10px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
+.filter-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  @media (max-width: 768px) { grid-template-columns: 1fr; }
+}
+.filter-item { display: flex; flex-direction: column; gap: 4px; }
+.filter-label { font-size: 13px; color: #757575; }
+.filter-select, .filter-input { height: 36px; border: 1px solid #dcdfe6; border-radius: 6px; padding: 0 10px; font-size: 13px; outline: none; background: #fff; transition: all .2s;
+  &:focus { border-color: $primary; box-shadow: 0 0 0 2px rgba(197,48,48,0.12); }
+}
+.filter-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(228,190,186,0.3); }
+.filter-actions-right { display: flex; gap: 8px; }
+.btn-reset { padding: 0 16px; height: 36px; border: 1px solid $border; border-radius: 6px; font-size: 13px; color: #5b403d; background: #fff; cursor: pointer;
+  &:hover { background: #f6f3f2; }
+}
+.btn-search { padding: 0 16px; height: 36px; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; color: #fff; background: $primary; cursor: pointer; display: flex; align-items: center; gap: 4px;
+  &:hover { opacity: 0.9; }
+}
+.empty-state { text-align: center; padding: 60px 20px; color: #bbb; background: #fff; border: 1px solid $border; border-radius: 10px;
+  i { font-size: 48px; display: block; margin-bottom: 12px; }
+  p { font-size: 14px; margin: 0; }
+}
+.task-collapse { position: relative; }
+.loading-bar { display: flex; align-items: center; gap: 6px; justify-content: center; padding: 16px; color: $primary; font-size: 13px; }
+
+// 折叠面板（手写实现，样式完全可控）
+.task-panel { background: #fff; border: 1px solid $border; border-radius: 10px; margin-bottom: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  // 返回本页时红色双闪高亮（记忆展开的面板）
+  &.flash-open { animation: flashRed 0.55s ease-in-out 2; }
+}
+@keyframes flashRed {
+  0%, 100% { border-color: $border; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+  30% { border-color: $primary; box-shadow: 0 0 0 4px rgba(197,48,48,0.3); }
+  60% { border-color: $primary; box-shadow: 0 0 0 7px rgba(197,48,48,0.12); }
+}
+.tp-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; transition: background .2s; }
+.tp-head:hover { background: #FFF9F9; }
+.tp-arrow { color: #909399; font-size: 14px; flex-shrink: 0; transition: transform .25s; }
+.task-panel.is-open .tp-arrow { transform: rotate(-180deg); }
+.tp-body { border-top: 1px solid $border; }
+.ct-icon { width: 40px; height: 40px; border-radius: 10px; background: #FFF5F5; color: $primary; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.ct-main { flex: 1; min-width: 0; }
+.ct-name-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ct-name { font-size: 15px; font-weight: 700; color: #1b1c1c; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ct-sub { font-size: 12px; color: #909399; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ct-status { padding: 2px 12px; border-radius: 12px; font-size: 12px; flex-shrink: 0;
+  &.on { background: rgba(197,48,48,0.1); color: $primary; font-weight: 600; }
+  &.off { background: #f0f0f0; color: #909399; }
+}
+
+.task-detail { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: #FAFAFA; border: 1px solid #f0e3e1; border-radius: 10px; padding: 14px 16px;
+  @media (max-width: 900px) { grid-template-columns: 1fr; }
+}
+.ov-item { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.ov-icon { color: $primary; font-size: 16px; margin-top: 1px; flex-shrink: 0; }
+.ov-item > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ov-label { font-size: 12px; color: #909399; }
+.ov-value { font-size: 13px; color: #1b1c1c; word-break: break-all; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.action-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn-gen { display: flex; align-items: center; gap: 4px; padding: 8px 18px; background: $primary; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; box-shadow: 0 2px 6px rgba(197,48,48,0.2);
+  &:hover { opacity: 0.9; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+}
+.btn-ghost { display: flex; align-items: center; gap: 4px; padding: 8px 16px; background: #fff; border: 1px solid $border; border-radius: 8px; color: #5b403d; cursor: pointer; font-size: 13px;
+  &:hover { background: #f6f3f2; }
+}
+.text-error { color: #ba1a1a; }
+.period-section { background: #fff; border: 1px solid $border; border-radius: 10px; padding: 14px 16px; }
+.sec-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: #1b1c1c; margin-bottom: 12px;
+  i { color: $primary; }
+}
+.sec-sub { font-size: 12px; color: #999; font-weight: 400; }
+.period-empty { text-align: center; padding: 24px; color: #bbb; font-size: 13px; }
+.period-skeleton { padding: 10px 4px; }
+.period-table { width: 100%; text-align: left; border-collapse: collapse;
+  th { padding: 10px 12px; font-weight: 700; color: #414755; background: #FAFAFA; border-bottom: 1px solid $border; font-size: 13px; }
+  td { padding: 10px 12px; border-bottom: 1px solid $border; font-size: 13px; }
+  tbody tr:last-child td { border-bottom: none; }
+  .hover-row:hover { background: #FFF5F5; }
+}
+.font-bold { font-weight: 700; }
+.sub-text { display: block; font-size: 12px; color: #909399; font-weight: 400; margin-top: 2px; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.tag-manual { padding: 1px 8px; background: rgba(183,121,31,0.14); color: #b7791f; border-radius: 10px; font-size: 11px; margin-left: 6px; font-weight: 600; }
+.tag-running { padding: 2px 10px; background: rgba(197,48,48,0.1); color: $primary; border-radius: 10px; font-size: 12px; font-weight: 600; }
+.tag-done { padding: 2px 10px; background: rgba(38,109,0,0.1); color: #266d00; border-radius: 10px; font-size: 12px; font-weight: 600; }
+.tag-cancel { padding: 2px 10px; background: rgba(186,26,26,0.1); color: #ba1a1a; border-radius: 10px; font-size: 12px; font-weight: 600; }
+.tag-empty { padding: 2px 10px; background: rgba(144,147,153,0.1); color: #909399; border-radius: 10px; font-size: 12px; }
+.action-link { color: $primary; background: none; border: none; cursor: pointer; font-size: 13px; margin-left: 8px;
+  &:hover { text-decoration: underline; }
+  &:disabled { color: #bbb; cursor: not-allowed; text-decoration: none; }
+}
+.pagination { display: flex; justify-content: flex-end; align-items: center; padding: 14px 16px; background: #fff; border: 1px solid $border; border-radius: 10px; margin-top: 12px; }
+.period-pagination { display: flex; justify-content: flex-end; align-items: center; padding-top: 12px; }
+</style>

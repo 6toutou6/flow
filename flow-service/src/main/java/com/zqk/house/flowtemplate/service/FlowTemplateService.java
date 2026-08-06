@@ -2,13 +2,16 @@ package com.zqk.house.flowtemplate.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zqk.house.flowtemplate.entity.FlowTemplate;
 import com.zqk.house.flowtemplate.entity.FlowTemplateField;
 import com.zqk.house.flowtemplate.entity.FlowTemplateNode;
 import com.zqk.house.flowtemplate.entity.FlowTemplateQueryForm;
+import com.zqk.house.flowtemplate.entity.FlowTemplateVersion;
 import com.zqk.house.flowtemplate.mapper.FlowTemplateFieldMapper;
 import com.zqk.house.flowtemplate.mapper.FlowTemplateMapper;
 import com.zqk.house.flowtemplate.mapper.FlowTemplateNodeMapper;
+import com.zqk.house.flowtemplate.mapper.FlowTemplateVersionMapper;
 import com.zqk.house.flowtemplate.vo.TemplateDetailVO;
 import com.zqk.house.flowtemplate.vo.TemplateFlowSaveDTO;
 import com.zqk.house.flowtemplate.vo.TemplateNodeWithFieldsVO;
@@ -24,6 +27,7 @@ import org.springframework.util.StringUtils;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -37,6 +41,10 @@ public class FlowTemplateService {
     private FlowTemplateFieldMapper flowTemplateFieldMapper;
     @Autowired
     private FlowTemplateNodeMapper flowTemplateNodeMapper;
+    @Autowired
+    private FlowTemplateVersionMapper flowTemplateVersionMapper;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     public PageResult<FlowTemplate> getPage(FlowTemplateQueryForm form) {
         LambdaQueryWrapper<FlowTemplate> wrapper = new LambdaQueryWrapper<>();
@@ -158,7 +166,8 @@ public class FlowTemplateService {
     /**
      * 流程设计器保存：节点链 + 每个节点的字段
      * 校验：首节点=开始(1)、末节点=结束(3)、结束节点 assignNext=0
-     * 逻辑：删旧 nodes+fields → 插新 nodes+fields → version+1
+     * 保存方式：current=保存到当前版本（覆盖，版本号不变）；new=保存为新版本（版本号+1，旧配置归档到版本记录）
+     * 逻辑：删旧 nodes+fields → 插新 nodes+fields → 更新版本号/改动说明/修改人
      */
     @Transactional(rollbackFor = Exception.class)
     public boolean saveFlow(TemplateFlowSaveDTO dto) {
@@ -174,6 +183,23 @@ public class FlowTemplateService {
         }
         if (last == null || last.getNodeType() == null || last.getNodeType() != 3) {
             throw new RuntimeException("末个节点必须为结束节点");
+        }
+        FlowTemplate t = flowTemplateMapper.selectById(templateId);
+        if (t == null) throw new RuntimeException("模板不存在");
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        boolean newVersion = "new".equalsIgnoreCase(dto.getSaveMode());
+        // 保存为新版本：先把旧配置归档为「上一版本」的版本记录
+        if (newVersion) {
+            FlowTemplateVersion ver = new FlowTemplateVersion();
+            ver.setTemplateId(templateId);
+            ver.setVersion(t.getVersion());
+            ver.setVersionDesc(t.getVersionDesc());
+            if (loginUser != null) {
+                ver.setModifierId(loginUser.getId());
+                ver.setModifierName(loginUser.getRealName());
+            }
+            ver.setConfigSnapshot(buildSnapshot(templateId));
+            flowTemplateVersionMapper.insert(ver);
         }
         // 删旧 nodes + fields
         LambdaQueryWrapper<FlowTemplateField> fw = new LambdaQueryWrapper<>();
@@ -226,13 +252,47 @@ public class FlowTemplateService {
                 flowTemplateFieldMapper.insert(f);
             }
         }
-        // version+1
-        FlowTemplate t = flowTemplateMapper.selectById(templateId);
-        if (t != null) {
+        // 更新版本信息：新版本+1；当前版本覆盖不动；记录改动说明与修改人
+        if (newVersion) {
             t.setVersion(t.getVersion() + 1);
-            flowTemplateMapper.updateById(t);
         }
+        t.setVersionDesc(dto.getVersionDesc());
+        if (loginUser != null) t.setModifierId(loginUser.getId());
+        flowTemplateMapper.updateById(t);
         return true;
+    }
+
+    /** 构建当前模板配置快照 JSON（nodes + templateFields），供版本记录归档 */
+    private String buildSnapshot(Long templateId) {
+        try {
+            Map<String, Object> snapshot = new LinkedHashMap<>();
+            LambdaQueryWrapper<FlowTemplateNode> nw = new LambdaQueryWrapper<>();
+            nw.eq(FlowTemplateNode::getTemplateId, templateId).orderByAsc(FlowTemplateNode::getSortNum);
+            List<Map<String, Object>> nodes = new ArrayList<>();
+            for (FlowTemplateNode node : flowTemplateNodeMapper.selectList(nw)) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("node", node);
+                LambdaQueryWrapper<FlowTemplateField> fw = new LambdaQueryWrapper<>();
+                fw.eq(FlowTemplateField::getNodeId, node.getId()).orderByAsc(FlowTemplateField::getSortNum);
+                item.put("fields", flowTemplateFieldMapper.selectList(fw));
+                nodes.add(item);
+            }
+            snapshot.put("nodes", nodes);
+            LambdaQueryWrapper<FlowTemplateField> tfw = new LambdaQueryWrapper<>();
+            tfw.eq(FlowTemplateField::getTemplateId, templateId).isNull(FlowTemplateField::getNodeId)
+               .orderByAsc(FlowTemplateField::getSortNum);
+            snapshot.put("templateFields", flowTemplateFieldMapper.selectList(tfw));
+            return objectMapper.writeValueAsString(snapshot);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** 模板版本记录列表（按版本号倒序） */
+    public List<FlowTemplateVersion> getVersions(Long templateId) {
+        LambdaQueryWrapper<FlowTemplateVersion> vw = new LambdaQueryWrapper<>();
+        vw.eq(FlowTemplateVersion::getTemplateId, templateId).orderByDesc(FlowTemplateVersion::getVersion);
+        return flowTemplateVersionMapper.selectList(vw);
     }
 
     public TemplateStatsVO getStats() {

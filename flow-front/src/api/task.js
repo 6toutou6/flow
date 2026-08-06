@@ -42,15 +42,6 @@ export function deleteTaskGroup(dispatchId) {
   })
 }
 
-// 下发任务
-export function createTask(data) {
-  return request({
-    url: '/flow-task/create',
-    method: 'post',
-    data
-  })
-}
-
 // 更新任务
 export function updateTask(data) {
   return request({
@@ -125,5 +116,21 @@ export function removeTaskHandler(taskId, handlerUserId) {
     url: '/flow-task/remove-handler',
     method: 'delete',
     params: { taskId, handlerUserId }
+  })
+}
+
+// 催办：给任务当前节点处理人发送催办通知（记录到流转日志）
+export function urgeTask(taskId) {
+  return request({
+    url: `/flow-task/urge/${taskId}`,
+    method: 'post'
+  })
+}
+
+// 任务流转/催办日志列表
+export function getTaskLogs(taskId) {
+  return request({
+    url: `/flow-task/logs/${taskId}`,
+    method: 'get'
   })
 }

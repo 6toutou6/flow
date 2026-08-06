@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zqk.house.flowtask.mapper.FlowDispatchMapper">
+
+    <!-- 任务分页：任务 + 下发配置 + 期次数 + 人员数（人员删空后任务仍保留） -->
+    <select id="selectTaskPage" resultType="com.zqk.house.flowtask.entity.FlowDispatch">
+        SELECT d.*,
+               c.cycle_type AS cycleType,
+               c.cycle_day AS cycleDay,
+               c.deadline_days AS deadlineDays,
+               c.urge_days AS urgeDays,
+               COALESCE(p.periodCount, 0) AS periodCount,
+               COALESCE(m.memberCount, 0) AS memberCount
+        FROM flow_dispatch d
+        LEFT JOIN flow_dispatch_config c ON c.task_id = d.id
+        LEFT JOIN (
+            SELECT task_id, COUNT(*) AS periodCount
+            FROM flow_task_dispatch
+            GROUP BY task_id
+        ) p ON p.task_id = d.id
+        LEFT JOIN (
+            SELECT task_id, COUNT(*) AS memberCount
+            FROM flow_task_member
+            GROUP BY task_id
+        ) m ON m.task_id = d.id
+        <where>
+            <if test="taskName != null and taskName != ''">
+                AND d.task_name LIKE CONCAT('%', #{taskName}, '%')
+            </if>
+            <if test="status != null">
+                AND d.status = #{status}
+            </if>
+        </where>
+        ORDER BY d.create_time DESC, d.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectTaskCount" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM flow_dispatch d
+        <where>
+            <if test="taskName != null and taskName != ''">
+                AND d.task_name LIKE CONCAT('%', #{taskName}, '%')
+            </if>
+            <if test="status != null">
+                AND d.status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <!-- 任务人员列表（配置人员，JOIN sys_user 取姓名/部门） -->
+    <select id="selectMembersByTask" resultType="com.zqk.house.flowtask.vo.TaskMemberInfoVO">
+        SELECT m.user_id AS userId, u.real_name AS realName, u.emp_no AS empNo,
+               u.dept_name AS deptName, u.phone AS phone, m.create_time AS createTime
+        FROM flow_task_member m
+        LEFT JOIN sys_user u ON u.id = m.user_id
+        WHERE m.task_id = #{taskId}
+        ORDER BY m.id ASC
+    </select>
+
+</mapper>
+

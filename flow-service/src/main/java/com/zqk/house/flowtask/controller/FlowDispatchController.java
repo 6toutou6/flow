@@ -1,0 +1,179 @@
+package com.zqk.house.flowtask.controller;
+
+import com.zqk.house.flowtask.entity.FlowDispatch;
+import com.zqk.house.flowtask.entity.FlowDispatchConfigTemplate;
+import com.zqk.house.flowtask.service.FlowDispatchConfigTemplateService;
+import com.zqk.house.flowtask.service.FlowDispatchService;
+import com.zqk.house.flowtask.vo.PeriodGenerateVO;
+import com.zqk.house.flowtask.vo.PeriodPreviewVO;
+import com.zqk.house.flowtask.vo.TaskMemberInfoVO;
+import com.zqk.house.flowtask.vo.TaskSaveDTO;
+import com.zqk.house.util.PageResult;
+import com.zqk.house.util.Result;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping("/flow-dispatch")
+@CrossOrigin
+public class FlowDispatchController {
+
+    @Autowired
+    private FlowDispatchService flowDispatchService;
+
+    @Autowired
+    private FlowDispatchConfigTemplateService configTemplateService;
+
+    // ==================== 下发配置模板 ====================
+
+    /** 下发配置模板列表（新建任务时可拉取复用） */
+    @GetMapping("/config-template/list")
+    public Result<List<FlowDispatchConfigTemplate>> configTemplateList(@RequestParam(required = false) String keyword) {
+        return Result.success("获取成功", configTemplateService.list(keyword));
+    }
+
+    /** 下发配置模板详情（编辑回填） */
+    @GetMapping("/config-template/{id}")
+    public Result<FlowDispatchConfigTemplate> configTemplateDetail(@PathVariable Long id) {
+        return Result.success("获取成功", configTemplateService.getById(id));
+    }
+
+    /** 新增或更新下发配置模板 */
+    @PostMapping("/config-template/save")
+    public Result<Void> configTemplateSave(@RequestBody FlowDispatchConfigTemplate tpl) {
+        try {
+            if (!StringUtils.hasText(tpl.getConfigName())) {
+                return Result.fail("配置名称不能为空");
+            }
+            if (tpl.getCycleType() == null) {
+                return Result.fail("请选择周期类型");
+            }
+            if (tpl.getDeadlineDays() == null || tpl.getDeadlineDays() <= 0) {
+                return Result.fail("请填写截止天数");
+            }
+            boolean isNew = tpl.getId() == null;
+            configTemplateService.save(tpl);
+            return Result.success(isNew ? "保存成功" : "更新成功");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
+    /** 删除下发配置模板（不影响已拉取到任务上的配置） */
+    @DeleteMapping("/config-template/delete/{id}")
+    public Result<Void> configTemplateDelete(@PathVariable Long id) {
+        try {
+            return configTemplateService.delete(id) ? Result.success("删除成功") : Result.fail("删除失败");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
+    /** 任务分页列表（含期次数、人员数） */
+    @GetMapping("/list")
+    public Result<PageResult<FlowDispatch>> list(@RequestParam(required = false) Integer page,
+                                                 @RequestParam(required = false) Integer limit,
+                                                 @RequestParam(required = false) String taskName,
+                                                 @RequestParam(required = false) Integer status) {
+        return Result.success("获取成功", flowDispatchService.getPage(page, limit, taskName, status));
+    }
+
+    /** 启用中的任务列表 */
+    @GetMapping("/enabled-list")
+    public Result<List<FlowDispatch>> enabledList() {
+        return Result.success("获取成功", flowDispatchService.getEnabledList());
+    }
+
+    /** 期次预览：按任务周期 + 是否立即下发，计算期次序号/默认期次名/开始截止时间 */
+    @GetMapping("/preview-period")
+    public Result<PeriodPreviewVO> previewPeriod(@RequestParam(required = false) Long taskId,
+                                                 @RequestParam(required = false, defaultValue = "true") Boolean immediate) {
+        return Result.success("获取成功", flowDispatchService.previewPeriod(taskId, Boolean.TRUE.equals(immediate)));
+    }
+
+    /** 创建任务（含下发周期配置、模板配置信息、人员） */
+    @PostMapping("/save")
+    public Result<Long> save(@RequestBody TaskSaveDTO dto) {
+        try {
+            return Result.success("创建成功", flowDispatchService.save(dto));
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
+    /** 更新任务 */
+    @PutMapping("/update")
+    public Result<Void> update(@RequestBody TaskSaveDTO dto) {
+        try {
+            return flowDispatchService.update(dto) ? Result.success("更新成功") : Result.fail("更新失败");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
+    @PutMapping("/toggle-status/{id}")
+    public Result<Void> toggleStatus(@PathVariable Long id) {
+        return flowDispatchService.toggleStatus(id) ? Result.success("操作成功") : Result.fail("操作失败");
+    }
+
+    /** 删除任务：仅当任务下无任何期次时允许 */
+    @DeleteMapping("/delete/{id}")
+    public Result<Void> delete(@PathVariable Long id) {
+        try {
+            return flowDispatchService.delete(id) ? Result.success("删除成功") : Result.fail("删除失败");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
+    /** 任务详情（编辑回填用） */
+    @GetMapping("/{id}")
+    public Result<FlowDispatch> detail(@PathVariable Long id) {
+        return Result.success("获取成功", flowDispatchService.getById(id));
+    }
+
+    /** 任务人员列表 */
+    @GetMapping("/{taskId}/members")
+    public Result<List<TaskMemberInfoVO>> members(@PathVariable Long taskId) {
+        return Result.success("获取成功", flowDispatchService.getMembers(taskId));
+    }
+
+    /** 全量保存任务人员（后续生成期次抄用） */
+    @PutMapping("/{taskId}/members")
+    public Result<Void> saveMembers(@PathVariable Long taskId, @RequestBody List<Long> userIds) {
+        flowDispatchService.saveMembers(taskId, userIds);
+        return Result.success("人员已更新");
+    }
+
+    /**
+     * 生成期次：自动（按任务周期 + immediate 立即/下一期次）或手动临时期次（manual=true）
+     * body: { immediate, periodName, manual, memberIds }
+     * memberIds 为本期次临时人员（可对任务人员临时增删，为空则抄用任务配置人员）
+     * 自动下发防重复：当前期次（如 2026年第3季度）已下发时拒绝再次下发。
+     * 返回：期次ID + 期次名称 + 下次自动下发时间。
+     */
+    @PostMapping("/{taskId}/periods")
+    public Result<PeriodGenerateVO> generatePeriod(@PathVariable Long taskId, @RequestBody(required = false) Map<String, Object> body) {
+        try {
+            boolean manual = body != null && Boolean.TRUE.equals(body.get("manual"));
+            boolean immediate = body == null || !Boolean.FALSE.equals(body.get("immediate"));
+            String periodName = body == null ? null : (String) body.get("periodName");
+            List<Long> memberIds = null;
+            if (body != null && body.get("memberIds") instanceof List) {
+                memberIds = ((List<?>) body.get("memberIds")).stream()
+                        .filter(o -> o instanceof Number)
+                        .map(o -> ((Number) o).longValue())
+                        .collect(Collectors.toList());
+            }
+            PeriodGenerateVO vo = flowDispatchService.generatePeriod(taskId, immediate, periodName, manual, memberIds);
+            return Result.success("期次生成成功", vo);
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+}

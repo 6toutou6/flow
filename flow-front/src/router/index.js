@@ -130,6 +130,41 @@ export const constantRoutes = [
   },
 
   {
+    path: '/flow-dispatch',
+    component: Layout,
+    name: '管理员',
+    meta: { title: '管理员', icon: 'el-icon-s-help' },
+    children: [
+      {
+        path: 'index',
+        name: 'FlowDispatch',
+        component: () => import('@/views/flowdispatch/index'),
+        meta: { title: '任务管理', icon: 'el-icon-s-order' }
+      },
+      {
+        path: 'config-template',
+        name: 'FlowDispatchConfigTemplate',
+        component: () => import('@/views/flowdispatch/ConfigTemplate'),
+        meta: { title: '下发配置模板', icon: 'el-icon-setting' }
+      },
+      {
+        path: 'config-template/edit',
+        name: 'FlowDispatchConfigTemplateEdit',
+        component: () => import('@/views/flowdispatch/ConfigTemplateEdit'),
+        meta: { title: '下发配置模板编辑', activeMenu: '/flow-dispatch/config-template' },
+        hidden: true
+      },
+      {
+        path: 'edit',
+        name: 'FlowDispatchEdit',
+        component: () => import('@/views/flowdispatch/EditTask'),
+        meta: { title: '任务编辑', activeMenu: '/flow-dispatch/index' },
+        hidden: true
+      }
+    ]
+  },
+
+  {
     path: '/form-designer',
     component: Layout,
     hidden: true,

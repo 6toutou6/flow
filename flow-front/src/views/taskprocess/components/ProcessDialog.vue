@@ -79,6 +79,14 @@
               <span v-if="expandedItem.taskNode.rejectReason" class="meta-reason"><i class="el-icon-warning-outline" /> 退回建议：{{ expandedItem.taskNode.rejectReason }}</span>
             </template>
           </div>
+          <!-- 该节点填写说明（设计器配置） -->
+          <div v-if="hasGuide(expandedItem)" class="node-guide">
+            <div v-if="expandedItem.guideText" class="guide-text">{{ expandedItem.guideText }}</div>
+            <div v-if="guideFileNames(expandedItem).length > 0" class="guide-files">
+              <span class="guide-files-title"><i class="el-icon-paperclip" /> 说明文件：</span>
+              <span v-for="(fn, fi) in guideFileNames(expandedItem)" :key="fi" class="guide-file-tag"><i class="el-icon-document" /> {{ fn }}</span>
+            </div>
+          </div>
           <template v-if="expandedItem.status === 'rejected'">
             <div class="form-empty">该节点已退回，无需显示表单</div>
           </template>
@@ -138,6 +146,16 @@
             <div v-if="f.fieldTips" class="field-tip">{{ f.fieldTips }}</div>
           </el-form-item>
         </el-form>
+      </div>
+
+      <!-- 节点填写说明（设计器配置，处理端展示：文字 + 说明文件） -->
+      <div v-if="currentGuideNode && hasGuide(currentGuideNode)" class="guide-section">
+        <div class="section-title"><i class="el-icon-info" /> 填写说明<span class="chain-hint">本节点的填写要求与参考文件</span></div>
+        <div v-if="currentGuideNode.guideText" class="guide-text">{{ currentGuideNode.guideText }}</div>
+        <div v-if="guideFileNames(currentGuideNode).length > 0" class="guide-files">
+          <span class="guide-files-title"><i class="el-icon-paperclip" /> 说明文件：</span>
+          <span v-for="(fn, fi) in guideFileNames(currentGuideNode)" :key="fi" class="guide-file-tag"><i class="el-icon-document" /> {{ fn }}</span>
+        </div>
       </div>
 
       <!-- 动态表单（流程节点字段） -->
@@ -293,6 +311,18 @@ export default {
     currentFields() {
       return this.detail && this.detail.currentNodeFields ? this.detail.currentNodeFields : []
     },
+    /** 当前处理节点的填写说明（设计器配置的节点填写说明，模板链中匹配） */
+    currentGuideNode() {
+      if (!this.detail || !this.todo) return null
+      const tplNodes = this.detail.templateNodes || []
+      const cid = this.todo.currentNodeId
+      if (cid != null) {
+        const hit = tplNodes.find(n => n.id === cid)
+        if (hit) return hit
+      }
+      // 悬空/重建兜底：按节点名匹配
+      return tplNodes.find(n => this.todo.nodeName && n.nodeName === this.todo.nodeName) || null
+    },
     /** 处理人填写的任务基础字段配置（fieldRole=2，不依附节点） */
     handlerBaseFields() {
       return (this.detail && this.detail.handlerBaseFields) || []
@@ -394,7 +424,7 @@ export default {
           .filter(Boolean)
           .filter((v, i, a) => a.indexOf(v) === i)
           .join('、')
-        return { nodeId: tpl.id, nodeName: tpl.nodeName, nodeType: tpl.nodeType, sortNum: tpl.sortNum, taskNode: rep, pendingNames, status }
+        return { nodeId: tpl.id, nodeName: tpl.nodeName, nodeType: tpl.nodeType, sortNum: tpl.sortNum, taskNode: rep, pendingNames, status, guideText: tpl.guideText, guideFiles: tpl.guideFiles }
       })
     },
     /** 当前展开的流程链节点详情（点击已处理/已退回节点展开） */
@@ -459,6 +489,22 @@ export default {
     statusLabel(s) { return { done: '已通过', current: '处理中', rejected: '已退回', pending: '未到' }[s] || '未到' },
     parseEnum(str) {
       try { return JSON.parse(str) || [] } catch (e) { return [] }
+    },
+    /** 节点是否有填写说明（文字或文件） */
+    hasGuide(node) {
+      return !!(node && (node.guideText || this.guideFileNames(node).length > 0))
+    },
+    /** 解析节点说明文件列表（guideFiles 为 JSON 字符串，兼容 {name} 对象或纯文件名） */
+    guideFileNames(node) {
+      const g = node && node.guideFiles
+      if (!g) return []
+      try {
+        const arr = JSON.parse(g)
+        if (!Array.isArray(arr)) return []
+        return arr.map(x => (typeof x === 'string' ? x : (x && x.name) || '')).filter(Boolean)
+      } catch (e) {
+        return []
+      }
     },
     findSortNum(nodeId) {
       const tplNodes = (this.detail && this.detail.templateNodes) || []
@@ -734,6 +780,19 @@ $border: #e4beba;
 .history-empty { font-size: 13px; color: #bbb; text-align: center; padding: 32px 0; }
 .field-tip { font-size: 12px; color: #999; margin-top: -8px; }
 .empty-form { font-size: 13px; color: #999; padding: 16px 0; }
+
+// 节点填写说明（处理端展示）
+.guide-section { background: #FFFBF2; border: 1px solid rgba(183,121,31,0.35); border-radius: 10px; padding: 14px 18px; }
+.guide-text { font-size: 13px; color: #5b403d; line-height: 1.7; white-space: pre-wrap; word-break: break-all; background: #fff; border: 1px dashed rgba(183,121,31,0.3); border-radius: 6px; padding: 10px 12px; }
+.node-guide { margin-bottom: 10px; padding: 10px 12px; background: #FFFBF2; border: 1px dashed rgba(183,121,31,0.4); border-radius: 6px;
+  .guide-text { border: none; padding: 0 0 4px; background: transparent; }
+}
+.guide-files { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.node-guide .guide-files { margin-top: 4px; }
+.guide-files-title { font-size: 12px; color: #b7791f; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+.guide-file-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; background: #fff; border: 1px solid #e8d9b8; border-radius: 12px; font-size: 12px; color: #7a5c2e;
+  i { color: #b7791f; }
+}
 
 // 完成节点提示
 .end-tip { display: flex; align-items: center; gap: 8px; padding: 14px 16px; background: rgba(38,109,0,0.08); border-radius: 8px; color: #266d00; font-size: 14px;

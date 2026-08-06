@@ -21,9 +21,13 @@ public class FlowTemplate {
     private String templateName;
     private String category;
     private Integer version;
+    /** 当前版本改动说明（保存版本时用户填写） */
+    private String versionDesc;
     /** 0停用 1启用 */
     private Integer status;
     private Long creatorId;
+    /** 最近修改人ID */
+    private Long modifierId;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;
