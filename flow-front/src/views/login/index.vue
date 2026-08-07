@@ -129,9 +129,9 @@ export default {
 /* 修复input 背景不协调 和光标变色 */
 /* Detail see https://github.com/PanJiaChen/vue-element-admin/pull/927 */
 
-$bg:#283443;
-$light_gray:#fff;
-$cursor: #fff;
+$bg:#fff;
+$light_gray:#1b1c1c;
+$cursor: #C53030;
 
 @supports (-webkit-mask: none) and (not (cater-color: $cursor)) {
   .login-container .el-input input {
@@ -158,43 +158,48 @@ $cursor: #fff;
 
       &:-webkit-autofill {
         box-shadow: 0 0 0px 1000px $bg inset !important;
-        -webkit-text-fill-color: $cursor !important;
+        -webkit-text-fill-color: $light_gray !important;
       }
     }
   }
 
   .el-form-item {
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 5px;
+    border: 1px solid rgba(197, 48, 48, 0.25);
+    background: #fff;
+    border-radius: 8px;
     color: #454545;
+    margin-bottom: 20px;
   }
 }
 </style>
 
 <style lang="scss" scoped>
-$bg:#2d3a4b;
-$dark_gray:#889aa4;
-$light_gray:#eee;
+$bg:#a01c1c;
+$dark_gray:#C53030;
+$light_gray:#1b1c1c;
 
 .login-container {
   min-height: 100%;
   width: 100%;
-  background-color: $bg;
+  background: linear-gradient(135deg, #7f1313 0%, #C53030 52%, #d95c57 100%);
   overflow: hidden;
 
   .login-form {
     position: relative;
-    width: 520px;
+    width: 440px;
     max-width: 100%;
-    padding: 160px 35px 0;
+    padding: 44px 44px 30px;
     margin: 0 auto;
+    margin-top: 11vh;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 16px 60px rgba(0, 0, 0, 0.3);
     overflow: hidden;
   }
 
   .tips {
     font-size: 14px;
-    color: #fff;
+    color: #8a4b46;
     margin-bottom: 10px;
 
     span {
@@ -216,11 +221,12 @@ $light_gray:#eee;
     position: relative;
 
     .title {
-      font-size: 26px;
+      font-size: 24px;
       color: $light_gray;
-      margin: 0px auto 40px auto;
+      margin: 0px auto 36px auto;
       text-align: center;
-      font-weight: bold;
+      font-weight: 700;
+      letter-spacing: 1px;
     }
   }
 

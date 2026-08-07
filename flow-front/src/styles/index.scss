@@ -63,3 +63,65 @@ div:focus {
 .app-container {
   padding: 20px;
 }
+
+// ===== 品牌红主题全局优化 =====
+$brand: #C53030;
+
+// 滚动条美化
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(197, 48, 48, 0.25); border-radius: 4px;
+  &:hover { background: rgba(197, 48, 48, 0.45); }
+}
+* { scrollbar-width: thin; scrollbar-color: rgba(197, 48, 48, 0.3) transparent; }
+
+// 文本选中
+::selection { background: rgba(197, 48, 48, 0.18); }
+
+// 全局背景统一
+body { background-color: #F5F7FA; }
+
+// 弹窗美化
+.el-dialog {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 44px rgba(0, 0, 0, 0.16) !important;
+  .el-dialog__header {
+    padding: 16px 24px 14px;
+    border-bottom: 1px solid #f0e3e1;
+    .el-dialog__title { font-size: 16px; font-weight: 700; color: #1b1c1c; }
+  }
+  .el-dialog__body { padding: 20px 24px; }
+  .el-dialog__footer { padding: 12px 24px 16px; border-top: 1px solid #f0e3e1; }
+}
+.el-message-box { border-radius: 12px; }
+
+// 表格表头
+.el-table th.el-table__cell {
+  background-color: #FDF4F3 !important;
+  color: #414755;
+  font-weight: 700;
+}
+.el-table--border, .el-table--group {
+  border-color: #f0e3e1;
+}
+
+// 下拉/气泡圆角
+.el-select-dropdown,
+.el-dropdown-menu,
+.el-popper {
+  border-radius: 8px;
+}
+
+// 消息/通知圆角
+.el-message { border-radius: 10px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12) !important; }
+.el-notification { border-radius: 10px; }
+
+// 弹出菜单项 hover 统一
+.el-select-dropdown__item.hover,
+.el-select-dropdown__item:hover {
+  background-color: #FFF5F5;
+}
+
+// el-button 圆角微调
+.el-button { border-radius: 6px; }

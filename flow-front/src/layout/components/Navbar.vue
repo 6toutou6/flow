@@ -128,7 +128,7 @@ export default {
 
         i {
           margin-right: 4px;
-          color: #409eff;
+          color: #C53030;
         }
       }
     }
