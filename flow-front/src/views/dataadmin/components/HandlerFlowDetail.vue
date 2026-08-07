@@ -39,7 +39,7 @@
             <span class="step-name">{{ item.nodeName }}</span>
             <span class="step-badge" :class="'badge-' + item.status">{{ statusLabel(item.status) }}</span>
             <span v-if="item.status === 'current'" class="cur-stage-tag">当前阶段</span>
-            <span class="mine-tag">{{ item.latestDone.handlerName || '该人员' }}已处理</span>
+            <span v-if="item.latestDone" class="mine-tag">{{ item.latestDone.handlerName || '该人员' }}已处理</span>
             <span v-if="item.branchCount > 1" class="branch-tag">{{ item.branchCount }} 分支</span>
           </div>
           <div class="step-meta">
@@ -59,7 +59,8 @@
               <div v-if="item.latestDone && item.latestDone.formDataList && item.latestDone.formDataList.length > 0" class="form-rows">
                 <div v-for="(fd, fi) in item.latestDone.formDataList" :key="fi" class="form-row">
                   <span class="fr-label">{{ fd.fieldLabel }}</span>
-                  <span class="fr-value">{{ fd.fieldValue || '—' }}</span>
+                  <AttachField v-if="fd.fieldType === 'file' || fd.fieldType === 'image'" :value="fd.fieldValue" :field-type="fd.fieldType" readonly class="fr-value" />
+                  <span v-else class="fr-value">{{ fd.fieldValue || '—' }}</span>
                 </div>
               </div>
               <div v-else class="form-empty">该节点未填写表单数据</div>
@@ -73,7 +74,8 @@
                 </div>
                 <div v-for="(bd, bi) in item.latestDone.baseDataList" :key="bi" class="form-row">
                   <span class="fr-label">{{ bd.fieldLabel }}</span>
-                  <span class="fr-value">{{ bd.fieldValue || '—' }}</span>
+                  <AttachField v-if="bd.fieldType === 'file' || bd.fieldType === 'image'" :value="bd.fieldValue" :field-type="bd.fieldType" readonly class="fr-value" />
+                  <span v-else class="fr-value">{{ bd.fieldValue || '—' }}</span>
                 </div>
               </div>
             </div>
@@ -141,8 +143,11 @@
 </template>
 
 <script>
+import AttachField from '@/components/AttachField.vue'
+
 export default {
   name: 'HandlerFlowDetail',
+  components: { AttachField },
   props: {
     /** TaskDetailVO（含 templateNodes + taskNodes） */
     taskDetail: { type: Object, default: null },
@@ -292,7 +297,7 @@ export default {
 $primary: #C53030;
 $border: #e4beba;
 .flow-detail-wrap { display: flex; flex-direction: column; gap: 16px; }
-.hfd-desc { display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; background: #FFF5F5; border: 1px dashed $border; border-radius: 8px; font-size: 13px;
+.hfd-desc { display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; background: #FFF5F5; border: 1px dashed rgba(197,48,48,0.4); border-radius: 8px; font-size: 13px;
   .hfd-desc-label { width: 90px; color: #757575; flex-shrink: 0; line-height: 1.6; }
   .hfd-desc-text { flex: 1; color: #5b403d; line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
 }
@@ -336,7 +341,7 @@ $border: #e4beba;
   i { margin-right: 3px; }
 }
 .step-reject-reason { display: block; flex-basis: 100%; color: #b7791f; font-weight: 600; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
-.step-expanded { display: flex; gap: 16px; margin-top: 12px; padding: 12px; background: #fff; border-radius: 6px; border: 1px dashed #e4beba; }
+.step-expanded { display: flex; gap: 16px; margin-top: 12px; padding: 12px; background: #fff; border-radius: 6px; border: 1px dashed rgba(197,48,48,0.35); }
 .expanded-left { flex: 3; min-width: 0; }
 .expanded-right { flex: 1; min-width: 0; border-left: 1px solid #f0f0f0; padding-left: 16px; }
 .expanded-sub-title { font-size: 12px; font-weight: 700; color: #414755; margin-bottom: 8px; }

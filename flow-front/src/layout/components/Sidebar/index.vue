@@ -65,7 +65,7 @@ export default {
   },
   methods: {
     handleAddIssue() {
-      this.$router.push('/dashboard')
+      this.$router.push('/task-process/index')
     },
     handleLogout() {
       this.$store.dispatch('user/logout').then(() => {

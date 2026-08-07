@@ -13,10 +13,12 @@ import com.zqk.house.flowtask.vo.TaskMemberVO;
 import com.zqk.house.flowtask.vo.TaskProgressVO;
 import com.zqk.house.util.PageResult;
 import com.zqk.house.util.Result;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/flow-task")
@@ -115,6 +117,28 @@ public class FlowTaskController {
     public Result<Void> urge(@PathVariable Long taskId) {
         try {
             return flowTaskService.urgeTask(taskId) ? Result.success("催办通知已发送") : Result.fail("催办失败");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
+    /** 批量催办：对多个成员任务发送催办通知并记录日志 */
+    @PostMapping("/urge-batch")
+    public Result<Integer> urgeBatch(@RequestBody Map<String, List<Long>> body) {
+        try {
+            int count = flowTaskService.urgeTaskBatch(body == null ? null : body.get("taskIds"));
+            return Result.success("催办通知已发送", count);
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
+    /** 批量删除成员任务（级联清理节点/表单/附件） */
+    @PostMapping("/delete-batch")
+    public Result<Integer> deleteBatch(@RequestBody Map<String, List<Long>> body) {
+        try {
+            int count = flowTaskService.deleteBatch(body == null ? null : body.get("taskIds"));
+            return Result.success("删除成功", count);
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         }

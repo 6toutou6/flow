@@ -19,6 +19,8 @@ public class MyTodoVO {
     private Long currentNodeId;
     private String nodeName;
     private String nodeTips;
+    /** 下一步处理人提示（提交节点选择下一处理人时展示） */
+    private String nextHandlerTip;
     /** 节点类型 1开始 2中间 3结束 */
     private Integer nodeType;
 

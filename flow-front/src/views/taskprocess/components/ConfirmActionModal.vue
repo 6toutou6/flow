@@ -37,6 +37,11 @@
     <!-- 下一节点处理人（通过且非结束节点时，在确认弹窗内选择） -->
     <div v-if="action === 'pass' && !endNode" class="handler-area">
       <label class="comment-label">下一节点处理人 <span class="comment-optional">（必选，可多选，每人一个独立分支）</span></label>
+      <!-- 创建人配置的「下一步处理人提示」 -->
+      <div v-if="nextHandlerTip" class="handler-tip">
+        <i class="el-icon-info" />
+        <span>{{ nextHandlerTip }}</span>
+      </div>
       <div v-if="nextHandlers.length > 0" class="handler-list">
         <div v-for="(h, i) in nextHandlers" :key="h.id" class="handler-chip">
           <span class="hc-avatar">{{ h.realName ? h.realName.charAt(0) : 'U' }}</span>
@@ -90,7 +95,9 @@ export default {
     summary: { type: String, default: '' },
     loading: { type: Boolean, default: false },
     /** 当前节点是否为结束节点（通过时无需选择下一处理人） */
-    endNode: { type: Boolean, default: false }
+    endNode: { type: Boolean, default: false },
+    /** 创建人配置的「下一步处理人提示」，在选择下一处理人时展示 */
+    nextHandlerTip: { type: String, default: '' }
   },
   data() {
     return {
@@ -170,8 +177,8 @@ $primary: #C53030;
 .banner-sub { font-size: 12px; color: #757575; margin-top: 3px; }
 
 .confirm-card { border-radius: 10px; padding: 12px 16px; margin-bottom: 12px;
-  &.card-reject { background: #FFF8EF; border: 1px dashed #e0b070; }
-  &.card-pass { background: #FFF5F5; border: 1px dashed #e4beba; }
+  &.card-reject { background: #FFF8EF; border: 1px dashed rgba(183,121,31,0.45); }
+  &.card-pass { background: #FFF5F5; border: 1px dashed rgba(197,48,48,0.4); }
 }
 .card-item { display: flex; gap: 9px; align-items: flex-start; padding: 5px 0; line-height: 1.6;
   & + .card-item { border-top: 1px dashed rgba(0,0,0,0.06); }
@@ -192,6 +199,9 @@ $primary: #C53030;
 
 // 下一节点处理人选择区（通过且非结束节点）
 .handler-area { margin-top: 16px; padding-top: 16px; border-top: 1px solid #f0f0f0; }
+.handler-tip { display: flex; align-items: flex-start; gap: 6px; background: #FFF5F5; border: 1px dashed rgba(197,48,48,0.4); border-radius: 6px; padding: 8px 10px; font-size: 12px; color: #8a4b46; line-height: 1.6; margin-bottom: 10px;
+  i { color: $primary; margin-top: 2px; flex-shrink: 0; }
+}
 .handler-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .handler-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px 3px 4px; background: #f7f7f9; border: 1px solid #e8e8e8; border-radius: 16px; font-size: 12px; }
 .hc-avatar { width: 22px; height: 22px; border-radius: 50%; background: $primary; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
@@ -200,7 +210,7 @@ $primary: #C53030;
 .hc-remove { cursor: pointer; color: #bbb; font-size: 13px;
   &:hover { color: $primary; }
 }
-.btn-pick { width: 100%; height: 34px; border: 1px dashed #d3a7a0; border-radius: 6px; background: #FFF5F5; color: $primary; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 4px;
+.btn-pick { width: 100%; height: 34px; border: 1px dashed rgba(197,48,48,0.4); border-radius: 6px; background: #FFF5F5; color: $primary; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 4px;
   &:hover { border-color: $primary; background: rgba(197,48,48,0.08); }
 }
 .dialog-footer { text-align: right; }

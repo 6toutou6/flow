@@ -41,9 +41,12 @@ CREATE TABLE `flow_template` (
   `status` tinyint NOT NULL DEFAULT 1 COMMENT '0停用 1启用',
   `creator_id` bigint NOT NULL COMMENT '创建管理员id',
   `modifier_id` bigint DEFAULT NULL COMMENT '最近修改人ID',
+  `dept_id` bigint DEFAULT NULL COMMENT '创建人部门ID（部门内可见，样例公共可见）',
+  `is_sample` tinyint NOT NULL DEFAULT 0 COMMENT '1=样例(公共可见不可改) 0=普通',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_dept_sample` (`dept_id`, `is_sample`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='流程模板';
 
 -- ============================================================
@@ -59,6 +62,7 @@ CREATE TABLE `flow_template_node` (
   `node_tips` varchar(500) DEFAULT NULL COMMENT '节点处理提示文案',
   `guide_text` text COMMENT '节点填写说明（处理人查看）',
   `guide_files` json DEFAULT NULL COMMENT '节点说明文件 [{"name":"","url":""}]',
+  `next_handler_tip` varchar(500) DEFAULT NULL COMMENT '下一步处理人提示（提交节点时展示给处理人）',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY idx_template_sort (`template_id`, `sort_num`)
@@ -286,7 +290,22 @@ CREATE TABLE `flow_attachment` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='附件文件';
 
 -- ============================================================
--- 表15：flow_dispatch 任务表（一次下发计划 = 一个任务）
+-- 表15：attach 附件表（文件/图片上传，biz_id 关联业务，ecs_url 随机字符）
+-- 字段按业务要求固定，不许减少或变更
+-- ============================================================
+CREATE TABLE `attach` (
+  `attach_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'id',
+  `biz_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '业务id',
+  `file_name` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '文件名',
+  `ecs_url` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'ecs地址',
+  `creator` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '创建人',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `modified_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+  PRIMARY KEY (`attach_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='附件表';
+
+-- ============================================================
+-- 表16：flow_dispatch 任务表（一次下发计划 = 一个任务）
 -- 周期/截止/催办等下发配置独立存储于 flow_dispatch_config（每任务一份）
 -- ============================================================
 CREATE TABLE `flow_dispatch` (
@@ -298,10 +317,13 @@ CREATE TABLE `flow_dispatch` (
   `period_type` varchar(10) DEFAULT 'month' COMMENT '周期类型 week/month/quarter（废弃保留）',
   `status` tinyint NOT NULL DEFAULT 1 COMMENT '0停用 1启用',
   `creator_id` bigint DEFAULT NULL COMMENT '创建人ID',
+  `dept_id` bigint DEFAULT NULL COMMENT '创建人部门ID（部门内可见，样例公共可见）',
+  `is_sample` tinyint NOT NULL DEFAULT 0 COMMENT '1=样例(公共可见不可改) 0=普通',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_template` (`template_id`)
+  KEY `idx_template` (`template_id`),
+  KEY `idx_dept_sample` (`dept_id`, `is_sample`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='任务（含模板配置信息，生成期次时抄用配置与人员）';
 
 -- ============================================================
@@ -333,7 +355,11 @@ CREATE TABLE `flow_dispatch_config_template` (
   `deadline_days` int NOT NULL COMMENT '截止天数：触发日后N天',
   `urge_days` int DEFAULT 0 COMMENT '催办天数',
   `remark` varchar(255) DEFAULT NULL COMMENT '备注',
+  `creator_id` bigint DEFAULT NULL COMMENT '创建人ID',
+  `dept_id` bigint DEFAULT NULL COMMENT '创建人部门ID（部门内可见，样例公共可见）',
+  `is_sample` tinyint NOT NULL DEFAULT 0 COMMENT '1=样例(公共可见不可改) 0=普通',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_dept_sample` (`dept_id`, `is_sample`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='下发配置模板（新建任务时可拉取复用）';

@@ -302,7 +302,7 @@ $primary: #C53030;
 $border: #e4beba;
 .dashboard-container { display: flex; min-height: 100vh; background-color: #F5F7FA; font-family: 'Inter', sans-serif; color: #1b1c1c; }
 .main-content { width: 100%; display: flex; flex-direction: column; min-height: 100vh; }
-.page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; max-width: 1080px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+.page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; box-sizing: border-box; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; }
 .breadcrumb { display: flex; gap: 8px; font-size: 12px; line-height: 20px; color: #414755; margin-bottom: 8px;
   .active { color: $primary; font-weight: 600; }
@@ -339,7 +339,7 @@ $border: #e4beba;
 .rule-tip { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #8a4b46; background: #FFF5F5; border-radius: 6px; padding: 7px 10px;
   i { color: $primary; }
 }
-.preview-bar { display: flex; align-items: center; gap: 6px; margin-top: 12px; padding: 9px 12px; background: #FFF9F9; border: 1px dashed $border; border-radius: 8px; font-size: 13px; color: #5b403d;
+.preview-bar { display: flex; align-items: center; gap: 6px; margin-top: 12px; padding: 9px 12px; background: #FFF9F9; border: 1px dashed rgba(197,48,48,0.35); border-radius: 8px; font-size: 13px; color: #5b403d;
   i { color: $primary; }
   b { color: #1b1c1c; }
   &.muted { background: #FAFAFA; color: #999; border-style: solid; i { color: #bbb; } }

@@ -12,6 +12,7 @@
         <result property="currentNodeId" column="current_node_id"/>
         <result property="nodeName" column="node_name"/>
         <result property="nodeTips" column="node_tips"/>
+        <result property="nextHandlerTip" column="next_handler_tip"/>
         <result property="nodeType" column="node_type"/>
         <result property="todoStatus" column="todo_status"/>
         <result property="taskCreateTime" column="task_create_time"/>
@@ -22,7 +23,7 @@
                tn.node_name, tn.node_type,
                t.task_name, t.template_id, t.create_time AS task_create_time,
                tpl.template_name,
-               n.node_tips,
+               n.node_tips, n.next_handler_tip,
                <!-- 待办状态：该用户存在未处理节点 → 0待处理，否则 1已处理（仅查看） -->
                CASE WHEN EXISTS (
                    SELECT 1 FROM flow_task_node p

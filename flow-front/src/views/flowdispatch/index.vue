@@ -63,9 +63,10 @@
               <div class="ct-main">
                 <div class="ct-name-row">
                   <span class="ct-name">{{ t.taskName }}</span>
+                  <span v-if="t.isSample === 1" class="sample-tag">样例</span>
                   <span :class="t.status === 1 ? 'ct-status on' : 'ct-status off'">{{ t.status === 1 ? '启用' : '停用' }}</span>
                 </div>
-                <div class="ct-sub">{{ cycleText(t) }}<template v-if="t.cycleType !== 4"> · {{ cycleDayText(t) }}</template> · 已下发 {{ t.periodCount || 0 }} 期 · {{ t.memberCount || 0 }} 人</div>
+                <div class="ct-sub">{{ cycleText(t) }}<template v-if="t.cycleType !== 4"> · {{ cycleDayText(t) }}</template> · 已下发 {{ t.periodCount || 0 }} 期 · {{ t.memberCount || 0 }} 人 · 创建人 {{ t.creatorName || '—' }}（{{ t.deptName || '—' }}）</div>
               </div>
               <i class="el-icon-arrow-down tp-arrow" />
             </div>
@@ -121,19 +122,22 @@
 
                 <!-- 操作行 -->
                 <div class="action-row">
-                  <button class="btn-gen" :disabled="t.status !== 1" :title="t.status !== 1 ? '请先启用任务' : '生成期次'" @click="openGen(t)">
+                  <template v-if="isSuperAdmin">
+                    <button class="btn-ghost" @click="toggleSample(t)"><i class="el-icon-star-off" /> {{ t.isSample === 1 ? '取消样例' : '设为样例' }}</button>
+                  </template>
+                  <button class="btn-gen" :disabled="t.status !== 1 || isSampleLocked(t)" :title="t.status !== 1 ? '请先启用任务' : (isSampleLocked(t) ? '样例任务仅超管可操作' : '生成期次')" @click="openGen(t)">
                     <i class="el-icon-s-promotion" /> 生成期次
                   </button>
-                  <button class="btn-ghost" @click="openEdit(t)"><i class="el-icon-edit" /> 编辑</button>
-                  <button class="btn-ghost" @click="toggleStatus(t)"><i class="el-icon-refresh" /> {{ t.status === 1 ? '停用' : '启用' }}</button>
-                  <button class="btn-ghost text-error" @click="onDelete(t)"><i class="el-icon-delete" /> 删除</button>
+                  <button class="btn-ghost" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例任务仅超管可修改' : ''" @click="openEdit(t)"><i class="el-icon-edit" /> 编辑</button>
+                  <button class="btn-ghost" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例任务仅超管可操作' : ''" @click="toggleStatus(t)"><i class="el-icon-refresh" /> {{ t.status === 1 ? '停用' : '启用' }}</button>
+                  <button class="btn-ghost text-error" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例任务仅超管可删除' : ''" @click="onDelete(t)"><i class="el-icon-delete" /> 删除</button>
                 </div>
 
                 <!-- 期次列表 -->
                 <div class="period-section">
                   <div class="sec-title"><i class="el-icon-tickets" /> 期次列表 <span class="sec-sub">共 {{ taskData[t.id] ? taskData[t.id].periods.length : 0 }} 期</span></div>
                   <!-- 拉取期次时的骨架占位 -->
-                  <el-skeleton v-if="taskData[t.id] && taskData[t.id].loading" :rows="5" animated class="period-skeleton" />
+                  <div v-if="taskData[t.id] && taskData[t.id].loading" class="period-skeleton"><i class="el-icon-loading" /> 正在加载期次...</div>
                   <div v-else-if="taskData[t.id] && taskData[t.id].periods.length === 0" class="period-empty">暂无期次，点击上方「生成期次」下发</div>
                   <table v-else-if="taskData[t.id] && taskData[t.id].periods.length > 0" class="period-table">
                     <thead>
@@ -217,7 +221,7 @@
 </template>
 
 <script>
-import { getDispatchTaskList, toggleDispatchPlanStatus, deleteDispatchPlan, getTaskMembers, getPreviewPeriod } from '@/api/flowDispatch'
+import { getDispatchTaskList, toggleDispatchPlanStatus, toggleDispatchSample, deleteDispatchPlan, getTaskMembers, getPreviewPeriod } from '@/api/flowDispatch'
 import { getTaskList, deleteTaskGroup } from '@/api/task'
 import { getTemplateList } from '@/api/template'
 import GeneratePeriodModal from './components/GeneratePeriodModal.vue'
@@ -244,7 +248,11 @@ export default {
       genMembers: []
     }
   },
-  computed: {},
+  computed: {
+    isSuperAdmin() {
+      return !!(this.$store.state.user.userInfo && this.$store.state.user.userInfo.superAdmin)
+    }
+  },
   created() {
     // 恢复上次跳转前展开的面板（跳去编辑/数据后台再返回时保持展开，并红色双闪提示）
     this.restoreExpandState()
@@ -252,6 +260,19 @@ export default {
     this.loadTemplates()
   },
   methods: {
+    /** 样例锁定：非超管用户对样例任务不可改/删 */
+    isSampleLocked(t) {
+      return !this.isSuperAdmin && t.isSample === 1
+    },
+    async toggleSample(t) {
+      try {
+        await toggleDispatchSample(t.id)
+        this.$message.success(t.isSample === 1 ? '已取消样例' : '已设为样例')
+        this.fetchList()
+      } catch (e) {
+        this.$message.error((e && e.message) || '操作失败')
+      }
+    },
     /** 从 sessionStorage 恢复展开状态，返回本页时只高亮闪烁「跳转来源」的那个面板 */
     restoreExpandState() {
       try {
@@ -467,7 +488,14 @@ export default {
     },
     openPeriodUsers(t, p) {
       this.saveFlashId(t.id)
-      this.$router.push({ path: '/data-admin/index', query: { dispatchId: p.dispatchId }})
+      this.$router.push({
+        path: '/flow-dispatch/period-users',
+        query: {
+          dispatchId: p.dispatchId,
+          periodName: p.periodName || p.taskName || '',
+          taskName: t.taskName || ''
+        }
+      })
     },
     async onDeletePeriod(t, p) {
       try {
@@ -587,6 +615,7 @@ $border: #e4beba;
   &.on { background: rgba(197,48,48,0.1); color: $primary; font-weight: 600; }
   &.off { background: #f0f0f0; color: #909399; }
 }
+.sample-tag { padding: 2px 8px; background: rgba(183,121,31,0.14); color: #b7791f; border-radius: 10px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
 
 .task-detail { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
 .overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: #FAFAFA; border: 1px solid #f0e3e1; border-radius: 10px; padding: 14px 16px;
@@ -612,7 +641,7 @@ $border: #e4beba;
 }
 .sec-sub { font-size: 12px; color: #999; font-weight: 400; }
 .period-empty { text-align: center; padding: 24px; color: #bbb; font-size: 13px; }
-.period-skeleton { padding: 10px 4px; }
+.period-skeleton { display: flex; align-items: center; gap: 8px; padding: 22px 4px; color: $primary; font-size: 13px; }
 .period-table { width: 100%; text-align: left; border-collapse: collapse;
   th { padding: 10px 12px; font-weight: 700; color: #414755; background: #FAFAFA; border-bottom: 1px solid $border; font-size: 13px; }
   td { padding: 10px 12px; border-bottom: 1px solid $border; font-size: 13px; }

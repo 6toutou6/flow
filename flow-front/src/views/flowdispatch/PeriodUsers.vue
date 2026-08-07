@@ -1,0 +1,447 @@
+<template>
+  <div class="dashboard-container">
+    <main class="main-content">
+      <section class="page-content">
+        <!-- 页头 -->
+        <div class="page-header">
+          <div>
+            <nav class="breadcrumb">
+              <span class="link" @click="goBack">任务管理</span>
+              <span>/</span>
+              <span class="active">期次人员</span>
+            </nav>
+            <h3 class="page-heading">期次人员</h3>
+          </div>
+          <button class="btn-back" @click="goBack"><i class="el-icon-arrow-left" /> 返回</button>
+        </div>
+
+        <!-- 期次信息 -->
+        <section class="tip-bar">
+          <i class="el-icon-tickets" />
+          <template v-if="taskName">任务：{{ taskName }}</template>
+          <template v-if="periodName"> · 期次：{{ periodName }}</template>
+          <template v-if="!periodName && !taskName">期次人员查看</template>
+          <span class="tip-sub">· 点击人员卡片可查看其流程</span>
+        </section>
+
+        <!-- 成员筛选 -->
+        <section class="filter-bar">
+          <div class="filter-grid">
+            <div class="filter-item">
+              <label class="filter-label">姓名</label>
+              <input v-model="filters.name" class="filter-input" placeholder="输入姓名搜索" @keyup.enter="onSearch" />
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">部门</label>
+              <input v-model="filters.dept" class="filter-input" placeholder="输入部门搜索" @keyup.enter="onSearch" />
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">状态</label>
+              <select v-model="filters.status" class="filter-select">
+                <option value="">全部</option>
+                <option :value="1">进行中</option>
+                <option :value="2">已完成</option>
+                <option :value="3">已作废</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <span class="member-count">共 {{ total }} 人</span>
+            <div class="filter-actions-right">
+              <button class="btn-reset" @click="onReset">重置</button>
+              <button class="btn-search" @click="onSearch">查询</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 批量操作条 -->
+        <section class="bulk-bar">
+          <div class="bulk-left">
+            <el-checkbox :value="allSelected" :indeterminate="indeterminate" @change="onToggleAll">全选</el-checkbox>
+            <span class="bulk-count">已选 {{ selected.length }} 人</span>
+          </div>
+          <div class="bulk-right">
+            <button class="btn-bulk add" @click="openAddModal">
+              <i class="el-icon-plus" /> 新增人员
+            </button>
+            <button class="btn-bulk urge" :disabled="selected.length === 0" @click="onBatchUrge">
+              <i class="el-icon-alarm-clock" /> 批量催办
+            </button>
+            <button class="btn-bulk danger" :disabled="selected.length === 0" @click="onBatchDelete">
+              <i class="el-icon-delete" /> 批量删除
+            </button>
+          </div>
+        </section>
+
+        <!-- 成员列表 -->
+        <div v-loading="loading" class="members-wrap">
+          <div v-if="!loading && members.length === 0" class="empty-state">
+            <i class="el-icon-user" />
+            <p>该期次暂无人员</p>
+          </div>
+          <div v-else class="member-list">
+            <div v-for="m in members" :key="m.taskId" class="member-item" @click="openFlow(m)">
+              <div class="mi-check" @click.stop>
+                <el-checkbox :value="selected.includes(m.taskId)" @change="v => toggleSelect(m.taskId, v)" />
+              </div>
+              <div class="mi-left">
+                <div class="mi-avatar">{{ memberName(m).charAt(0) }}</div>
+                <div class="mi-info">
+                  <div class="mi-name">
+                    {{ memberName(m) }}
+                    <span class="mi-emp">{{ m.ownerEmpNo || '—' }}</span>
+                    <span class="status-chip" :class="statusClass(m.status)">{{ statusText(m.status) }}</span>
+                  </div>
+                  <div class="mi-dept">{{ m.ownerDept || '—' }}</div>
+                  <div class="mi-meta">
+                    <span><i class="el-icon-user" /> 当前处理人：{{ m.currentHandlerName || '—' }}</span>
+                    <span><i class="el-icon-s-claim" /> 当前节点：{{ m.currentNodeName || '—' }}</span>
+                    <span><i class="el-icon-odometer" /> 进度 {{ m.finishedNodeCount || 0 }}/{{ m.totalNodeCount || 0 }}</span>
+                  </div>
+                  <div class="progress-bar thin"><div class="progress-fill" :style="{ width: memberProgress(m) + '%' }" /></div>
+                  <div class="mi-nodes">
+                    <span
+                      v-for="(st, si) in (m.nodeSteps || [])"
+                      :key="si"
+                      class="node-chip"
+                      :class="'chip-' + st.status"
+                      :title="st.nodeName"
+                    >{{ st.stepNo }}.{{ st.nodeName }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mi-right" @click.stop>
+                <button v-if="m.status === 1" class="mi-urge" :disabled="urgingId === m.taskId" :title="'催办「' + (m.currentHandlerName || m.ownerName || '') + '」尽快处理'" @click="onUrge(m)">
+                  <i v-if="urgingId === m.taskId" class="el-icon-loading" />
+                  <i v-else class="el-icon-alarm-clock" /> 催办
+                </button>
+                <button class="mi-view" @click="openFlow(m)"><i class="el-icon-view" /> 查看流程</button>
+              </div>
+            </div>
+          </div>
+          <!-- 分页 -->
+          <div v-if="total > 0" class="pagination">
+            <el-pagination
+              background
+              layout="total, sizes, prev, pager, next"
+              :total="total"
+              :current-page.sync="page"
+              :page-size="limit"
+              :page-sizes="[10, 20, 50]"
+              @size-change="onSizeChange"
+              @current-change="onPageChange"
+            />
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 新增人员：复用生成期次的 UserPicker 选人弹窗 -->
+    <UserPicker
+      :visible="pickerVisible"
+      title="新增本期次人员（可多选，不影响任务配置）"
+      :exclude-ids="pickerExcludeIds"
+      @confirm="onAddMembers"
+      @close="pickerVisible = false"
+    />
+  </div>
+</template>
+
+<script>
+import { getTaskMembers, urgeTask, urgeTaskBatch, deleteTaskBatch } from '@/api/task'
+import { addPeriodMembers } from '@/api/flowDispatch'
+import UserPicker from '@/components/UserPicker/index.vue'
+
+export default {
+  name: 'PeriodUsers',
+  components: { UserPicker },
+  data() {
+    return {
+      loading: false,
+      dispatchId: null,
+      periodName: '',
+      taskName: '',
+      members: [],
+      total: 0,
+      page: 1,
+      limit: 10,
+      filters: { name: '', dept: '', status: '' },
+      urgingId: null,
+      selected: [],
+      pickerVisible: false,
+      adding: false,
+      memberUserIds: []
+    }
+  },
+  computed: {
+    allSelected() {
+      return this.members.length > 0 && this.members.every(m => this.selected.includes(m.taskId))
+    },
+    indeterminate() {
+      return this.selected.length > 0 && !this.allSelected
+    },
+    // 已在期次中的人员，UserPicker 中禁用勾选避免重复新增
+    pickerExcludeIds() {
+      return this.memberUserIds
+    }
+  },
+  created() {
+    this.dispatchId = this.$route.query.dispatchId || null
+    this.periodName = this.$route.query.periodName || ''
+    this.taskName = this.$route.query.taskName || ''
+    this.fetchMembers()
+  },
+  methods: {
+    toggleSelect(taskId, checked) {
+      if (checked) {
+        if (!this.selected.includes(taskId)) this.selected.push(taskId)
+      } else {
+        this.selected = this.selected.filter(id => id !== taskId)
+      }
+    },
+    onToggleAll(checked) {
+      if (checked) {
+        const ids = this.members.map(m => m.taskId).filter(id => !this.selected.includes(id))
+        this.selected = this.selected.concat(ids)
+      } else {
+        const pageIds = this.members.map(m => m.taskId)
+        this.selected = this.selected.filter(id => !pageIds.includes(id))
+      }
+    },
+    openAddModal() {
+      this.pickerVisible = true
+    },
+    async onAddMembers(users) {
+      if (!users || users.length === 0 || this.adding) return
+      this.adding = true
+      try {
+        const res = await addPeriodMembers(this.dispatchId, users.map(u => u.id))
+        const count = res.data != null ? res.data : users.length
+        this.$message.success(`已新增 ${count} 位人员`)
+        this.pickerVisible = false
+        this.page = 1
+        this.fetchMembers()
+      } catch (e) {
+        this.$message.error((e && e.message) || '新增失败')
+      } finally {
+        this.adding = false
+      }
+    },
+    async onBatchUrge() {
+      if (this.selected.length === 0) return
+      try {
+        await this.$confirm(`确定向已选的 ${this.selected.length} 位人员的当前处理人发送催办通知吗？`, '批量催办确认', {
+          confirmButtonText: '发送催办',
+          cancelButtonText: '取消',
+          type: 'warning',
+          confirmButtonClass: 'el-button--danger'
+        })
+        const res = await urgeTaskBatch(this.selected)
+        const count = res.data != null ? res.data : this.selected.length
+        this.$message.success(`已发送 ${count} 条催办通知（已完成/已作废人员自动跳过）`)
+        this.fetchMembers()
+      } catch (e) {
+        if (e !== 'cancel') this.$message.error((e && e.message) || '催办失败')
+      }
+    },
+    async onBatchDelete() {
+      if (this.selected.length === 0) return
+      try {
+        await this.$confirm(`确定删除已选的 ${this.selected.length} 位人员吗？将级联清除其全部节点、表单与附件，删除后无法恢复。`, '批量删除确认', {
+          confirmButtonText: '删除',
+          cancelButtonText: '取消',
+          type: 'warning',
+          confirmButtonClass: 'el-button--danger'
+        })
+        const res = await deleteTaskBatch(this.selected)
+        const count = res.data != null ? res.data : this.selected.length
+        this.$message.success(`已删除 ${count} 位人员`)
+        this.selected = []
+        this.fetchMembers()
+      } catch (e) {
+        if (e !== 'cancel') this.$message.error((e && e.message) || '删除失败')
+      }
+    },
+    memberName(m) { return m.ownerName || '—' },
+    statusText(s) { return { 1: '进行中', 2: '已完成', 3: '已作废', 0: '空' }[s] || '—' },
+    statusClass(s) { return { 1: 'status-running', 2: 'status-done', 3: 'status-cancel', 0: 'status-empty' }[s] || '' },
+    memberProgress(m) {
+      if (!m.totalNodeCount) return 0
+      return Math.round(((m.finishedNodeCount || 0) / m.totalNodeCount) * 100)
+    },
+    async fetchMembers() {
+      if (!this.dispatchId) return
+      this.loading = true
+      try {
+        const params = { page: this.page, limit: this.limit }
+        if (this.filters.name && this.filters.name.trim()) params.name = this.filters.name.trim()
+        if (this.filters.dept && this.filters.dept.trim()) params.dept = this.filters.dept.trim()
+        if (this.filters.status !== '') params.status = Number(this.filters.status)
+        const res = await getTaskMembers(this.dispatchId, params)
+        this.members = (res.data && res.data.records) || []
+        this.total = (res.data && res.data.total) || 0
+        this.memberUserIds = this.members.map(m => m.ownerUserId).filter(id => id != null)
+      } catch (e) {
+        console.error(e)
+      } finally {
+        this.loading = false
+        // 列表变化后清空勾选，避免选中已不在当前页的数据
+        this.selected = []
+      }
+    },
+    onSearch() { this.page = 1; this.fetchMembers() },
+    onReset() {
+      this.filters = { name: '', dept: '', status: '' }
+      this.page = 1
+      this.fetchMembers()
+    },
+    onSizeChange(size) { this.limit = size; this.page = 1; this.fetchMembers() },
+    onPageChange(p) { this.page = p; this.fetchMembers() },
+    openFlow(member) {
+      if (!member || !member.taskId) return
+      this.$router.push({
+        path: '/flow-dispatch/period-flow',
+        query: {
+          dispatchId: this.dispatchId || '',
+          taskId: member.taskId,
+          handlerId: member.ownerUserId,
+          realName: member.ownerName || '',
+          empNo: member.ownerEmpNo || '',
+          deptName: member.ownerDept || '',
+          periodName: this.periodName || '',
+          taskName: this.taskName || ''
+        }
+      })
+    },
+    onUrge(m) {
+      if (!m || !m.taskId) return
+      const target = m.currentHandlerName || m.ownerName || '该处理人'
+      this.$confirm(`确定向「${target}」发送催办通知吗？\n将提醒其在当前节点（${m.currentNodeName || '—'}）尽快处理。`, '催办确认', {
+        confirmButtonText: '发送催办',
+        cancelButtonText: '取消',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger'
+      }).then(async () => {
+        this.urgingId = m.taskId
+        try {
+          const res = await urgeTask(m.taskId)
+          this.$message.success(res.message || '催办通知已发送')
+          await this.fetchMembers()
+        } catch (e) {
+          this.$message.error((e && e.message) || '催办失败')
+        } finally {
+          this.urgingId = null
+        }
+      }).catch(() => {})
+    },
+    goBack() {
+      this.$router.push('/flow-dispatch/index')
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+$primary: #C53030;
+$border: #e4beba;
+.dashboard-container { display: flex; min-height: 100vh; background-color: #F5F7FA; font-family: 'Inter', sans-serif; color: #1b1c1c; }
+.main-content { width: 100%; display: flex; flex-direction: column; min-height: 100vh; }
+.page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; box-sizing: border-box; }
+.page-header { display: flex; justify-content: space-between; align-items: flex-end; }
+.breadcrumb { display: flex; gap: 8px; font-size: 12px; line-height: 20px; color: #414755; margin-bottom: 8px;
+  .active { color: $primary; font-weight: 600; }
+  .link { color: $primary; cursor: pointer;
+    &:hover { text-decoration: underline; }
+  }
+}
+.page-heading { font-size: 30px; line-height: 38px; font-weight: 600; color: #1b1c1c; }
+.btn-back { display: flex; align-items: center; gap: 4px; padding: 8px 16px; background: #fff; border: 1px solid $border; border-radius: 6px; color: #5b403d; cursor: pointer; font-size: 13px;
+  &:hover { background: #f6f3f2; }
+}
+.tip-bar { display: flex; align-items: center; gap: 8px; background: #FFF5F5; border: 1px solid $border; color: #8a4b46; font-size: 13px; border-radius: 10px; padding: 10px 14px;
+  i { color: $primary; }
+  .tip-sub { color: #b8a6a3; }
+}
+.filter-bar { background: #fff; border: 1px solid $border; border-radius: 10px; padding: 14px; }
+.filter-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  @media (max-width: 700px) { grid-template-columns: 1fr; }
+}
+.filter-item { display: flex; flex-direction: column; gap: 4px; }
+.filter-label { font-size: 12px; color: #757575; }
+.filter-select { height: 34px; border: 1px solid $border; border-radius: 4px; padding: 0 8px; font-size: 13px; outline: none; background: #fff;
+  &:focus { border-color: $primary; }
+}
+.filter-input { height: 34px; border: 1px solid $border; border-radius: 4px; padding: 0 10px; font-size: 13px; outline: none;
+  &:focus { border-color: $primary; }
+}
+.filter-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(228,190,186,0.3); }
+.filter-actions-right { display: flex; gap: 8px; margin-left: auto; }
+.bulk-bar { display: flex; justify-content: space-between; align-items: center; background: #fff; border: 1px solid $border; border-radius: 10px; padding: 10px 16px; }
+.bulk-left { display: flex; align-items: center; gap: 12px; }
+.bulk-count { font-size: 13px; color: $primary; font-weight: 600; }
+.bulk-right { display: flex; gap: 8px; }
+.btn-bulk { display: inline-flex; align-items: center; gap: 4px; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s; border: 1px solid transparent;
+  &.add { background: $primary; color: #fff; border-color: $primary;
+    &:hover { opacity: 0.9; }
+  }
+  &.urge { background: #FFFBF2; color: #b7791f; border-color: rgba(183,121,31,0.5);
+    &:hover { background: rgba(183,121,31,0.12); }
+  }
+  &.danger { background: #fff; color: #ba1a1a; border-color: rgba(186,26,26,0.4);
+    &:hover { background: rgba(186,26,26,0.06); }
+  }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+}
+.member-count { font-size: 12px; color: #757575; }
+.btn-reset { padding: 0 14px; height: 32px; border: 1px solid $border; border-radius: 4px; font-size: 13px; color: #5b403d; background: #fff; cursor: pointer;
+  &:hover { background: #f6f3f2; }
+}
+.btn-search { padding: 0 14px; height: 32px; border: none; border-radius: 4px; font-size: 13px; font-weight: bold; color: #fff; background: $primary; cursor: pointer;
+  &:hover { opacity: 0.9; }
+}
+.members-wrap { min-height: 180px; }
+.empty-state { text-align: center; padding: 48px 20px; color: #bbb; background: #fff; border: 1px solid $border; border-radius: 10px;
+  i { font-size: 42px; display: block; margin-bottom: 10px; }
+  p { font-size: 13px; margin: 0; }
+}
+.member-list { display: flex; flex-direction: column; gap: 10px; }
+.member-item { display: flex; justify-content: space-between; align-items: center; background: #fff; border: 1px solid $border; border-radius: 8px; padding: 14px 16px; transition: all .2s; cursor: pointer;
+  &:hover { box-shadow: 0 3px 10px rgba(197,48,48,0.12); border-color: $primary; }
+}
+.mi-check { flex-shrink: 0; margin-right: 10px; display: flex; align-items: center; }
+.mi-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+.mi-avatar { width: 42px; height: 42px; border-radius: 50%; background: $primary; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 19px; font-weight: 600; flex-shrink: 0; }
+.mi-info { flex: 1; min-width: 0; }
+.mi-name { font-size: 14px; font-weight: 700; color: #1b1c1c; }
+.mi-emp { font-size: 12px; color: #757575; font-weight: 400; margin-left: 6px; font-family: monospace; }
+.mi-dept { font-size: 12px; color: #757575; margin-top: 2px; }
+.mi-name .status-chip { margin-left: 8px; }
+.status-chip { padding: 2px 8px; border-radius: 2px; font-size: 12px; font-weight: 600; display: inline-flex; border: 1px solid transparent; }
+.status-running { background: rgba(197,48,48,0.1); border-color: $primary; color: $primary; }
+.status-done { background: rgba(38,109,0,0.1); border-color: #266d00; color: #266d00; }
+.status-cancel { background: rgba(186,26,26,0.1); border-color: #ba1a1a; color: #ba1a1a; }
+.status-empty { background: rgba(144,147,153,0.1); border-color: #909399; color: #909399; }
+.mi-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: #757575; margin-top: 5px;
+  i { margin-right: 2px; }
+}
+.progress-bar.thin { width: 100%; height: 5px; background: #f0f0f0; border-radius: 3px; margin-top: 6px; overflow: hidden; }
+.progress-fill { height: 100%; background: $primary; border-radius: 3px; transition: width .3s; }
+.mi-nodes { display: flex; align-items: center; gap: 4px; margin-top: 6px; overflow-x: auto; white-space: nowrap;
+  &::-webkit-scrollbar { height: 4px; }
+  &::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+}
+.node-chip { padding: 2px 9px; border-radius: 4px; font-size: 11px; font-weight: 600; flex-shrink: 0; line-height: 1.6; }
+.chip-done { background: #266d00; color: #fff; }
+.chip-current { background: rgba(197,48,48,0.14); color: $primary; border: 1px solid rgba(197,48,48,0.4); }
+.chip-rejected { background: rgba(183,121,31,0.16); color: #b7791f; border: 1px solid rgba(183,121,31,0.45); }
+.chip-pending { background: #f0f0f0; color: #aaa; }
+.mi-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-left: 12px; }
+.mi-urge { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; border: 1px solid rgba(183,121,31,0.5); background: #FFFBF2; color: #b7791f; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  &:hover { background: rgba(183,121,31,0.12); border-color: #b7791f; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+.mi-view { display: inline-flex; align-items: center; gap: 3px; padding: 5px 10px; border: 1px solid $border; background: #fff; color: $primary; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+  &:hover { background: #FFF5F5; border-color: $primary; }
+}
+.pagination { display: flex; justify-content: flex-end; align-items: center; padding: 14px 16px; background: #fff; border: 1px solid $border; border-radius: 10px; margin-top: 12px; }
+</style>

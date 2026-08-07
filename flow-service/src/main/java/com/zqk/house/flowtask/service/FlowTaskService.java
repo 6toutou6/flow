@@ -435,6 +435,8 @@ public class FlowTaskService {
         tfw.eq(FlowTemplateField::getTemplateId, templateId);
         Map<Long, String> labelMap = flowTemplateFieldMapper.selectList(tfw).stream()
                 .collect(Collectors.toMap(FlowTemplateField::getId, FlowTemplateField::getFieldLabel, (a, b) -> a));
+        Map<Long, String> typeMap = flowTemplateFieldMapper.selectList(tfw).stream()
+                .collect(Collectors.toMap(FlowTemplateField::getId, FlowTemplateField::getFieldType, (a, b) -> a));
         Map<Long, List<FormDataItemVO>> byTn = new HashMap<>();
         for (FlowTaskNode tn : tns) {
             if (tn.getBaseData() == null || tn.getBaseData().trim().isEmpty()) continue;
@@ -444,6 +446,7 @@ public class FlowTaskService {
                 FormDataItemVO item = new FormDataItemVO();
                 item.setFieldLabel(labelMap.getOrDefault(e.getKey(), String.valueOf(e.getKey())));
                 item.setFieldValue(e.getValue());
+                item.setFieldType(typeMap.get(e.getKey()));
                 return item;
             }).collect(Collectors.toList());
             byTn.put(tn.getId(), items);
@@ -491,6 +494,8 @@ public class FlowTaskService {
         List<FlowTemplateField> tplFields = flowTemplateFieldMapper.selectList(tfw);
         Map<Long, String> labelMap = tplFields.stream()
                 .collect(Collectors.toMap(FlowTemplateField::getId, FlowTemplateField::getFieldLabel, (a, b) -> a));
+        Map<Long, String> typeMap = tplFields.stream()
+                .collect(Collectors.toMap(FlowTemplateField::getId, FlowTemplateField::getFieldType, (a, b) -> a));
         // 按 recordId 分组
         Map<Long, List<FlowFormData>> dataByRecord = allData.stream()
                 .collect(Collectors.groupingBy(FlowFormData::getRecordId));
@@ -503,6 +508,7 @@ public class FlowTaskService {
                 FormDataItemVO item = new FormDataItemVO();
                 item.setFieldLabel(labelMap.getOrDefault(fd.getFieldId(), fd.getFieldKey()));
                 item.setFieldValue(fd.getFieldValue());
+                item.setFieldType(typeMap.get(fd.getFieldId()));
                 return item;
             }).collect(Collectors.toList());
             n.setFormDataList(items);
@@ -1004,6 +1010,31 @@ public class FlowTaskService {
         recordFlowLog(task, pendingNode, loginUser, 2,
                 "已发送催办通知" + (pendingNode != null ? "（当前节点「" + pendingNode.getNodeName() + "」）" : ""));
         return true;
+    }
+
+    /** 批量催办：跳过已完成/已作废等不可催办项，返回实际催办成功数 */
+    @Transactional(rollbackFor = Exception.class)
+    public int urgeTaskBatch(List<Long> taskIds) {
+        if (taskIds == null || taskIds.isEmpty()) throw new RuntimeException("请选择要催办的人员");
+        int count = 0;
+        for (Long taskId : taskIds) {
+            FlowTask task = flowTaskMapper.selectById(taskId);
+            if (task == null || task.getStatus() != 1) continue;
+            if (urgeTask(taskId)) count++;
+        }
+        return count;
+    }
+
+    /** 批量删除成员任务（级联清理节点/表单/附件），返回实际删除数 */
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteBatch(List<Long> taskIds) {
+        if (taskIds == null || taskIds.isEmpty()) throw new RuntimeException("请选择要删除的人员");
+        int count = 0;
+        for (Long taskId : taskIds) {
+            if (flowTaskMapper.selectById(taskId) == null) continue;
+            if (delete(taskId)) count++;
+        }
+        return count;
     }
 
     /** 查询任务的流转/催办日志（按时间正序） */

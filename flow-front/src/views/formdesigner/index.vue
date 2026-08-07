@@ -170,6 +170,11 @@
               </div>
               <div class="role-tip">仅记录文件名（第一版存文件名文本），处理人在该节点处理时可见</div>
             </div>
+            <div class="prop-group">
+              <label class="prop-label">下一步处理人提示</label>
+              <textarea v-model="currentNode.node.nextHandlerTip" class="prop-textarea" rows="2" placeholder="告诉处理人提交后应交给谁（如：请选择需求负责人作为下一步处理人）"></textarea>
+              <div class="role-tip">处理人提交本节点、选择下一处理人时展示</div>
+            </div>
             <p v-if="currentNode.node.nodeType === 3" class="prop-hint">结束节点提交后任务即完成，无需指定下一处理人</p>
           </div>
         </div>
@@ -452,7 +457,8 @@ export default {
           nodeType: 2,
           nodeTips: '',
           guideText: '',
-          guideFiles: null
+          guideFiles: null,
+          nextHandlerTip: ''
         },
         fields: []
       })
@@ -471,7 +477,8 @@ export default {
           nodeType: 2,
           nodeTips: src.node.nodeTips || '',
           guideText: src.node.guideText || '',
-          guideFiles: src.node.guideFiles || null
+          guideFiles: src.node.guideFiles || null,
+          nextHandlerTip: src.node.nextHandlerTip || ''
         },
         fields: (src.fields || []).map(f => ({
           id: null,
@@ -687,7 +694,7 @@ export default {
       }
     },
     goBack() {
-      this.$router.push('/flow-template/index')
+      this.$router.push('/flow-dispatch/flow-template')
     }
   }
 }

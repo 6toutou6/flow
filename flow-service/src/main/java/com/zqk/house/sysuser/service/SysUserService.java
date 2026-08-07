@@ -2,6 +2,7 @@ package com.zqk.house.sysuser.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.zqk.house.config.SuperAdminProperties;
 import com.zqk.house.sysuser.entity.SysUser;
 import com.zqk.house.sysuser.mapper.SysUserMapper;
 import com.zqk.house.user.vo.LoginResponse;
@@ -19,6 +20,9 @@ public class SysUserService {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private SuperAdminProperties superAdminProperties;
 
     public PageResult<SysUser> getPage(Integer page, Integer limit,
                                        String username, String empNo,
@@ -63,6 +67,7 @@ public class SysUserService {
         }
         String token = jwtUtil.generateToken(username);
         dbUser.setPassword(null);
+        dbUser.setSuperAdmin(superAdminProperties.isSuperAdmin(dbUser.getEmpNo(), dbUser.getRealName()));
         return new LoginResponse("Bearer " + token, dbUser);
     }
 
@@ -73,6 +78,7 @@ public class SysUserService {
         SysUser user = sysUserMapper.selectByUsernameWithPassword(username);
         if (user != null) {
             user.setPassword(null);
+            user.setSuperAdmin(superAdminProperties.isSuperAdmin(user.getEmpNo(), user.getRealName()));
         }
         return user;
     }

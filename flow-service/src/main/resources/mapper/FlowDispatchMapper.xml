@@ -30,6 +30,10 @@
             <if test="status != null">
                 AND d.status = #{status}
             </if>
+            <!-- 部门可见性：样例公共可见 或 同部门创建；deptId 为 null（超管）时不加过滤 -->
+            <if test="deptId != null">
+                AND (d.is_sample = 1 OR d.dept_id = #{deptId})
+            </if>
         </where>
         ORDER BY d.create_time DESC, d.id DESC
         LIMIT #{offset}, #{limit}
@@ -43,6 +47,9 @@
             </if>
             <if test="status != null">
                 AND d.status = #{status}
+            </if>
+            <if test="deptId != null">
+                AND (d.is_sample = 1 OR d.dept_id = #{deptId})
             </if>
         </where>
     </select>

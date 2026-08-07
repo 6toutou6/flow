@@ -50,6 +50,8 @@
             <thead>
               <tr>
                 <th>配置名称</th>
+                <th>创建人</th>
+                <th>创建部门</th>
                 <th>周期</th>
                 <th>触发日</th>
                 <th class="text-center">截止</th>
@@ -61,7 +63,12 @@
             </thead>
             <tbody>
               <tr v-for="t in list" :key="t.id" class="hover-row">
-                <td class="font-bold">{{ t.configName }}</td>
+                <td class="font-bold">
+                  {{ t.configName }}
+                  <span v-if="t.isSample === 1" class="sample-tag">样例</span>
+                </td>
+                <td>{{ t.creatorName || '—' }}</td>
+                <td>{{ t.deptName || '—' }}</td>
                 <td>{{ cycleText(t) }}</td>
                 <td>{{ cycleDayText(t) }}</td>
                 <td class="text-center">触发后 {{ t.deadlineDays || '—' }} 天</td>
@@ -69,8 +76,11 @@
                 <td class="remark-cell" :title="t.remark">{{ t.remark || '—' }}</td>
                 <td>{{ t.updateTime || '—' }}</td>
                 <td class="text-right">
-                  <button class="action-link" @click="openEdit(t)"><i class="el-icon-edit" /> 编辑</button>
-                  <button class="action-link text-error" @click="onDelete(t)"><i class="el-icon-delete" /> 删除</button>
+                  <template v-if="isSuperAdmin">
+                    <button class="action-link" @click="toggleSample(t)"><i class="el-icon-star-off" /> {{ t.isSample === 1 ? '取消样例' : '设为样例' }}</button>
+                  </template>
+                  <button class="action-link" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例配置模板仅超管可修改' : ''" @click="openEdit(t)"><i class="el-icon-edit" /> 编辑</button>
+                  <button class="action-link text-error" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例配置模板仅超管可删除' : ''" @click="onDelete(t)"><i class="el-icon-delete" /> 删除</button>
                 </td>
               </tr>
             </tbody>
@@ -82,7 +92,7 @@
 </template>
 
 <script>
-import { getConfigTemplates, deleteConfigTemplate } from '@/api/flowDispatch'
+import { getConfigTemplates, deleteConfigTemplate, toggleConfigTemplateSample } from '@/api/flowDispatch'
 
 export default {
   name: 'FlowDispatchConfigTemplate',
@@ -93,10 +103,28 @@ export default {
       list: []
     }
   },
+  computed: {
+    isSuperAdmin() {
+      return !!(this.$store.state.user.userInfo && this.$store.state.user.userInfo.superAdmin)
+    }
+  },
   created() {
     this.fetchList()
   },
   methods: {
+    /** 样例锁定：非超管用户对样例配置模板不可改/删 */
+    isSampleLocked(t) {
+      return !this.isSuperAdmin && t.isSample === 1
+    },
+    async toggleSample(t) {
+      try {
+        await toggleConfigTemplateSample(t.id)
+        this.$message.success(t.isSample === 1 ? '已取消样例' : '已设为样例')
+        this.fetchList()
+      } catch (e) {
+        this.$message.error((e && e.message) || '操作失败')
+      }
+    },
     async fetchList() {
       this.loading = true
       try {
@@ -153,7 +181,7 @@ $primary: #C53030;
 $border: #e4beba;
 .dashboard-container { display: flex; min-height: 100vh; background-color: #F5F7FA; font-family: 'Inter', sans-serif; color: #1b1c1c; }
 .main-content { width: 100%; display: flex; flex-direction: column; min-height: 100vh; }
-.page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; max-width: 1080px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+.page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; box-sizing: border-box; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; }
 .breadcrumb { display: flex; gap: 8px; font-size: 12px; line-height: 20px; color: #414755; margin-bottom: 8px;
   .active { color: $primary; font-weight: 600; }
@@ -190,17 +218,18 @@ $border: #e4beba;
 .loading-bar { display: flex; align-items: center; gap: 6px; justify-content: center; padding: 16px; color: $primary; font-size: 13px; }
 .tpl-card { background: #fff; border: 1px solid $border; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
 .tpl-table { width: 100%; text-align: left; border-collapse: collapse;
-  th { padding: 10px 12px; font-weight: 700; color: #414755; background: #FAFAFA; border-bottom: 1px solid $border; font-size: 13px; }
-  td { padding: 10px 12px; border-bottom: 1px solid $border; font-size: 13px; }
+  th { padding: 14px 18px; font-weight: 700; color: #414755; background: #FAFAFA; border-bottom: 1px solid $border; font-size: 13px; white-space: nowrap; }
+  td { padding: 13px 18px; border-bottom: 1px solid $border; font-size: 13px; line-height: 1.6; vertical-align: middle; }
   tbody tr:last-child td { border-bottom: none; }
-  .hover-row:hover { background: #FFF5F5; }
+  tbody tr:hover { background: #FFF9F9; }
 }
 .font-bold { font-weight: 700; }
+.sample-tag { display: inline-block; padding: 2px 8px; background: rgba(183,121,31,0.14); color: #b7791f; border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 6px; }
 .text-center { text-align: center; }
 .text-right { text-align: right; }
-.remark-cell { max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.action-link { color: $primary; background: none; border: none; cursor: pointer; font-size: 13px; margin-left: 8px;
-  &:hover { text-decoration: underline; }
+.remark-cell { max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #757575; }
+.action-link { color: $primary; background: none; border: none; cursor: pointer; font-size: 13px; margin-left: 10px; padding: 4px 6px; border-radius: 4px;
+  &:hover { background: rgba(197,48,48,0.08); text-decoration: none; }
 }
 .text-error { color: #ba1a1a; }
 </style>

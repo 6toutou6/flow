@@ -38,8 +38,8 @@
               <el-option v-for="t in templates" :key="t.id" :label="t.templateName" :value="t.id" />
             </el-select>
           </div>
-          <!-- 模板配置信息（模板级字段，任务配置好后期次抄用） -->
-          <div v-if="creatorFields.length" class="tpl-fields-box">
+          <!-- 模板配置信息（模板级字段，任务配置好后期次抄用；下方为模板流程预览） -->
+          <div v-if="creatorFields.length || templateNodes.length" class="tpl-fields-box">
             <div class="tpl-fields-title">
               <i class="el-icon-collection" /> 模板配置信息
               <span class="tpl-fields-tip">（期次生成时自动抄用，处理人与后台可见）</span>
@@ -57,6 +57,50 @@
                 <el-checkbox v-for="opt in parseOptions(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-checkbox>
               </el-checkbox-group>
               <el-input v-else v-model="templateForm[f.id]" :placeholder="f.placeholder || '请输入' + f.fieldLabel" />
+            </div>
+            <!-- 模板流程预览（横向流程链，点击节点展开查看表单字段） -->
+            <div v-if="templateNodes.length > 0" class="tpl-flow-preview">
+              <div class="tpl-flow-title">
+                <i class="el-icon-set-up" /> 模板流程预览
+                <span class="tpl-fields-tip">（节点横向展示，点击节点可查看该节点填写的表单字段）</span>
+              </div>
+              <div class="chain-track-h">
+                <div v-for="(nv, ni) in templateNodes" :key="ni" class="chain-seg">
+                  <div
+                    class="chain-chip"
+                    :class="['chip-pending', { clickable: true, expanded: expandedNodeIdx === ni }]"
+                    :title="`${ni + 1}. ${nodeName(nv)}`"
+                    @click="toggleNodePreview(ni)"
+                  >
+                    <span class="cc-no">{{ ni + 1 }}</span>
+                    <span class="cc-name">{{ nodeName(nv) }}</span>
+                    <span v-if="isStartNode(nv)" class="cc-tag">开始</span>
+                    <span v-else-if="isEndNode(nv)" class="cc-tag">结束</span>
+                    <span v-if="nodeFields(nv).length > 0" class="cc-count">{{ nodeFields(nv).length }} 字段</span>
+                  </div>
+                  <span v-if="ni < templateNodes.length - 1" class="chain-arrow"><i class="el-icon-right" /></span>
+                </div>
+              </div>
+              <!-- 点击节点展开的字段详情 -->
+              <div v-if="expandedNode" class="node-detail" @click.stop>
+                <div class="nd-head">
+                  <span class="nd-no">{{ expandedNodeIdx + 1 }}</span>
+                  <span class="nd-name">{{ nodeName(expandedNode) }}</span>
+                  <span v-if="expandedNode.node && expandedNode.node.nodeTips" class="nd-tips">{{ expandedNode.node.nodeTips }}</span>
+                </div>
+                <div v-if="expandedNode.node && expandedNode.node.nextHandlerTip" class="nd-tip-next"><i class="el-icon-user" /> 下一步处理人提示：{{ expandedNode.node.nextHandlerTip }}</div>
+                <div v-if="nodeFields(expandedNode).length > 0" class="nd-fields">
+                  <div v-for="(f, fi) in nodeFields(expandedNode)" :key="fi" class="nd-field-row">
+                    <span class="ndf-label">
+                      {{ f.fieldLabel }}
+                      <span v-if="f.required === 1" class="req">*</span>
+                    </span>
+                    <span class="ndf-type">{{ fieldTypeText(f.fieldType) }}</span>
+                    <span v-if="f.enumOptions" class="ndf-options">选项：{{ optionsText(f) }}</span>
+                  </div>
+                </div>
+                <div v-else class="nd-empty">该节点无需填写表单字段</div>
+              </div>
             </div>
           </div>
         </div>
@@ -218,6 +262,9 @@ export default {
       },
       templateFields: [],
       templateForm: {},
+      // 模板流程预览（节点链 + 当前展开节点）
+      templateNodes: [],
+      expandedNodeIdx: -1,
       firstHandlers: [],
       pickerVisible: false,
       // 下发配置模板
@@ -255,6 +302,10 @@ export default {
       if (!this.triggerDate || !this.form.urgeDays) return null
       const end = addDays(this.triggerDate, this.form.deadlineDays)
       return fmtDate(addDays(end, -this.form.urgeDays)) + ' ' + weekName(addDays(end, -this.form.urgeDays))
+    },
+    // 当前展开预览的模板节点
+    expandedNode() {
+      return this.expandedNodeIdx >= 0 ? this.templateNodes[this.expandedNodeIdx] : null
     }
   },
   created() {
@@ -347,14 +398,45 @@ export default {
       try {
         const res = await getTemplateDetail(templateId)
         this.templateFields = (res.data && res.data.templateFields) || []
+        this.templateNodes = (res.data && res.data.nodes) || []
+        this.expandedNodeIdx = -1
         this.templateForm = {}
       } catch (e) {
         console.error(e)
         this.templateFields = []
+        this.templateNodes = []
       }
     },
     onTemplateChange(id) {
       this.loadTemplateFields(id)
+    },
+    // ===== 模板流程预览方法 =====
+    nodeName(nv) {
+      return (nv && nv.node && nv.node.nodeName) || '未命名节点'
+    },
+    isStartNode(nv) {
+      return nv && nv.node && nv.node.nodeType === 1
+    },
+    isEndNode(nv) {
+      return nv && nv.node && nv.node.nodeType === 3
+    },
+    nodeFields(nv) {
+      return (nv && nv.fields) || []
+    },
+    toggleNodePreview(idx) {
+      this.expandedNodeIdx = this.expandedNodeIdx === idx ? -1 : idx
+    },
+    fieldTypeText(t) {
+      return { text: '单行文本', textarea: '多行文本', number: '数字', date: '日期', radio: '单选', checkbox: '多选', file: '文件', image: '图片' }[t] || t || '—'
+    },
+    optionsText(f) {
+      try {
+        const arr = JSON.parse(f.enumOptions)
+        if (!Array.isArray(arr)) return '—'
+        return arr.map(o => o.label || o.value).join('、')
+      } catch (e) {
+        return '—'
+      }
     },
     onCycleChange() {
       this.form.cycleDay = this.form.cycleType === 1 ? 1 : (this.form.cycleType === 4 ? null : 1)
@@ -506,7 +588,7 @@ $primary: #C53030;
 $border: #e4beba;
 .dashboard-container { display: flex; min-height: 100vh; background-color: #F5F7FA; font-family: 'Inter', sans-serif; color: #1b1c1c; }
 .main-content { width: 100%; display: flex; flex-direction: column; min-height: 100vh; }
-.page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; max-width: 1080px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+.page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; box-sizing: border-box; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; }
 .breadcrumb { display: flex; gap: 8px; font-size: 12px; line-height: 20px; color: #414755; margin-bottom: 8px;
   .active { color: $primary; font-weight: 600; }
@@ -541,11 +623,47 @@ $border: #e4beba;
 .field-tip { font-size: 12px; color: #909399; }
 .cycle-tip { font-size: 12px; color: #8a4b46; background: #FFF5F5; border-radius: 6px; padding: 7px 10px; margin-bottom: 14px; line-height: 1.6; }
 .tpl-fields-box { margin-top: 8px; padding: 16px; border: 1px dashed $border; border-radius: 8px; background: #FFF5F5; }
+.tpl-flow-preview { margin-top: 10px; padding: 14px 16px; background: #fff; border: 1px solid rgba(197,48,48,0.35); border-radius: 8px; box-shadow: 0 1px 4px rgba(197,48,48,0.08); }
+.tpl-flow-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: #1b1c1c; margin-bottom: 10px;
+  i { color: $primary; }
+}
+// 横向流程链（参考任务处理弹窗样式）
+.chain-track-h { display: flex; align-items: center; gap: 6px; overflow-x: auto; white-space: nowrap; padding: 4px 0 6px;
+  &::-webkit-scrollbar { height: 4px; }
+  &::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+}
+.chain-seg { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.chain-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; flex-shrink: 0; line-height: 1.5; border: 1px solid transparent;
+  &.chip-pending { background: #f0f0f0; color: #757575; border: 1px solid $border; }
+  &.clickable { cursor: pointer;
+    &:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); border-color: $primary; color: $primary; }
+  }
+  &.expanded { border-color: $primary; background: #FFF5F5; color: $primary; box-shadow: 0 0 0 2px rgba(197,48,48,0.2); }
+}
+.cc-no { width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,0.12); display: inline-flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+.chain-arrow { color: #ccc; font-size: 14px; flex-shrink: 0; }
+.cc-tag { font-size: 11px; background: $primary; color: #fff; padding: 0 6px; border-radius: 3px; line-height: 1.6; flex-shrink: 0; }
+.cc-count { font-size: 11px; color: #999; font-weight: 400; }
+// 节点详情（点击节点展开）
+.node-detail { margin-top: 10px; padding: 12px 14px; background: #fff; border: 1px dashed $border; border-radius: 8px; }
+.nd-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.nd-no { width: 22px; height: 22px; border-radius: 50%; background: $primary; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.nd-name { font-size: 14px; font-weight: 700; color: #1b1c1c; }
+.nd-tips { font-size: 12px; color: #8a4b46; background: #FFF5F5; border-radius: 4px; padding: 3px 8px; line-height: 1.5; }
+.nd-tip-next { font-size: 12px; color: #b7791f; background: rgba(183,121,31,0.08); border-radius: 4px; padding: 5px 9px; margin-bottom: 8px; line-height: 1.5;
+  i { margin-right: 3px; }
+}
+.nd-fields { display: flex; flex-direction: column; gap: 4px; }
+.nd-field-row { display: flex; align-items: baseline; gap: 10px; padding: 6px 10px; background: #f7f7f9; border-radius: 4px; font-size: 13px; }
+.ndf-label { font-weight: 600; color: #1b1c1c; min-width: 120px; }
+.ndf-type { color: $primary; font-size: 12px; background: rgba(197,48,48,0.08); border-radius: 3px; padding: 1px 7px; flex-shrink: 0; }
+.ndf-options { color: #757575; font-size: 12px; flex: 1; word-break: break-all; }
+.nd-empty { font-size: 12px; color: #bbb; padding: 6px 0; }
 .tpl-fields-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: #1b1c1c; margin-bottom: 12px;
   i { color: $primary; }
 }
 .tpl-fields-tip { font-size: 12px; color: #999; font-weight: 400; }
-.tpl-pick-card { margin-bottom: 16px; padding: 12px 14px; border: 1px dashed $border; border-radius: 8px; background: #FFF5F5; }
+.tpl-pick-card { margin-bottom: 16px; padding: 12px 14px; border: 1px dashed rgba(197,48,48,0.35); border-radius: 8px; background: #FFF5F5; }
 .tpl-pick-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 700; color: #1b1c1c; margin-bottom: 10px;
   i { color: $primary; }
 }
@@ -556,7 +674,7 @@ $border: #e4beba;
 .tpl-picked-tip { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #266d00; background: rgba(38,109,0,0.08); border-radius: 6px; padding: 6px 10px;
   i { color: #266d00; }
 }
-.preview-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 4px; padding: 10px 14px; background: #FFF9F9; border: 1px dashed $border; border-radius: 8px; }
+.preview-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 4px; padding: 10px 14px; background: #FFF9F9; border: 1px dashed rgba(197,48,48,0.35); border-radius: 8px; }
 .pv-item { display: flex; flex-direction: column; gap: 2px;
   .pv-label { font-size: 11px; color: #909399; }
   b { font-size: 13px; color: #1b1c1c; }

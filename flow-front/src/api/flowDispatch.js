@@ -52,6 +52,14 @@ export function toggleDispatchPlanStatus(id) {
   })
 }
 
+// 设置/取消样例（仅超管）
+export function toggleDispatchSample(id) {
+  return request({
+    url: `/flow-dispatch/sample/${id}`,
+    method: 'put'
+  })
+}
+
 // 删除任务（仅当任务下无任何期次时允许）
 export function deleteDispatchPlan(id) {
   return request({
@@ -114,10 +122,27 @@ export function saveConfigTemplate(data) {
   })
 }
 
-// 删除配置模板（不影响已拉取到任务上的配置）
+// 删除下发配置模板
 export function deleteConfigTemplate(id) {
   return request({
     url: `/flow-dispatch/config-template/delete/${id}`,
     method: 'delete'
+  })
+}
+
+// 设置/取消下发配置模板样例（仅超管）
+export function toggleConfigTemplateSample(id) {
+  return request({
+    url: `/flow-dispatch/config-template/sample/${id}`,
+    method: 'put'
+  })
+}
+
+// 期次新增人员：抄用期次配置为每位新人员创建独立提交任务
+export function addPeriodMembers(dispatchId, userIds) {
+  return request({
+    url: `/flow-dispatch/${dispatchId}/period/add-members`,
+    method: 'post',
+    data: { userIds }
   })
 }

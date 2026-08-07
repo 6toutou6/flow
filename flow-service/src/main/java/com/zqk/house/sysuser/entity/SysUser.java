@@ -44,6 +44,10 @@ public class SysUser {
     /** 状态 0禁用 1正常 */
     private Integer status;
 
+    /** 是否超管（后端配置文件判定，非数据库字段，前端展示用） */
+    @TableField(exist = false)
+    private Boolean superAdmin;
+
     /** 创建时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;

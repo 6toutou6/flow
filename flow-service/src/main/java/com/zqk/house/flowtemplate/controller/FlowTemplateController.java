@@ -40,12 +40,30 @@ public class FlowTemplateController {
 
     @PutMapping("/update")
     public Result<Void> update(@RequestBody FlowTemplate template) {
-        return flowTemplateService.update(template) ? Result.success("更新成功") : Result.fail("更新失败");
+        try {
+            return flowTemplateService.update(template) ? Result.success("更新成功") : Result.fail("更新失败");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
     }
 
     @PutMapping("/toggle-status/{id}")
     public Result<Void> toggleStatus(@PathVariable Long id) {
-        return flowTemplateService.toggleStatus(id) ? Result.success("操作成功") : Result.fail("操作失败");
+        try {
+            return flowTemplateService.toggleStatus(id) ? Result.success("操作成功") : Result.fail("操作失败");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
+    /** 设置/取消样例：仅超管可操作（样例公共可见、不可改，模板可复制） */
+    @PutMapping("/sample/{id}")
+    public Result<Void> toggleSample(@PathVariable Long id) {
+        try {
+            return flowTemplateService.toggleSample(id) ? Result.success("操作成功") : Result.fail("操作失败");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
     }
 
     @PostMapping("/copy/{id}")
@@ -56,7 +74,11 @@ public class FlowTemplateController {
 
     @DeleteMapping("/delete/{id}")
     public Result<Void> delete(@PathVariable Long id) {
-        return flowTemplateService.delete(id) ? Result.success("删除成功") : Result.fail("删除失败");
+        try {
+            return flowTemplateService.delete(id) ? Result.success("删除成功") : Result.fail("删除失败");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
     }
 
     @GetMapping("/stats")

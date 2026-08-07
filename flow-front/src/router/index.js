@@ -29,6 +29,7 @@ import Layout from '@/layout'
  * constantRoutes
  * a base page that does not have permission requirements
  * all roles can be accessed
+ * 菜单顺序：普通用户（任务处理）→ 管理员 → 超管；不做路由权限控制，数据返回由后端按登录用户区分
  */
 export const constantRoutes = [
   {
@@ -45,90 +46,24 @@ export const constantRoutes = [
 
   {
     path: '/',
-    component: Layout,
-    redirect: '/data-admin',
-    children: [{
-      path: 'dashboard',
-      name: 'Dashboard',
-      component: () => import('@/views/dashboard/index'),
-      meta: { title: 'Dashboard', icon: 'dashboard' }
-    }]
+    redirect: '/task-process/index'
   },
 
+  // ==================== 普通用户：任务处理（我的任务） ====================
   {
-    path: '/example',
-    component: Layout,
-    redirect: '/example/table',
-    name: 'Example',
-    meta: { title: 'Example', icon: 'el-icon-s-help' },
-    children: [
-      {
-        path: 'table',
-        name: 'Table',
-        component: () => import('@/views/table/index'),
-        meta: { title: 'Table', icon: 'table' }
-      },
-      {
-        path: 'tree',
-        name: 'Tree',
-        component: () => import('@/views/tree/index'),
-        meta: { title: 'Tree', icon: 'tree' }
-      }
-    ]
-  },
-
-  {
-    path: '/form',
+    path: '/task-process',
     component: Layout,
     children: [
       {
         path: 'index',
-        name: 'Form',
-        component: () => import('@/views/form/index'),
-        meta: { title: 'Form', icon: 'form' }
+        name: 'TaskProcess',
+        component: () => import('@/views/taskprocess/index'),
+        meta: { title: '任务处理', icon: 'el-icon-s-claim' }
       }
     ]
   },
 
-  {
-    path: '/correctPerson',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: 'CorrectPerson',
-        component: () => import('@/views/correctPerson/index'),
-        meta: { title: '整改确认', icon: 'el-icon-user' }
-      }
-    ]
-  },
-
-  {
-    path: '/sysuser',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: 'SysUser',
-        component: () => import('@/views/sysuser/index'),
-        meta: { title: '用户管理', icon: 'el-icon-s-custom' }
-      }
-    ]
-  },
-
-  {
-    path: '/flow-template',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: 'FlowTemplate',
-        component: () => import('@/views/flowtemplate/index'),
-        meta: { title: '模板管理', icon: 'el-icon-document' }
-      }
-    ]
-  },
-
+  // ==================== 管理员 ====================
   {
     path: '/flow-dispatch',
     component: Layout,
@@ -140,6 +75,12 @@ export const constantRoutes = [
         name: 'FlowDispatch',
         component: () => import('@/views/flowdispatch/index'),
         meta: { title: '任务管理', icon: 'el-icon-s-order' }
+      },
+      {
+        path: 'flow-template',
+        name: 'FlowTemplate',
+        component: () => import('@/views/flowtemplate/index'),
+        meta: { title: '模板管理', icon: 'el-icon-document' }
       },
       {
         path: 'config-template',
@@ -160,10 +101,41 @@ export const constantRoutes = [
         component: () => import('@/views/flowdispatch/EditTask'),
         meta: { title: '任务编辑', activeMenu: '/flow-dispatch/index' },
         hidden: true
+      },
+      {
+        path: 'period-users',
+        name: 'FlowDispatchPeriodUsers',
+        component: () => import('@/views/flowdispatch/PeriodUsers'),
+        meta: { title: '期次人员', activeMenu: '/flow-dispatch/index' },
+        hidden: true
+      },
+      {
+        path: 'period-flow',
+        name: 'FlowDispatchPeriodFlow',
+        component: () => import('@/views/flowdispatch/PeriodFlow'),
+        meta: { title: '人员流程', activeMenu: '/flow-dispatch/index' },
+        hidden: true
       }
     ]
   },
 
+  // ==================== 超管 ====================
+  {
+    path: '/sysuser',
+    component: Layout,
+    name: '超管',
+    meta: { title: '超管', icon: 'el-icon-s-custom' },
+    children: [
+      {
+        path: 'index',
+        name: 'SysUser',
+        component: () => import('@/views/sysuser/index'),
+        meta: { title: '用户管理', icon: 'el-icon-s-custom' }
+      }
+    ]
+  },
+
+  // ==================== 隐藏路由：表单设计器 ====================
   {
     path: '/form-designer',
     component: Layout,
@@ -173,103 +145,7 @@ export const constantRoutes = [
         path: 'index',
         name: 'FormDesigner',
         component: () => import('@/views/formdesigner/index'),
-        meta: { title: '表单设计器', icon: 'el-icon-set-up', activeMenu: '/flow-template/index' }
-      }
-    ]
-  },
-
-  {
-    path: '/task-process',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: 'TaskProcess',
-        component: () => import('@/views/taskprocess/index'),
-        meta: { title: '任务处理', icon: 'el-icon-s-claim' }
-      }
-    ]
-  },
-
-  {
-    path: '/data-admin',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: 'DataAdmin',
-        component: () => import('@/views/dataadmin/index'),
-        meta: { title: '数据后台', icon: 'el-icon-data-analysis' }
-      }
-    ]
-  },
-
-  {
-    path: '/nested',
-    component: Layout,
-    redirect: '/nested/menu1',
-    name: 'Nested',
-    meta: {
-      title: 'Nested',
-      icon: 'nested'
-    },
-    children: [
-      {
-        path: 'menu1',
-        component: () => import('@/views/nested/menu1/index'), // Parent router-view
-        name: 'Menu1',
-        meta: { title: 'Menu1' },
-        children: [
-          {
-            path: 'menu1-1',
-            component: () => import('@/views/nested/menu1/menu1-1'),
-            name: 'Menu1-1',
-            meta: { title: 'Menu1-1' }
-          },
-          {
-            path: 'menu1-2',
-            component: () => import('@/views/nested/menu1/menu1-2'),
-            name: 'Menu1-2',
-            meta: { title: 'Menu1-2' },
-            children: [
-              {
-                path: 'menu1-2-1',
-                component: () => import('@/views/nested/menu1/menu1-2/menu1-2-1'),
-                name: 'Menu1-2-1',
-                meta: { title: 'Menu1-2-1' }
-              },
-              {
-                path: 'menu1-2-2',
-                component: () => import('@/views/nested/menu1/menu1-2/menu1-2-2'),
-                name: 'Menu1-2-2',
-                meta: { title: 'Menu1-2-2' }
-              }
-            ]
-          },
-          {
-            path: 'menu1-3',
-            component: () => import('@/views/nested/menu1/menu1-3'),
-            name: 'Menu1-3',
-            meta: { title: 'Menu1-3' }
-          }
-        ]
-      },
-      {
-        path: 'menu2',
-        component: () => import('@/views/nested/menu2/index'),
-        name: 'Menu2',
-        meta: { title: 'menu2' }
-      }
-    ]
-  },
-
-  {
-    path: 'external-link',
-    component: Layout,
-    children: [
-      {
-        path: 'https://panjiachen.github.io/vue-element-admin-site/#/',
-        meta: { title: 'External Link', icon: 'link' }
+        meta: { title: '表单设计器', icon: 'el-icon-set-up', activeMenu: '/flow-dispatch/flow-template' }
       }
     ]
   },

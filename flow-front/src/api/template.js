@@ -43,6 +43,14 @@ export function toggleTemplateStatus(id) {
   })
 }
 
+// 设置/取消样例（仅超管）
+export function toggleTemplateSample(id) {
+  return request({
+    url: `/flow-template/sample/${id}`,
+    method: 'put'
+  })
+}
+
 // 复制模板
 export function copyTemplate(id) {
   return request({

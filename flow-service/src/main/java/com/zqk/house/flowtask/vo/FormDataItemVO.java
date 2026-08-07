@@ -11,4 +11,6 @@ public class FormDataItemVO {
     private String fieldLabel;
     /** 字段值 */
     private String fieldValue;
+    /** 字段类型（file/image 等，用于附件展示） */
+    private String fieldType;
 }

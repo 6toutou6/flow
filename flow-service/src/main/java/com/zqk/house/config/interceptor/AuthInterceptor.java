@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import com.zqk.house.config.SuperAdminProperties;
 import com.zqk.house.sysuser.entity.SysUser;
 import com.zqk.house.sysuser.service.SysUserService;
 import com.zqk.house.sysuser.vo.LoginUser;
@@ -21,6 +22,9 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     @Autowired
     private SysUserService sysUserService;
+
+    @Autowired
+    private SuperAdminProperties superAdminProperties;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
@@ -60,6 +64,7 @@ public class AuthInterceptor implements HandlerInterceptor {
                 loginUser.setRealName(sysUser.getRealName());
                 loginUser.setDeptId(sysUser.getDeptId());
                 loginUser.setDeptName(sysUser.getDeptName());
+                loginUser.setSuperAdmin(superAdminProperties.isSuperAdmin(sysUser.getEmpNo(), sysUser.getRealName()));
                 SecurityUtils.setLoginUser(loginUser);
             }
         }

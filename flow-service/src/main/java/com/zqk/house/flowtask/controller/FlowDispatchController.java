@@ -74,6 +74,16 @@ public class FlowDispatchController {
         }
     }
 
+    /** 设置/取消下发配置模板样例：仅超管可操作（样例公共可见、不可改） */
+    @PutMapping("/config-template/sample/{id}")
+    public Result<Void> configTemplateToggleSample(@PathVariable Long id) {
+        try {
+            return configTemplateService.toggleSample(id) ? Result.success("操作成功") : Result.fail("操作失败");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
     /** 任务分页列表（含期次数、人员数） */
     @GetMapping("/list")
     public Result<PageResult<FlowDispatch>> list(@RequestParam(required = false) Integer page,
@@ -118,7 +128,21 @@ public class FlowDispatchController {
 
     @PutMapping("/toggle-status/{id}")
     public Result<Void> toggleStatus(@PathVariable Long id) {
-        return flowDispatchService.toggleStatus(id) ? Result.success("操作成功") : Result.fail("操作失败");
+        try {
+            return flowDispatchService.toggleStatus(id) ? Result.success("操作成功") : Result.fail("操作失败");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
+    /** 设置/取消样例：仅超管可操作（样例公共可见、不可改） */
+    @PutMapping("/sample/{id}")
+    public Result<Void> toggleSample(@PathVariable Long id) {
+        try {
+            return flowDispatchService.toggleSample(id) ? Result.success("操作成功") : Result.fail("操作失败");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
     }
 
     /** 删除任务：仅当任务下无任何期次时允许 */
@@ -141,6 +165,17 @@ public class FlowDispatchController {
     @GetMapping("/{taskId}/members")
     public Result<List<TaskMemberInfoVO>> members(@PathVariable Long taskId) {
         return Result.success("获取成功", flowDispatchService.getMembers(taskId));
+    }
+
+    /** 期次新增人员：不重新生成期次，抄用期次配置为每位新人员创建独立提交任务 */
+    @PostMapping("/{dispatchId}/period/add-members")
+    public Result<Integer> periodAddMembers(@PathVariable Long dispatchId, @RequestBody Map<String, List<Long>> body) {
+        try {
+            int count = flowDispatchService.addMembersToDispatch(dispatchId, body == null ? null : body.get("userIds"));
+            return Result.success("新增成功", count);
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
     }
 
     /** 全量保存任务人员（后续生成期次抄用） */

@@ -127,6 +127,24 @@ export function urgeTask(taskId) {
   })
 }
 
+// 批量催办：对多个成员任务发送催办通知（记录到流转日志）
+export function urgeTaskBatch(taskIds) {
+  return request({
+    url: '/flow-task/urge-batch',
+    method: 'post',
+    data: { taskIds }
+  })
+}
+
+// 批量删除成员任务（级联清理节点/表单/附件）
+export function deleteTaskBatch(taskIds) {
+  return request({
+    url: '/flow-task/delete-batch',
+    method: 'post',
+    data: { taskIds }
+  })
+}
+
 // 任务流转/催办日志列表
 export function getTaskLogs(taskId) {
   return request({

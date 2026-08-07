@@ -95,7 +95,8 @@
               <div class="sd-sub-title">表单数据（最近一次提交）</div>
               <div v-for="(fd, fi) in expandedItem.taskNode.formDataList" :key="fi" class="form-row">
                 <span class="fr-label">{{ fd.fieldLabel }}</span>
-                <span class="fr-value">{{ fd.fieldValue || '—' }}</span>
+                <AttachField v-if="fd.fieldType === 'file' || fd.fieldType === 'image'" :value="fd.fieldValue" :field-type="fd.fieldType" readonly class="fr-value" />
+                <span v-else class="fr-value">{{ fd.fieldValue || '—' }}</span>
               </div>
             </div>
             <div v-else class="form-empty">该节点未填写表单数据</div>
@@ -110,7 +111,8 @@
             </div>
             <div v-for="(bd, bi) in expandedItem.taskNode.baseDataList" :key="bi" class="form-row">
               <span class="fr-label">{{ bd.fieldLabel }}</span>
-              <span class="fr-value">{{ bd.fieldValue || '—' }}</span>
+              <AttachField v-if="bd.fieldType === 'file' || bd.fieldType === 'image'" :value="bd.fieldValue" :field-type="bd.fieldType" readonly class="fr-value" />
+              <span v-else class="fr-value">{{ bd.fieldValue || '—' }}</span>
             </div>
           </div>
         </div>
@@ -142,6 +144,7 @@
             <el-checkbox-group v-else-if="f.fieldType === 'checkbox'" v-model="handlerBaseForm[f.id]">
               <el-checkbox v-for="opt in parseEnum(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-checkbox>
             </el-checkbox-group>
+            <AttachField v-else-if="f.fieldType === 'file' || f.fieldType === 'image'" v-model="handlerBaseForm[f.id]" :field-type="f.fieldType" :biz-id="bizIdForUpload" />
             <el-input v-else v-model="handlerBaseForm[f.id]" :placeholder="f.placeholder || (f.fieldType === 'image' ? '请输入图片名称' : '请输入文件名称')" />
             <div v-if="f.fieldTips" class="field-tip">{{ f.fieldTips }}</div>
           </el-form-item>
@@ -182,6 +185,7 @@
             <el-checkbox-group v-else-if="f.fieldType === 'checkbox'" v-model="formData[f.id]">
               <el-checkbox v-for="opt in parseEnum(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-checkbox>
             </el-checkbox-group>
+            <AttachField v-else-if="f.fieldType === 'file' || f.fieldType === 'image'" v-model="formData[f.id]" :field-type="f.fieldType" :biz-id="bizIdForUpload" />
             <el-input v-else v-model="formData[f.id]" :placeholder="f.placeholder || (f.fieldType === 'image' ? '请输入图片名称' : '请输入文件名称')" />
             <div v-if="f.fieldTips" class="field-tip">{{ f.fieldTips }}</div>
           </el-form-item>
@@ -266,6 +270,7 @@
       :action="confirmAction"
       :summary="confirmSummary"
       :end-node="isEndNode"
+      :next-handler-tip="todo && todo.nextHandlerTip"
       :loading="submitting"
       @confirm="onConfirmSubmit"
       @close="confirmVisible = false"
@@ -276,10 +281,11 @@
 <script>
 import RejectTargetModal from './RejectTargetModal.vue'
 import ConfirmActionModal from './ConfirmActionModal.vue'
+import AttachField from '@/components/AttachField.vue'
 
 export default {
   name: 'ProcessDialog',
-  components: { RejectTargetModal, ConfirmActionModal },
+  components: { RejectTargetModal, ConfirmActionModal, AttachField },
   props: {
     visible: { type: Boolean, default: false },
     todo: { type: Object, default: null },
@@ -336,6 +342,10 @@ export default {
     /** 只读模式：该用户已处理完成（todoStatus=1），仅查看详情 */
     isReadonly() {
       return this.todo && this.todo.todoStatus === 1
+    },
+    /** 附件上传的业务id（当前处理的节点任务记录） */
+    bizIdForUpload() {
+      return this.todo ? this.todo.taskNodeId : null
     },
     /** 任务说明（下发时填写，处理人可见；detail.task 优先，兼容待办项带说明的情况） */
     taskDesc() {

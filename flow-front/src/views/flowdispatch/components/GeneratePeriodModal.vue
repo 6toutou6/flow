@@ -266,7 +266,7 @@ $primary: #C53030;
 .gpd-badge { padding: 3px 12px; border-radius: 12px; font-size: 12px; background: #f0f0f0; color: #909399; flex-shrink: 0;
   &.on { background: rgba(197,48,48,0.1); color: $primary; font-weight: 600; }
 }
-.gpd-config { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; background: #FFF5F5; border: 1px dashed $primary; border-radius: 8px; padding: 9px 14px; font-size: 12px;
+.gpd-config { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; background: #FFF5F5; border: 1px dashed $primary; border-radius: 0px; padding: 9px 14px; font-size: 12px;
   > i { color: $primary; }
   .gpd-config-label { color: $primary; font-weight: 700; flex-shrink: 0; }
   .gpd-config-item { color: #5b403d; b { color: #1b1c1c; font-weight: 700; } }

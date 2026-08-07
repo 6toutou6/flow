@@ -13,4 +13,6 @@ public class LoginUser {
     private String realName;
     private Long deptId;
     private String deptName;
+    /** 是否超管（由后端配置文件 system.super-admin 判定） */
+    private Boolean superAdmin;
 }

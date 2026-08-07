@@ -16,6 +16,8 @@ import com.zqk.house.flowtemplate.vo.TemplateDetailVO;
 import com.zqk.house.flowtemplate.vo.TemplateFlowSaveDTO;
 import com.zqk.house.flowtemplate.vo.TemplateNodeWithFieldsVO;
 import com.zqk.house.flowtemplate.vo.TemplateStatsVO;
+import com.zqk.house.sysuser.entity.SysUser;
+import com.zqk.house.sysuser.mapper.SysUserMapper;
 import com.zqk.house.sysuser.vo.LoginUser;
 import com.zqk.house.util.PageResult;
 import com.zqk.house.util.SecurityUtils;
@@ -30,6 +32,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,16 +48,69 @@ public class FlowTemplateService {
     private FlowTemplateVersionMapper flowTemplateVersionMapper;
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
+    private SysUserMapper sysUserMapper;
+
+    // ==================== 可见性与权限 ====================
+
+    private boolean isSuperAdmin(LoginUser loginUser) {
+        return loginUser != null && Boolean.TRUE.equals(loginUser.getSuperAdmin());
+    }
+
+    /** 追加可见性过滤：超管全量；普通用户 is_sample=1（样例公共可见） OR dept_id=当前用户部门 */
+    private void applyVisibleFilter(LambdaQueryWrapper<FlowTemplate> wrapper, LoginUser loginUser) {
+        if (isSuperAdmin(loginUser)) return;
+        Long deptId = loginUser == null ? null : loginUser.getDeptId();
+        if (deptId != null) {
+            wrapper.and(w -> w.eq(FlowTemplate::getIsSample, 1).or().eq(FlowTemplate::getDeptId, deptId));
+        } else {
+            wrapper.eq(FlowTemplate::getIsSample, 1);
+        }
+    }
+
+    /** 操作权限校验：超管全量；样例仅超管可改；普通模板需同部门 */
+    private void checkPermission(FlowTemplate t) {
+        if (t == null) throw new RuntimeException("模板不存在");
+        if (isSuperAdmin(SecurityUtils.getLoginUser())) return;
+        if (t.getIsSample() != null && t.getIsSample() == 1) {
+            throw new RuntimeException("样例模板仅超管可修改");
+        }
+        if (t.getDeptId() != null) {
+            LoginUser loginUser = SecurityUtils.getLoginUser();
+            if (loginUser == null || !Objects.equals(t.getDeptId(), loginUser.getDeptId())) {
+                throw new RuntimeException("无权操作其他部门的模板");
+            }
+        }
+    }
 
     public PageResult<FlowTemplate> getPage(FlowTemplateQueryForm form) {
         LambdaQueryWrapper<FlowTemplate> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(StringUtils.hasText(form.getTemplateName()), FlowTemplate::getTemplateName, form.getTemplateName())
                .like(StringUtils.hasText(form.getCategory()), FlowTemplate::getCategory, form.getCategory())
-               .eq(form.getStatus() != null, FlowTemplate::getStatus, form.getStatus())
-               .orderByDesc(FlowTemplate::getUpdateTime);
+               .eq(form.getStatus() != null, FlowTemplate::getStatus, form.getStatus());
+        applyVisibleFilter(wrapper, SecurityUtils.getLoginUser());
+        wrapper.orderByDesc(FlowTemplate::getUpdateTime);
         Page<FlowTemplate> p = new Page<>(form.getPage() == null ? 1 : form.getPage(), form.getLimit() == null ? 10 : form.getLimit());
         Page<FlowTemplate> result = flowTemplateMapper.selectPage(p, wrapper);
+        fillCreatorInfo(result.getRecords());
         return new PageResult<>(result.getRecords(), result.getTotal());
+    }
+
+    /** 批量补充创建人姓名/部门（按 creatorId 查 sys_user） */
+    private void fillCreatorInfo(List<FlowTemplate> records) {
+        if (records == null || records.isEmpty()) return;
+        List<Long> ids = records.stream().map(FlowTemplate::getCreatorId)
+                .filter(Objects::nonNull).distinct().collect(Collectors.toList());
+        if (ids.isEmpty()) return;
+        Map<Long, SysUser> userMap = sysUserMapper.selectBatchIds(ids).stream()
+                .collect(Collectors.toMap(SysUser::getId, u -> u, (a, b) -> a));
+        for (FlowTemplate t : records) {
+            SysUser u = t.getCreatorId() == null ? null : userMap.get(t.getCreatorId());
+            if (u != null) {
+                t.setCreatorName(u.getRealName());
+                t.setDeptName(u.getDeptName());
+            }
+        }
     }
 
     /** 模板详情：模板元数据 + 节点链（每个节点含其字段） */
@@ -92,6 +148,9 @@ public class FlowTemplateService {
     public Long save(FlowTemplate template) {
         LoginUser loginUser = SecurityUtils.getLoginUser();
         template.setCreatorId(loginUser == null ? null : loginUser.getId());
+        template.setDeptId(loginUser == null ? null : loginUser.getDeptId());
+        // 样例仅超管通过单独接口设置，普通创建一律为普通模板
+        template.setIsSample(0);
         template.setVersion(1);
         if (template.getStatus() == null) template.setStatus(1);
         flowTemplateMapper.insert(template);
@@ -99,13 +158,31 @@ public class FlowTemplateService {
     }
 
     public boolean update(FlowTemplate template) {
+        if (template.getId() == null) return false;
+        FlowTemplate old = flowTemplateMapper.selectById(template.getId());
+        checkPermission(old);
+        // 非超管不允许通过 update 改动样例标记/部门归属
+        if (!isSuperAdmin(SecurityUtils.getLoginUser())) {
+            template.setIsSample(null);
+            template.setDeptId(null);
+        }
         return flowTemplateMapper.updateById(template) > 0;
     }
 
     public boolean toggleStatus(Long id) {
         FlowTemplate t = flowTemplateMapper.selectById(id);
-        if (t == null) return false;
+        checkPermission(t);
         t.setStatus(t.getStatus() == 1 ? 0 : 1);
+        return flowTemplateMapper.updateById(t) > 0;
+    }
+
+    /** 设置/取消样例：仅超管可操作（样例公共可见、普通用户不可改，但模板可复制） */
+    public boolean toggleSample(Long id) {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        if (!isSuperAdmin(loginUser)) throw new RuntimeException("仅超管可设置样例");
+        FlowTemplate t = flowTemplateMapper.selectById(id);
+        if (t == null) return false;
+        t.setIsSample(t.getIsSample() == null || t.getIsSample() == 0 ? 1 : 0);
         return flowTemplateMapper.updateById(t) > 0;
     }
 
@@ -113,10 +190,16 @@ public class FlowTemplateService {
     public Long copy(Long id) {
         FlowTemplate src = flowTemplateMapper.selectById(id);
         if (src == null) return null;
+        LoginUser loginUser = SecurityUtils.getLoginUser();
         src.setId(null);
         src.setTemplateName(src.getTemplateName() + "_副本");
         src.setVersion(1);
         src.setStatus(0);
+        // 复制得到的模板归属当前用户/部门，样例复制后变为普通模板
+        src.setCreatorId(loginUser == null ? null : loginUser.getId());
+        src.setDeptId(loginUser == null ? null : loginUser.getDeptId());
+        src.setIsSample(0);
+        src.setModifierId(null);
         flowTemplateMapper.insert(src);
         Long newId = src.getId();
         // 复制模板级字段（node_id 为空，不依附节点）
@@ -154,6 +237,7 @@ public class FlowTemplateService {
 
     @Transactional(rollbackFor = Exception.class)
     public boolean delete(Long id) {
+        checkPermission(flowTemplateMapper.selectById(id));
         LambdaQueryWrapper<FlowTemplateField> fw = new LambdaQueryWrapper<>();
         fw.eq(FlowTemplateField::getTemplateId, id);
         flowTemplateFieldMapper.delete(fw);
@@ -186,6 +270,7 @@ public class FlowTemplateService {
         }
         FlowTemplate t = flowTemplateMapper.selectById(templateId);
         if (t == null) throw new RuntimeException("模板不存在");
+        checkPermission(t);
         LoginUser loginUser = SecurityUtils.getLoginUser();
         boolean newVersion = "new".equalsIgnoreCase(dto.getSaveMode());
         // 保存为新版本：先把旧配置归档为「上一版本」的版本记录
@@ -297,10 +382,14 @@ public class FlowTemplateService {
 
     public TemplateStatsVO getStats() {
         TemplateStatsVO vo = new TemplateStatsVO();
-        long total = flowTemplateMapper.selectCount(null);
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        LambdaQueryWrapper<FlowTemplate> totalWrapper = new LambdaQueryWrapper<>();
+        applyVisibleFilter(totalWrapper, loginUser);
+        long total = flowTemplateMapper.selectCount(totalWrapper);
         vo.setTotal(total);
         LambdaQueryWrapper<FlowTemplate> activeWrapper = new LambdaQueryWrapper<>();
         activeWrapper.eq(FlowTemplate::getStatus, 1);
+        applyVisibleFilter(activeWrapper, loginUser);
         vo.setActive(flowTemplateMapper.selectCount(activeWrapper));
         // 本月更新率
         Calendar cal = Calendar.getInstance();
@@ -312,6 +401,7 @@ public class FlowTemplateService {
         Date monthStart = cal.getTime();
         LambdaQueryWrapper<FlowTemplate> monthWrapper = new LambdaQueryWrapper<>();
         monthWrapper.ge(FlowTemplate::getUpdateTime, monthStart);
+        applyVisibleFilter(monthWrapper, loginUser);
         long monthCount = flowTemplateMapper.selectCount(monthWrapper);
         vo.setMonthlyUpdateRate(total == 0 ? 0 : Math.round(monthCount * 1000.0 / total) / 10.0);
         return vo;
@@ -319,7 +409,9 @@ public class FlowTemplateService {
 
     public List<FlowTemplate> getEnabledList() {
         LambdaQueryWrapper<FlowTemplate> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(FlowTemplate::getStatus, 1).orderByDesc(FlowTemplate::getUpdateTime);
+        wrapper.eq(FlowTemplate::getStatus, 1);
+        applyVisibleFilter(wrapper, SecurityUtils.getLoginUser());
+        wrapper.orderByDesc(FlowTemplate::getUpdateTime);
         return flowTemplateMapper.selectList(wrapper);
     }
 }

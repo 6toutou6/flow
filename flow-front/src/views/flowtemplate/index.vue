@@ -89,6 +89,8 @@
                 <th>模板名称</th>
                 <th>分类</th>
                 <th>版本</th>
+                <th>创建人</th>
+                <th>创建部门</th>
                 <th class="text-center">状态</th>
                 <th>最后更新</th>
                 <th class="text-right">操作</th>
@@ -96,12 +98,18 @@
             </thead>
             <tbody>
               <tr v-for="row in list" :key="row.id" class="hover-row">
-                <td class="font-bold">{{ row.templateName }}</td>
+                <td class="font-bold">
+                  {{ row.templateName }}
+                  <span v-if="row.isSample === 1" class="sample-tag">样例</span>
+                </td>
                 <td>{{ row.category || '—' }}</td>
                 <td><span class="version-tag">v{{ row.version }}</span></td>
+                <td>{{ row.creatorName || '—' }}</td>
+                <td>{{ row.deptName || '—' }}</td>
                 <td class="text-center">
                   <el-switch
                     :value="row.status === 1"
+                    :disabled="isSampleLocked(row)"
                     active-color="#C53030"
                     inactive-color="#dcdfe6"
                     @change="handleToggleStatus(row)"
@@ -109,14 +117,17 @@
                 </td>
                 <td>{{ row.updateTime || row.createTime }}</td>
                 <td class="text-right">
-                  <button class="action-link" @click="goDesigner(row)">设计流程</button>
-                  <button class="action-link" @click="openEditModal(row)">编辑</button>
+                  <template v-if="isSuperAdmin">
+                    <button class="action-link" @click="handleToggleSample(row)">{{ row.isSample === 1 ? '取消样例' : '设为样例' }}</button>
+                  </template>
+                  <button class="action-link" :disabled="isSampleLocked(row)" :title="isSampleLocked(row) ? '样例模板不可修改，可复制后使用' : ''" @click="goDesigner(row)">设计流程</button>
+                  <button class="action-link" :disabled="isSampleLocked(row)" :title="isSampleLocked(row) ? '样例模板不可修改，可复制后使用' : ''" @click="openEditModal(row)">编辑</button>
                   <button class="action-link" @click="handleCopy(row)">复制</button>
-                  <button class="action-link text-error" @click="handleDelete(row)">删除</button>
+                  <button class="action-link text-error" :disabled="isSampleLocked(row)" :title="isSampleLocked(row) ? '样例模板不可删除' : ''" @click="handleDelete(row)">删除</button>
                 </td>
               </tr>
               <tr v-if="!loading && list.length === 0">
-                <td colspan="6" class="text-center" style="padding: 32px; color: #999;">暂无模板，点击右上角「新建模板」开始</td>
+                <td colspan="8" class="text-center" style="padding: 32px; color: #999;">暂无模板，点击右上角「新建模板」开始</td>
               </tr>
             </tbody>
           </table>
@@ -148,7 +159,7 @@
 </template>
 
 <script>
-import { getTemplateList, addTemplate, updateTemplate, toggleTemplateStatus, copyTemplate, deleteTemplate, getTemplateStats } from '@/api/template'
+import { getTemplateList, addTemplate, updateTemplate, toggleTemplateStatus, toggleTemplateSample, copyTemplate, deleteTemplate, getTemplateStats } from '@/api/template'
 import TemplateFormModal from './components/TemplateFormModal.vue'
 
 export default {
@@ -170,6 +181,9 @@ export default {
     }
   },
   computed: {
+    isSuperAdmin() {
+      return !!(this.$store.state.user.userInfo && this.$store.state.user.userInfo.superAdmin)
+    },
     pageList() {
       const pages = []
       const total = this.totalPages
@@ -191,6 +205,20 @@ export default {
     this.fetchStats()
   },
   methods: {
+    /** 样例锁定：非超管用户对样例模板不可改/删（复制除外） */
+    isSampleLocked(row) {
+      return !this.isSuperAdmin && row.isSample === 1
+    },
+    async handleToggleSample(row) {
+      try {
+        await toggleTemplateSample(row.id)
+        this.$message.success(row.isSample === 1 ? '已取消样例' : '已设为样例')
+        this.fetchData()
+        this.fetchStats()
+      } catch (e) {
+        this.$message.error((e && e.message) || '操作失败')
+      }
+    },
     async fetchData() {
       this.loading = true
       try {
@@ -353,8 +381,10 @@ $primary: #C53030;
 .text-right { text-align: right; }
 .text-error { color: #ba1a1a; }
 .version-tag { display: inline-block; padding: 2px 8px; background: rgba(197, 48, 48, 0.1); color: $primary; border-radius: 4px; font-size: 12px; font-weight: 600; }
+.sample-tag { display: inline-block; padding: 2px 8px; background: rgba(183, 121, 31, 0.14); color: #b7791f; border-radius: 4px; font-size: 12px; font-weight: 600; margin-left: 6px; }
 .action-link { color: $primary; background: none; border: none; cursor: pointer; font-size: 14px; margin-right: 8px;
   &:hover { text-decoration: underline; }
+  &:disabled { color: #bbb; cursor: not-allowed; text-decoration: none; }
 }
 .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #faf9f9; border-top: 1px solid #e4beba; }
 .pagination-info { font-size: 12px; color: #414755; }
