@@ -3,7 +3,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/flow?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
-    password: 12345
+    password: 123456
   jackson:
     time-zone: Asia/Shanghai
     date-format: yyyy-MM-dd HH:mm:ss
@@ -17,6 +17,12 @@ mybatis-plus:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.zqk.house
+
+# 超管配置：登录用户的「员工号 + 姓名」同时匹配即为超管，超管可查看全部数据
+system:
+  super-admin:
+    emp-no: EMP001
+    real-name: 张三
 
 server:
   port: 9000
