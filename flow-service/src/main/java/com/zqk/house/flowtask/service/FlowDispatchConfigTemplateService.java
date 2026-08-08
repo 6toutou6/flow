@@ -3,6 +3,7 @@ package com.zqk.house.flowtask.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zqk.house.flowtask.entity.FlowDispatchConfigTemplate;
 import com.zqk.house.flowtask.mapper.FlowDispatchConfigTemplateMapper;
+import com.zqk.house.flowtask.vo.ConfigTemplateStatsVO;
 import com.zqk.house.sysuser.entity.SysUser;
 import com.zqk.house.sysuser.mapper.SysUserMapper;
 import com.zqk.house.sysuser.vo.LoginUser;
@@ -37,20 +38,42 @@ public class FlowDispatchConfigTemplateService {
     }
 
     private Long visibleDeptId(LoginUser loginUser) {
-        return isSuperAdmin(loginUser) ? null : (loginUser == null ? null : loginUser.getDeptId());
+        if (isSuperAdmin(loginUser)) return null;
+        if (loginUser == null || loginUser.getDeptId() == null) return -1L;
+        return loginUser.getDeptId();
     }
 
+    /** 操作权限校验：超管全量；样例仅超管可改；自己创建的可改；其余需同部门（无部门用户不可操作） */
     private void checkPermission(FlowDispatchConfigTemplate tpl) {
         if (tpl == null) throw new RuntimeException("配置模板不存在");
-        if (isSuperAdmin(SecurityUtils.getLoginUser())) return;
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        if (isSuperAdmin(loginUser)) return;
         if (tpl.getIsSample() != null && tpl.getIsSample() == 1) {
             throw new RuntimeException("样例配置模板仅超管可修改");
         }
-        if (tpl.getDeptId() != null) {
-            LoginUser loginUser = SecurityUtils.getLoginUser();
-            if (loginUser == null || !Objects.equals(tpl.getDeptId(), loginUser.getDeptId())) {
-                throw new RuntimeException("无权操作其他部门的配置模板");
-            }
+        if (loginUser == null) throw new RuntimeException("无权操作该配置模板");
+        if (tpl.getCreatorId() != null && Objects.equals(tpl.getCreatorId(), loginUser.getId())) return;
+        if (loginUser.getDeptId() == null) {
+            throw new RuntimeException("无权操作其他部门的配置模板");
+        }
+        if (tpl.getDeptId() == null || !Objects.equals(tpl.getDeptId(), loginUser.getDeptId())) {
+            throw new RuntimeException("无权操作其他部门的配置模板");
+        }
+    }
+
+    /** 详情可见性校验（只读）：超管全量；样例公共可见；自己创建的可见；同部门可见；否则拒绝 */
+    private void checkVisible(FlowDispatchConfigTemplate tpl) {
+        if (tpl == null) throw new RuntimeException("配置模板不存在");
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        if (isSuperAdmin(loginUser)) return;
+        if (tpl.getIsSample() != null && tpl.getIsSample() == 1) return;
+        if (loginUser == null) throw new RuntimeException("无权查看该配置模板");
+        if (tpl.getCreatorId() != null && Objects.equals(tpl.getCreatorId(), loginUser.getId())) return;
+        if (loginUser.getDeptId() == null) {
+            throw new RuntimeException("无权查看其他部门的配置模板");
+        }
+        if (tpl.getDeptId() == null || !Objects.equals(tpl.getDeptId(), loginUser.getDeptId())) {
+            throw new RuntimeException("无权查看其他部门的配置模板");
         }
     }
 
@@ -58,18 +81,44 @@ public class FlowDispatchConfigTemplateService {
     public List<FlowDispatchConfigTemplate> list(String keyword) {
         LambdaQueryWrapper<FlowDispatchConfigTemplate> qw = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(keyword)) {
-            qw.like(FlowDispatchConfigTemplate::getConfigName, keyword.trim())
-              .or().like(FlowDispatchConfigTemplate::getRemark, keyword.trim());
+            qw.and(w -> w.like(FlowDispatchConfigTemplate::getConfigName, keyword.trim())
+                          .or().like(FlowDispatchConfigTemplate::getRemark, keyword.trim()));
         }
-        Long deptId = visibleDeptId(SecurityUtils.getLoginUser());
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        Long deptId = visibleDeptId(loginUser);
+        Long userId = loginUser == null ? null : loginUser.getId();
         if (deptId != null) {
+            // 样例公共可见 或 同部门创建 或 自己创建
             qw.and(w -> w.eq(FlowDispatchConfigTemplate::getIsSample, 1)
-                          .or().eq(FlowDispatchConfigTemplate::getDeptId, deptId));
+                          .or().eq(FlowDispatchConfigTemplate::getDeptId, deptId)
+                          .or().eq(FlowDispatchConfigTemplate::getCreatorId, userId));
         }
         qw.orderByDesc(FlowDispatchConfigTemplate::getId);
         List<FlowDispatchConfigTemplate> list = mapper.selectList(qw);
         fillCreatorInfo(list);
         return list;
+    }
+
+    /** 配置模板页统计卡（与列表同可见性口径） */
+    public ConfigTemplateStatsVO stats() {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        Long deptId = visibleDeptId(loginUser);
+        Long userId = loginUser == null ? null : loginUser.getId();
+        ConfigTemplateStatsVO vo = new ConfigTemplateStatsVO();
+        LambdaQueryWrapper<FlowDispatchConfigTemplate> totalQw = new LambdaQueryWrapper<>();
+        if (deptId != null) {
+            totalQw.and(w -> w.eq(FlowDispatchConfigTemplate::getIsSample, 1)
+                              .or().eq(FlowDispatchConfigTemplate::getDeptId, deptId)
+                              .or().eq(FlowDispatchConfigTemplate::getCreatorId, userId));
+        }
+        vo.setTotal(mapper.selectCount(totalQw));
+        // 样例公共可见，恒全量统计
+        vo.setSampleCount(mapper.selectCount(new LambdaQueryWrapper<FlowDispatchConfigTemplate>()
+                .eq(FlowDispatchConfigTemplate::getIsSample, 1)));
+        vo.setMineCount(userId == null ? 0L
+                : mapper.selectCount(new LambdaQueryWrapper<FlowDispatchConfigTemplate>()
+                        .eq(FlowDispatchConfigTemplate::getCreatorId, userId)));
+        return vo;
     }
 
     /** 批量补充创建人姓名/部门 */
@@ -90,7 +139,11 @@ public class FlowDispatchConfigTemplateService {
     }
 
     public FlowDispatchConfigTemplate getById(Long id) {
-        return id == null ? null : mapper.selectById(id);
+        if (id == null) return null;
+        FlowDispatchConfigTemplate tpl = mapper.selectById(id);
+        // 详情可见性校验（超管全量 / 样例公共 / 同部门，否则拒绝）
+        checkVisible(tpl);
+        return tpl;
     }
 
     /** 新增或更新（存在 id 则更新）；新建归属当前用户/部门，样例仅超管通过单独接口设置 */

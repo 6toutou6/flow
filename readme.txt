@@ -256,7 +256,7 @@ operator_id, operator_name, create_time
 6. 退回任务时表单数据需重置，并指定退回目标节点；通过/退回需二次确认防误操作
 
 ## 八、SQL 脚本说明（项目仅保留 2 个脚本）
-1. **flow_schema.sql**：全量建表脚本（17 张表：sys_user / flow_template / flow_template_node / flow_template_field / flow_template_version / flow_task / flow_task_dispatch 期次 / flow_task_user 废弃 / flow_task_node / flow_task_member / flow_task_log / flow_form_record / flow_form_data / flow_attachment / flow_dispatch 任务 / flow_dispatch_config 每任务配置 / flow_dispatch_config_template 配置模板库）。全新建库直接执行。
+1. **flow_schema.sql**：全量建表脚本（15 张业务表：sys_user / flow_template / flow_template_node / flow_template_field / flow_template_version / flow_task / flow_task_dispatch 期次 / flow_task_node / flow_task_member / flow_task_log / flow_form_record / flow_form_data / flow_dispatch 任务 / flow_dispatch_config 每任务配置 / flow_dispatch_config_template 配置模板库；另含 attach 附件工具表）。已废弃的 flow_task_user、flow_attachment 表不再建。全新建库直接执行。
 2. **flow_template5_import.sql**：整改-复杂模板（template_id=5）完整设计导入脚本——节点提示补全、占位字段（131-170）业务语义设计、问题自查/整改/审批/下发人审核/行领导审核各节点字段补齐、任务基础字段（整改任务名称、下发单位）。
 
 > 其余历史脚本（迁移、升级、临时修复、测试数据）均已删除，避免脚本冗余混乱；`application.yml` 已移除 `spring.sql.init` 引用，不再加载旧 demo 脚本。

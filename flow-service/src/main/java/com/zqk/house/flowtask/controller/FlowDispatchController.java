@@ -4,6 +4,9 @@ import com.zqk.house.flowtask.entity.FlowDispatch;
 import com.zqk.house.flowtask.entity.FlowDispatchConfigTemplate;
 import com.zqk.house.flowtask.service.FlowDispatchConfigTemplateService;
 import com.zqk.house.flowtask.service.FlowDispatchService;
+import com.zqk.house.flowtask.vo.ConfigTemplateStatsVO;
+import com.zqk.house.flowtask.vo.DispatchStatsVO;
+import com.zqk.house.flowtask.vo.DueDispatchVO;
 import com.zqk.house.flowtask.vo.PeriodGenerateVO;
 import com.zqk.house.flowtask.vo.PeriodPreviewVO;
 import com.zqk.house.flowtask.vo.TaskMemberInfoVO;
@@ -14,6 +17,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -37,10 +42,21 @@ public class FlowDispatchController {
         return Result.success("获取成功", configTemplateService.list(keyword));
     }
 
+    /** 下发配置模板页统计卡 */
+    @GetMapping("/config-template/stats")
+    public Result<ConfigTemplateStatsVO> configTemplateStats() {
+        return Result.success("获取成功", configTemplateService.stats());
+    }
+
     /** 下发配置模板详情（编辑回填） */
     @GetMapping("/config-template/{id}")
     public Result<FlowDispatchConfigTemplate> configTemplateDetail(@PathVariable Long id) {
-        return Result.success("获取成功", configTemplateService.getById(id));
+        try {
+            FlowDispatchConfigTemplate tpl = configTemplateService.getById(id);
+            return tpl != null ? Result.success("获取成功", tpl) : Result.notFound("配置模板不存在");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
     }
 
     /** 新增或更新下发配置模板 */
@@ -93,6 +109,12 @@ public class FlowDispatchController {
         return Result.success("获取成功", flowDispatchService.getPage(page, limit, taskName, status));
     }
 
+    /** 任务管理页统计卡 */
+    @GetMapping("/stats")
+    public Result<DispatchStatsVO> stats() {
+        return Result.success("获取成功", flowDispatchService.getStats());
+    }
+
     /** 启用中的任务列表 */
     @GetMapping("/enabled-list")
     public Result<List<FlowDispatch>> enabledList() {
@@ -104,6 +126,22 @@ public class FlowDispatchController {
     public Result<PeriodPreviewVO> previewPeriod(@RequestParam(required = false) Long taskId,
                                                  @RequestParam(required = false, defaultValue = "true") Boolean immediate) {
         return Result.success("获取成功", flowDispatchService.previewPeriod(taskId, Boolean.TRUE.equals(immediate)));
+    }
+
+    /** 检索当前是否有任务的期次应下发（启用中非样例周期任务，到期待下发列表） */
+    @GetMapping("/check-due")
+    public Result<List<DueDispatchVO>> checkDue() {
+        return Result.success("获取成功", flowDispatchService.checkDueDispatches());
+    }
+
+    /** 自动下发所有到期待下发的期次 */
+    @PostMapping("/auto-dispatch")
+    public Result<Integer> autoDispatch() {
+        try {
+            return Result.success("下发成功", flowDispatchService.autoDispatchDuePeriods());
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
     }
 
     /** 创建任务（含下发周期配置、模板配置信息、人员） */
@@ -158,7 +196,11 @@ public class FlowDispatchController {
     /** 任务详情（编辑回填用） */
     @GetMapping("/{id}")
     public Result<FlowDispatch> detail(@PathVariable Long id) {
-        return Result.success("获取成功", flowDispatchService.getById(id));
+        try {
+            return Result.success("获取成功", flowDispatchService.getById(id));
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
     }
 
     /** 任务人员列表 */
@@ -187,8 +229,9 @@ public class FlowDispatchController {
 
     /**
      * 生成期次：自动（按任务周期 + immediate 立即/下一期次）或手动临时期次（manual=true）
-     * body: { immediate, periodName, manual, memberIds }
+     * body: { immediate, periodName, manual, memberIds, startTime, endTime }
      * memberIds 为本期次临时人员（可对任务人员临时增删，为空则抄用任务配置人员）
+     * startTime/endTime 为临时期次自定义起止时间（manual=true 时生效，格式 yyyy-MM-dd HH:mm:ss）
      * 自动下发防重复：当前期次（如 2026年第3季度）已下发时拒绝再次下发。
      * 返回：期次ID + 期次名称 + 下次自动下发时间。
      */
@@ -205,10 +248,24 @@ public class FlowDispatchController {
                         .map(o -> ((Number) o).longValue())
                         .collect(Collectors.toList());
             }
-            PeriodGenerateVO vo = flowDispatchService.generatePeriod(taskId, immediate, periodName, manual, memberIds);
+            Date startTime = parseDate(body == null ? null : body.get("startTime"));
+            Date endTime = parseDate(body == null ? null : body.get("endTime"));
+            PeriodGenerateVO vo = flowDispatchService.generatePeriod(taskId, immediate, periodName, manual, memberIds, startTime, endTime);
             return Result.success("期次生成成功", vo);
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
+        }
+    }
+
+    /** 解析前端传来的日期时间字符串（yyyy-MM-dd HH:mm:ss），非字符串/空值返回 null */
+    private Date parseDate(Object value) {
+        if (!(value instanceof String)) return null;
+        String s = ((String) value).trim();
+        if (s.isEmpty()) return null;
+        try {
+            return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(s);
+        } catch (Exception e) {
+            throw new RuntimeException("日期时间格式不正确：" + s);
         }
     }
 }

@@ -13,6 +13,20 @@ export function uploadAttach(file, bizId) {
   })
 }
 
+// 批量上传附件（multipart：files[] + bizId + creator，返回 Attach 数组）
+export function uploadAttaches(files, bizId, creator) {
+  const formData = new FormData()
+  files.forEach(f => formData.append('files', f))
+  if (bizId) formData.append('bizId', bizId)
+  if (creator) formData.append('creator', creator)
+  return request({
+    url: '/flow-attach/uploads',
+    method: 'post',
+    data: formData,
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
 // 附件列表（按业务id）
 export function getAttachList(bizId) {
   return request({

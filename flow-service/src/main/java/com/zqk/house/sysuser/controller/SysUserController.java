@@ -4,6 +4,7 @@ import com.zqk.house.sysuser.entity.SysUser;
 import com.zqk.house.sysuser.entity.SysUserQueryForm;
 import com.zqk.house.sysuser.service.SysUserService;
 import com.zqk.house.sysuser.vo.LoginUser;
+import com.zqk.house.sysuser.vo.SysUserStatsVO;
 import com.zqk.house.util.PageResult;
 import com.zqk.house.util.Result;
 import com.zqk.house.util.SecurityUtils;
@@ -26,6 +27,12 @@ public class SysUserController {
                 form.getRealName(), form.getDeptName(),
                 form.getStatus());
         return Result.success("获取成功", pageResult);
+    }
+
+    /** 用户管理页统计卡 */
+    @GetMapping("/stats")
+    public Result<SysUserStatsVO> stats() {
+        return Result.success("获取成功", sysUserService.stats());
     }
 
     @PostMapping("/add")

@@ -135,7 +135,11 @@
       <aside class="property-panel">
         <!-- 节点属性 -->
         <div class="prop-section">
-          <div class="panel-title">{{ viewMode === 'template' ? '任务基础字段说明' : '节点属性' }}</div>
+          <div class="panel-title panel-title-click" @click="nodePropCollapsed = !nodePropCollapsed">
+            <i class="el-icon-set-up" /> {{ viewMode === 'template' ? '任务基础字段说明' : '节点属性' }}
+            <i class="el-icon-arrow-down collapse-arrow" :class="{ open: !nodePropCollapsed }" />
+          </div>
+          <div v-show="!nodePropCollapsed">
           <div v-if="viewMode === 'template'" class="tfe-tip">
             任务基础字段不依附于任何流程节点，是任务本身携带的信息（如规章制度、采购说明等）。
             创建人填写：下发任务时由创建人赋值，处理人与后台均可见；处理人填写：由处理人处理时填写，随节点提交保存。
@@ -148,7 +152,10 @@
             </div>
             <div class="prop-group">
               <label class="prop-label">节点类型</label>
-              <div class="node-type-readonly">{{ nodeTypeText(currentNode.node.nodeType) }}（按位置自动判定）</div>
+              <div class="node-type-line">
+                <span class="node-type-badge" :class="nodeTypeClass(currentNode.node.nodeType)">{{ nodeTypeText(currentNode.node.nodeType) }}</span>
+                <span class="node-type-note">按位置自动判定</span>
+              </div>
             </div>
             <div class="prop-group">
               <label class="prop-label">节点提示</label>
@@ -160,15 +167,8 @@
             </div>
             <div class="prop-group">
               <label class="prop-label">说明文件</label>
-              <div class="guide-files-editor">
-                <div v-for="(gf, gi) in guideFilesArr" :key="gi" class="guide-file-row">
-                  <i class="el-icon-paperclip" />
-                  <input v-model="gf.name" class="prop-input gf-input" placeholder="文件名（如：需求模板.docx）" @blur="syncGuideFiles">
-                  <button class="gf-del" title="删除" @click="removeGuideFile(gi)"><i class="el-icon-close" /></button>
-                </div>
-                <button class="gf-add" @click="addGuideFile"><i class="el-icon-plus" /> 添加说明文件</button>
-              </div>
-              <div class="role-tip">仅记录文件名（第一版存文件名文本），处理人在该节点处理时可见</div>
+              <AttachField v-model="guideFilesValue" :biz-id="guideBizId" />
+              <div class="role-tip">上传节点说明文件（如需求模板.docx），处理人在该节点处理时可见</div>
             </div>
             <div class="prop-group">
               <label class="prop-label">下一步处理人提示</label>
@@ -177,11 +177,12 @@
             </div>
             <p v-if="currentNode.node.nodeType === 3" class="prop-hint">结束节点提交后任务即完成，无需指定下一处理人</p>
           </div>
+          </div>
         </div>
 
         <!-- 字段属性 -->
         <div class="prop-section">
-          <div class="panel-title">字段属性</div>
+          <div class="panel-title"><i class="el-icon-tickets" /> 字段属性</div>
           <div v-if="!selectedField" class="panel-empty">请选择一个字段进行配置</div>
           <div v-else class="prop-form">
             <div class="prop-group">
@@ -240,8 +241,7 @@
                 <label class="prop-label">选项配置</label>
                 <div class="enum-list">
                   <div v-for="(opt, oi) in enumOptions" :key="oi" class="enum-row">
-                    <input v-model="opt.label" class="enum-input" placeholder="显示名称">
-                    <span class="enum-value-tag">值 {{ oi + 1 }}</span>
+                    <input v-model="opt.label" class="enum-input" placeholder="选项内容（存储值与显示一致）">
                     <button class="enum-del" @click="removeEnumOption(oi)"><i class="el-icon-close" /></button>
                   </div>
                 </div>
@@ -259,6 +259,7 @@
       :visible="saveVisible"
       :loading="saving"
       :template-version="template.version || 1"
+      :usage="templateUsage"
       @confirm="handleSaveWithMode"
       @close="saveVisible = false"
     />
@@ -274,13 +275,14 @@
 </template>
 
 <script>
-import { getTemplateDetail, saveTemplateFlow } from '@/api/template'
+import { getTemplateDetail, getTemplateUsage, saveTemplateFlow, saveNodeGuideFiles } from '@/api/template'
 import SaveFlowModal from './components/SaveFlowModal.vue'
 import VersionListModal from './components/VersionListModal.vue'
+import AttachField from '@/components/AttachField'
 
 export default {
   name: 'FormDesigner',
-  components: { SaveFlowModal, VersionListModal },
+  components: { SaveFlowModal, VersionListModal, AttachField },
   data() {
     return {
       templateId: null,
@@ -291,12 +293,16 @@ export default {
       templateFields: [],
       /** 画布模式：node=节点字段，template=任务基础字段 */
       viewMode: 'node',
+      /** 右栏「节点属性」区块是否收起 */
+      nodePropCollapsed: false,
       selectedNodeIndex: 0,
       selectedFieldIndex: -1,
       saving: false,
       // 保存/版本弹窗
       saveVisible: false,
       versionVisible: false,
+      /** 模板被使用情况 { taskCount, dispatchCount }（保存流程前提示用户） */
+      templateUsage: null,
       enumOptions: [],
       basicFields: [
         { type: 'text', label: '单行文本', icon: 'el-icon-edit' },
@@ -329,16 +335,23 @@ export default {
     totalFieldCount() {
       return this.nodes.reduce((sum, n) => sum + ((n.fields || []).length), 0) + this.templateFields.length
     },
-    /** 当前节点「说明文件」列表（guideFiles 为 JSON 字符串，解析为数组供编辑） */
-    guideFilesArr() {
-      const g = this.currentNode && this.currentNode.node && this.currentNode.node.guideFiles
-      if (!g) return []
-      try {
-        const arr = JSON.parse(g)
-        return Array.isArray(arr) ? arr : []
-      } catch (e) {
-        return []
+    /** 当前节点「说明文件」值（JSON 字符串，格式同 attach：[{attachId,fileName,ecsUrl,...}]） */
+    guideFilesValue: {
+      get() {
+        const node = this.currentNode && this.currentNode.node
+        return (node && node.guideFiles) || ''
+      },
+      set(val) {
+        const node = this.currentNode && this.currentNode.node
+        if (!node) return
+        node.guideFiles = val || null
+        // 已保存节点：即时持久化，避免刷新后说明文件丢失（新节点无 id，待保存流程后生效）
+        this.persistNodeGuideFiles(node)
       }
+    },
+    /** 节点说明文件的业务 id（写入 attach.biz_id 用于关联查询） */
+    guideBizId() {
+      return 'node-guide-' + (this.templateId || 'new')
     }
   },
   watch: {
@@ -554,7 +567,7 @@ export default {
         placeholder: '',
         fieldTips: '',
         maxLength: type === 'text' ? 100 : (type === 'textarea' ? 500 : null),
-        enumOptions: (type === 'radio' || type === 'checkbox') ? JSON.stringify([{ label: '选项1', value: '1' }, { label: '选项2', value: '2' }]) : null
+        enumOptions: (type === 'radio' || type === 'checkbox') ? JSON.stringify([{ label: '选项1', value: '选项1' }, { label: '选项2', value: '选项2' }]) : null
       }
       this.currentFields.push(newField)
       this.selectedFieldIndex = this.currentFields.length - 1
@@ -583,44 +596,20 @@ export default {
     syncEnumToField() {
       const f = this.selectedField
       if (f && ['radio', 'checkbox'].includes(f.fieldType)) {
-        // value 按显示顺序自动编号，无需手动填写
-        f.enumOptions = JSON.stringify(this.enumOptions.map((o, i) => ({ label: o.label, value: String(i + 1) })).filter(o => o.label))
+        // key（存储值）与 value（显示内容）一致，直接存选项文本，便于处理人回显
+        f.enumOptions = JSON.stringify(this.enumOptions.map(o => ({ label: o.label, value: o.label })).filter(o => o.label))
       }
     },
-    /** 新增枚举选项：value 自动按序自增 */
+    /** 新增枚举选项：存储值与显示内容一致，只填选项文本即可 */
     addEnumOption() {
-      this.enumOptions.push({ label: '', value: String(this.enumOptions.length + 1) })
+      this.enumOptions.push({ label: '', value: '' })
     },
-    /** 删除枚举选项后重新编号 */
+    /** 删除枚举选项 */
     removeEnumOption(oi) {
       this.enumOptions.splice(oi, 1)
-      this.enumOptions.forEach((o, i) => { o.value = String(i + 1) })
     },
-    /** 新增说明文件行 */
-    addGuideFile() {
-      const arr = this.guideFilesArr.slice()
-      arr.push({ name: '' })
-      this.writeGuideFiles(arr)
-    },
-    /** 删除说明文件行 */
-    removeGuideFile(gi) {
-      const arr = this.guideFilesArr.slice()
-      arr.splice(gi, 1)
-      this.writeGuideFiles(arr)
-    },
-    /** 输入框失焦时把当前列表写回节点 JSON */
-    syncGuideFiles() {
-      this.writeGuideFiles(this.guideFilesArr)
-    },
-    /** 将文件列表序列化写回 currentNode.node.guideFiles（过滤空名称） */
-    writeGuideFiles(arr) {
-      const node = this.currentNode && this.currentNode.node
-      if (!node) return
-      const clean = (arr || []).filter(f => f && f.name && f.name.trim())
-      node.guideFiles = clean.length ? JSON.stringify(clean) : null
-    },
-    /** 保存按钮：先校验，再弹出保存方式（当前版本/新版本 + 改动说明） */
-    onSaveClick() {
+    /** 保存按钮：先校验，再查询模板被使用情况并弹出保存方式（当前版本/新版本 + 改动说明） */
+    async onSaveClick() {
       if (this.nodes.length < 2) {
         this.$message.warning('至少需要 2 个节点（首位自动标记为开始、末位为结束）')
         return
@@ -643,6 +632,13 @@ export default {
           this.$message.warning(`任务基础字段「${f.fieldLabel}」需绑定流程节点（仅该节点处理时填写）`)
           return
         }
+      }
+      // 检索该模板已被哪些任务/期次使用，弹窗中明确告知修改不影响已下发期次
+      try {
+        const res = await getTemplateUsage(Number(this.templateId))
+        this.templateUsage = (res && res.data) || null
+      } catch (e) {
+        this.templateUsage = null
       }
       this.saveVisible = true
     },
@@ -695,6 +691,16 @@ export default {
     },
     goBack() {
       this.$router.push('/flow-dispatch/flow-template')
+    },
+    /** 说明文件变更后即时持久化到节点（已保存节点直接更新，新节点等保存流程） */
+    async persistNodeGuideFiles(node) {
+      if (!node || !node.id) return
+      try {
+        await saveNodeGuideFiles(node.id, node.guideFiles || null)
+      } catch (e) {
+        console.error('保存说明文件失败:', e)
+        this.$message.error('说明文件保存失败，请稍后重试')
+      }
     }
   }
 }
@@ -746,7 +752,7 @@ $border: #e4beba;
 .role-tip { font-size: 11px; color: #999; margin-top: 5px; }
 
 // 三栏
-.designer-body { flex: 1; display: grid; grid-template-columns: 280px 1fr 320px; gap: 0; overflow: hidden; }
+.designer-body { flex: 1; display: grid; grid-template-columns: 380px 1fr 640px; gap: 0; overflow: hidden; }
 
 // 左栏：节点链
 .node-chain { background: #fff; border-right: 1px solid $border; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; }
@@ -822,22 +828,35 @@ $border: #e4beba;
 }
 
 // 右栏
-.property-panel { background: #fff; border-left: 1px solid $border; overflow-y: auto; }
-.prop-section { padding: 16px; border-bottom: 1px solid #f0f0f0;
-  &:last-child { border-bottom: none; }
+.property-panel { background: #f5f6f8; border-left: 1px solid $border; overflow-y: auto; padding: 14px; box-sizing: border-box; }
+.prop-section { background: #fff; border: 1px solid #f0e8e7; border-radius: 10px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  &:last-child { margin-bottom: 0; }
+}
+.panel-title { font-size: 15px; font-weight: 700; color: #1b1c1c; display: flex; align-items: center; gap: 7px; border-left: 3px solid $primary; padding-left: 9px;
+  i { color: $primary; font-size: 15px; }
+}
+.panel-title-click { cursor: pointer; user-select: none;
+  &:hover { color: $primary; }
+}
+.collapse-arrow { margin-left: auto; color: #909399 !important; font-size: 14px !important; transition: transform 0.2s;
+  &.open { transform: rotate(180deg); }
 }
 .panel-empty { text-align: center; padding: 30px 0; color: #ccc;
   p { font-size: 13px; color: #999; margin-top: 8px; }
 }
-.prop-form { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
-.prop-group { display: flex; flex-direction: column; gap: 4px; }
-.prop-label { font-size: 12px; color: #757575; font-weight: 600; }
-.prop-input { height: 32px; border: 1px solid #dcdfe6; border-radius: 4px; padding: 0 8px; font-size: 13px; outline: none; transition: all 0.2s;
-  &:focus { border-color: $primary; box-shadow: 0 0 0 1px rgba(197,48,48,0.2); }
+.prop-form { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+.prop-group { display: flex; flex-direction: column; gap: 5px; }
+.prop-label { font-size: 13px; color: #4a4f58; font-weight: 600; }
+.prop-input { height: 36px; border: 1px solid #dcdfe6; border-radius: 6px; padding: 0 10px; font-size: 13px; outline: none; transition: all 0.2s; background: #fff;
+  &:focus { border-color: $primary; box-shadow: 0 0 0 2px rgba(197,48,48,0.12); }
+  &:hover { border-color: #c0c4cc; }
 }
-.prop-textarea { width: 100%; border: 1px solid #dcdfe6; border-radius: 4px; padding: 8px; font-size: 13px; font-family: inherit; line-height: 1.6; resize: vertical; outline: none; box-sizing: border-box; transition: all 0.2s;
-  &:focus { border-color: $primary; box-shadow: 0 0 0 1px rgba(197,48,48,0.2); }
+.prop-textarea { width: 100%; border: 1px solid #dcdfe6; border-radius: 6px; padding: 8px 10px; font-size: 13px; font-family: inherit; line-height: 1.6; resize: vertical; outline: none; box-sizing: border-box; transition: all 0.2s; background: #fff;
+  &:focus { border-color: $primary; box-shadow: 0 0 0 2px rgba(197,48,48,0.12); }
+  &:hover { border-color: #c0c4cc; }
 }
+.node-type-line { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
+.node-type-note { font-size: 12px; color: #999; }
 .guide-files-editor { display: flex; flex-direction: column; gap: 6px; }
 .guide-file-row { display: flex; align-items: center; gap: 6px;
   i { color: #909399; font-size: 13px; flex-shrink: 0; }
@@ -850,14 +869,12 @@ $border: #e4beba;
   &:hover { border-color: $primary; background: #FFF5F5; }
 }
 .prop-row { flex-direction: row; align-items: center; justify-content: space-between; }
-.node-type-readonly { font-size: 13px; color: #606266; padding: 6px 0; }
 .prop-hint { font-size: 12px; color: $primary; margin: 0; }
 .enum-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
 .enum-row { display: flex; gap: 4px; }
 .enum-input { flex: 1; height: 28px; border: 1px solid #dcdfe6; border-radius: 4px; padding: 0 6px; font-size: 12px; outline: none;
   &:focus { border-color: $primary; }
 }
-.enum-value-tag { width: 80px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid #ebeef5; background: #f5f7fa; border-radius: 4px; color: #909399; font-size: 12px; flex-shrink: 0; }
 .enum-del { width: 28px; height: 28px; border: 1px solid #dcdfe6; background: #fff; border-radius: 4px; cursor: pointer; color: #ba1a1a; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .enum-add { width: 100%; padding: 6px; border: 1px dashed #cbd5e0; background: transparent; border-radius: 4px; cursor: pointer; color: $primary; font-size: 12px;
   &:hover { border-color: $primary; background: #FFF5F5; }

@@ -3,24 +3,32 @@ package com.zqk.house.flowtask.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zqk.house.flowdata.entity.Attach;
+import com.zqk.house.flowdata.service.AttachService;
 import com.zqk.house.flowtask.entity.FlowDispatch;
 import com.zqk.house.flowtask.entity.FlowDispatchConfig;
 import com.zqk.house.flowtask.entity.FlowTask;
 import com.zqk.house.flowtask.entity.FlowTaskDispatch;
+import com.zqk.house.flowtask.entity.FlowTaskDispatchNode;
 import com.zqk.house.flowtask.entity.FlowTaskMember;
 import com.zqk.house.flowtask.entity.FlowTaskNode;
 import com.zqk.house.flowtask.mapper.FlowDispatchConfigMapper;
 import com.zqk.house.flowtask.mapper.FlowDispatchMapper;
 import com.zqk.house.flowtask.mapper.FlowTaskDispatchMapper;
+import com.zqk.house.flowtask.mapper.FlowTaskDispatchNodeMapper;
 import com.zqk.house.flowtask.mapper.FlowTaskMapper;
 import com.zqk.house.flowtask.mapper.FlowTaskMemberMapper;
 import com.zqk.house.flowtask.mapper.FlowTaskNodeMapper;
+import com.zqk.house.flowtask.vo.DispatchStatsVO;
+import com.zqk.house.flowtask.vo.DueDispatchVO;
 import com.zqk.house.flowtask.vo.PeriodGenerateVO;
 import com.zqk.house.flowtask.vo.PeriodPreviewVO;
 import com.zqk.house.flowtask.vo.TaskMemberInfoVO;
 import com.zqk.house.flowtask.vo.TaskSaveDTO;
 import com.zqk.house.flowtemplate.entity.FlowTemplate;
+import com.zqk.house.flowtemplate.entity.FlowTemplateField;
 import com.zqk.house.flowtemplate.entity.FlowTemplateNode;
+import com.zqk.house.flowtemplate.mapper.FlowTemplateFieldMapper;
 import com.zqk.house.flowtemplate.mapper.FlowTemplateMapper;
 import com.zqk.house.flowtemplate.mapper.FlowTemplateNodeMapper;
 import com.zqk.house.sysuser.entity.SysUser;
@@ -28,11 +36,14 @@ import com.zqk.house.sysuser.mapper.SysUserMapper;
 import com.zqk.house.sysuser.vo.LoginUser;
 import com.zqk.house.util.PageResult;
 import com.zqk.house.util.SecurityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -41,6 +52,7 @@ import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -66,6 +78,8 @@ public class FlowDispatchService {
     /** 周期类型：单次下发 */
     public static final int CYCLE_ONCE = 4;
 
+    private static final Logger log = LoggerFactory.getLogger(FlowDispatchService.class);
+
     @Autowired
     private FlowDispatchMapper flowDispatchMapper;
     @Autowired
@@ -79,11 +93,17 @@ public class FlowDispatchService {
     @Autowired
     private FlowTaskNodeMapper flowTaskNodeMapper;
     @Autowired
+    private FlowTaskDispatchNodeMapper flowTaskDispatchNodeMapper;
+    @Autowired
     private FlowTemplateMapper flowTemplateMapper;
     @Autowired
     private SysUserMapper sysUserMapper;
     @Autowired
     private FlowTemplateNodeMapper flowTemplateNodeMapper;
+    @Autowired
+    private FlowTemplateFieldMapper flowTemplateFieldMapper;
+    @Autowired
+    private AttachService attachService;
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -158,23 +178,41 @@ public class FlowDispatchService {
         return loginUser != null && Boolean.TRUE.equals(loginUser.getSuperAdmin());
     }
 
-    /** 当前用户可见性过滤的 deptId：超管返回 null（全量），普通用户返回其部门ID */
+    /** 当前用户可见性过滤的 deptId：超管返回 null（全量）；
+     *  普通用户返回其部门ID；无部门用户返回 -1（SQL 无匹配，仅样例公共可见） */
     private Long visibleDeptId(LoginUser loginUser) {
-        return isSuperAdmin(loginUser) ? null : (loginUser == null ? null : loginUser.getDeptId());
+        if (isSuperAdmin(loginUser)) return null;
+        if (loginUser == null || loginUser.getDeptId() == null) return -1L;
+        return loginUser.getDeptId();
     }
 
-    /** 操作权限校验：超管全量；样例仅超管可改；普通任务需同部门 */
+    /** 操作权限校验：超管全量；样例仅超管可改；普通任务需同部门（无部门用户不可操作） */
     private void checkPermission(FlowDispatch d) {
         if (d == null) throw new RuntimeException("任务不存在");
-        if (isSuperAdmin(SecurityUtils.getLoginUser())) return;
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        if (isSuperAdmin(loginUser)) return;
         if (d.getIsSample() != null && d.getIsSample() == 1) {
             throw new RuntimeException("样例任务仅超管可修改");
         }
-        if (d.getDeptId() != null) {
-            LoginUser loginUser = SecurityUtils.getLoginUser();
-            if (loginUser == null || !Objects.equals(d.getDeptId(), loginUser.getDeptId())) {
-                throw new RuntimeException("无权操作其他部门的任务");
-            }
+        if (loginUser == null || loginUser.getDeptId() == null) {
+            throw new RuntimeException("无权操作其他部门的任务");
+        }
+        if (d.getDeptId() == null || !Objects.equals(d.getDeptId(), loginUser.getDeptId())) {
+            throw new RuntimeException("无权操作其他部门的任务");
+        }
+    }
+
+    /** 详情可见性校验（只读）：超管全量；样例公共可见；同部门可见；否则拒绝（无部门用户不可见） */
+    private void checkVisible(FlowDispatch d) {
+        if (d == null) throw new RuntimeException("任务不存在");
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        if (isSuperAdmin(loginUser)) return;
+        if (d.getIsSample() != null && d.getIsSample() == 1) return;
+        if (loginUser == null || loginUser.getDeptId() == null) {
+            throw new RuntimeException("无权查看其他部门的任务");
+        }
+        if (d.getDeptId() == null || !Objects.equals(d.getDeptId(), loginUser.getDeptId())) {
+            throw new RuntimeException("无权查看其他部门的任务");
         }
     }
 
@@ -189,6 +227,11 @@ public class FlowDispatchService {
         Long total = flowDispatchMapper.selectTaskCount(n, status, deptId);
         fillCreatorInfo(list);
         return new PageResult<>(list, total);
+    }
+
+    /** 任务管理页统计卡（部门可见性过滤后） */
+    public DispatchStatsVO getStats() {
+        return flowDispatchMapper.selectStats(visibleDeptId(SecurityUtils.getLoginUser()));
     }
 
     /** 批量补充创建人姓名/部门（按 creatorId 查 sys_user） */
@@ -211,10 +254,13 @@ public class FlowDispatchService {
     /** 任务详情（编辑回填用，含下发配置） */
     public FlowDispatch getById(Long id) {
         if (id == null) return null;
-        return fillConfig(flowDispatchMapper.selectById(id));
+        FlowDispatch task = flowDispatchMapper.selectById(id);
+        // 详情可见性校验（超管全量 / 样例公共 / 同部门，否则拒绝）
+        checkVisible(task);
+        return fillConfig(task);
     }
 
-    /** 启用中的任务列表（部门可见性过滤） */
+    /** 启用中的任务列表（部门可见性过滤：样例公共 / 同部门） */
     public List<FlowDispatch> getEnabledList() {
         LambdaQueryWrapper<FlowDispatch> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(FlowDispatch::getStatus, 1);
@@ -287,6 +333,19 @@ public class FlowDispatchService {
     private void validate(TaskSaveDTO dto) {
         if (!StringUtils.hasText(dto.getTaskName())) throw new RuntimeException("请填写任务名称");
         if (dto.getTemplateId() == null) throw new RuntimeException("请选择流程模板");
+        // 引用模板校验：模板必须存在、已配置流程节点、已配置表单字段，否则不允许引用并告知用户
+        FlowTemplate tpl = flowTemplateMapper.selectById(dto.getTemplateId());
+        if (tpl == null) throw new RuntimeException("所选流程模板不存在，请重新选择");
+        Long nodeCount = flowTemplateNodeMapper.selectCount(new LambdaQueryWrapper<FlowTemplateNode>()
+                .eq(FlowTemplateNode::getTemplateId, dto.getTemplateId()));
+        if (nodeCount == null || nodeCount == 0) {
+            throw new RuntimeException("该模板「" + tpl.getTemplateName() + "」未配置流程节点，不允许引用，请先在设计模板时添加节点");
+        }
+        Long fieldCount = flowTemplateFieldMapper.selectCount(new LambdaQueryWrapper<FlowTemplateField>()
+                .eq(FlowTemplateField::getTemplateId, dto.getTemplateId()));
+        if (fieldCount == null || fieldCount == 0) {
+            throw new RuntimeException("该模板「" + tpl.getTemplateName() + "」未配置表单字段，不允许引用，请先在设计模板时添加字段");
+        }
         Integer cycle = dto.getCycleType() == null ? CYCLE_ONCE : dto.getCycleType();
         if (cycle != CYCLE_ONCE && dto.getCycleDay() == null) throw new RuntimeException("请选择触发日");
     }
@@ -452,12 +511,20 @@ public class FlowDispatchService {
         }
         if (immediate) {
             // 立即下发：当期窗口；已下发则提示，禁止重复
-            // 截止时间按下发时间计算（补发当期时避免按触发日+天数导致立即截止）
+            // 开始/截止时间：先比较配置触发时间与当前时间——
+            //   触发日早于/等于今天（补发当期）→ 按下发时间算截止；触发日晚于今天（提前下发当期）→ 按配置触发时间计算
             PeriodWindow cur = nextWindow(cycle, day, now, true);
             vo.setPeriodKey(cur.key);
             vo.setPeriodName(cur.name);
-            vo.setStartTime(new Date());
-            vo.setEndTime(calcEnd(now, cfg.getDeadlineDays()));
+            if (cur.start.isAfter(now)) {
+                // 配置触发日未到：按配置时间计算开始与截止
+                vo.setStartTime(toDate(cur.start));
+                vo.setEndTime(calcEnd(cur.start, cfg.getDeadlineDays()));
+            } else {
+                // 触发日已过（补发当期）：按下发时间计算开始与截止
+                vo.setStartTime(new Date());
+                vo.setEndTime(calcEnd(now, cfg.getDeadlineDays()));
+            }
             vo.setAlreadyDispatched(isDispatched(taskId, cur.key, cur.name));
             // 下次下发：本期之后的下一个未下发周期
             PeriodWindow next = nextUndispatchedWindow(cycle, day, cur.start, false, taskId);
@@ -488,6 +555,65 @@ public class FlowDispatchService {
         return (last == null || last.getPeriodNo() == null) ? 1 : last.getPeriodNo() + 1;
     }
 
+    // ==================== 期次下发检测（到期待下发） ====================
+
+    /**
+     * 检索当前是否有任务的期次应该下发：
+     * 启用中且非样例的周期任务（周/月/季），其下一个未下发期次窗口开始时间已到（≤ 当前时间）即视为「到期待下发」。
+     * 单次（CYCLE_ONCE）任务由用户手动触发下发，不参与自动检测。
+     */
+    public List<DueDispatchVO> checkDueDispatches() {
+        List<FlowDispatch> tasks = flowDispatchMapper.selectList(new LambdaQueryWrapper<FlowDispatch>()
+                .eq(FlowDispatch::getStatus, 1)
+                .and(w -> w.ne(FlowDispatch::getIsSample, 1).or().isNull(FlowDispatch::getIsSample)));
+        Date now = new Date();
+        List<DueDispatchVO> result = new ArrayList<>();
+        for (FlowDispatch t : tasks) {
+            try {
+                FlowDispatchConfig cfg = getConfig(t.getId());
+                int cycle = cfg == null || cfg.getCycleType() == null ? CYCLE_ONCE : cfg.getCycleType();
+                if (cycle == CYCLE_ONCE) continue;
+                PeriodPreviewVO pv = previewPeriod(t.getId(), false);
+                if (pv.getStartTime() != null && !pv.getStartTime().after(now)) {
+                    DueDispatchVO vo = new DueDispatchVO();
+                    vo.setTaskId(t.getId());
+                    vo.setTaskName(t.getTaskName());
+                    vo.setPeriodNo(pv.getPeriodNo());
+                    vo.setPeriodKey(pv.getPeriodKey());
+                    vo.setPeriodName(pv.getPeriodName());
+                    vo.setStartTime(pv.getStartTime());
+                    vo.setEndTime(pv.getEndTime());
+                    result.add(vo);
+                }
+            } catch (Exception ignored) {
+                // 单个任务预览异常不影响其他任务检测
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 自动下发所有「到期待下发」的期次（复用 generatePeriod 自动周期逻辑）。
+     * synchronized 防止与定时任务并发触发时重复下发同一期次。
+     *
+     * @return 本次实际下发期次数
+     */
+    public int autoDispatchDuePeriods() {
+        synchronized (this) {
+            List<DueDispatchVO> due = checkDueDispatches();
+            int n = 0;
+            for (DueDispatchVO d : due) {
+                try {
+                    generatePeriod(d.getTaskId(), false, null, false, null, null, null);
+                    n++;
+                } catch (Exception ignored) {
+                    // 单期次下发失败不影响其他期次
+                }
+            }
+            return n;
+        }
+    }
+
     // ==================== 期次生成 ====================
 
     /**
@@ -496,10 +622,13 @@ public class FlowDispatchService {
      * 期次抄用任务配置：模板、模板配置信息（template_data）、任务名/说明、起止时间、人员（每人一条独立提交任务）。
      * @param memberIds 本期次人员ID（临时指定，可对任务人员做临时增删；为空则抄用任务配置人员）
      * @param manual true=手动临时期次（期次名必填/默认第N期，不占用自动周期编排逻辑）
+     * @param manualStartTime 临时期次自定义开始时间（manual=true 且非空时生效；为空则默认当前时间）
+     * @param manualEndTime   临时期次自定义截止时间（manual=true 且非空时生效；为空则默认当前时间 + 配置截止天数）
      * @return 生成结果（期次ID、期次名、下次自动下发时间）
      */
     @Transactional(rollbackFor = Exception.class)
-    public PeriodGenerateVO generatePeriod(Long taskId, boolean immediate, String periodName, boolean manual, List<Long> memberIds) {
+    public PeriodGenerateVO generatePeriod(Long taskId, boolean immediate, String periodName, boolean manual, List<Long> memberIds,
+                                           Date manualStartTime, Date manualEndTime) {
         FlowDispatch task = flowDispatchMapper.selectById(taskId);
         if (task == null) throw new RuntimeException("任务不存在");
         if (task.getStatus() != null && task.getStatus() == 0) {
@@ -524,9 +653,6 @@ public class FlowDispatchService {
             memberUids = members.stream().map(FlowTaskMember::getUserId).filter(Objects::nonNull).collect(Collectors.toList());
         }
         if (memberUids.isEmpty()) throw new RuntimeException("请选择本期次人员");
-        // 总节点数
-        long total = flowTemplateNodeMapper.selectCount(
-                new LambdaQueryWrapper<FlowTemplateNode>().eq(FlowTemplateNode::getTemplateId, task.getTemplateId()));
         LoginUser loginUser = SecurityUtils.getLoginUser();
         FlowDispatchConfig cfg = getConfig(taskId);
         if (cfg == null) cfg = new FlowDispatchConfig();
@@ -541,8 +667,12 @@ public class FlowDispatchService {
         Date nextDispatchTime = null;
         if (manual) {
             periodNameFinal = StringUtils.hasText(periodName) ? periodName.trim() : "第" + periodNo + "期";
-            startTime = new Date();
-            endTime = addDays(new Date(), cfg.getDeadlineDays());
+            // 临时期次起止时间：优先用户自定义，未传则沿用默认（当前时间 / 当前时间 + 配置截止天数）
+            startTime = manualStartTime != null ? manualStartTime : new Date();
+            endTime = manualEndTime != null ? manualEndTime : addDays(new Date(), cfg.getDeadlineDays());
+            if (manualStartTime != null && manualEndTime != null && !manualEndTime.after(manualStartTime)) {
+                throw new RuntimeException("临时期次截止时间必须晚于开始时间");
+            }
         } else {
             PeriodPreviewVO preview = previewPeriod(taskId, immediate);
             if (Boolean.TRUE.equals(preview.getAlreadyDispatched())) {
@@ -577,6 +707,22 @@ public class FlowDispatchService {
         dispatch.setEndTime(endTime);
         dispatch.setCreatorId(loginUser == null ? null : loginUser.getId());
         flowTaskDispatchMapper.insert(dispatch);
+        // 快照当期模板全部节点配置（含字段定义）到期次节点表，期次内所有成员共享；
+        // 模板后续升级不影响本期的节点提示/填写说明/说明文件/字段
+        List<FlowTaskDispatchNode> snapNodes = snapshotTemplateNodes(dispatch.getId(), task.getTemplateId());
+        // 快照模板级字段定义（node_id 为空：创建人字段 + 未绑定节点的处理人字段）
+        List<FlowTemplateField> tplFields = flowTemplateFieldMapper.selectList(
+                new LambdaQueryWrapper<FlowTemplateField>()
+                        .eq(FlowTemplateField::getTemplateId, task.getTemplateId())
+                        .isNull(FlowTemplateField::getNodeId)
+                        .orderByAsc(FlowTemplateField::getSortNum));
+        try {
+            dispatch.setTemplateFieldsJson(tplFields.isEmpty() ? null : objectMapper.writeValueAsString(tplFields));
+            flowTaskDispatchMapper.updateById(dispatch);
+        } catch (Exception ignored) {
+        }
+        FlowTaskDispatchNode firstSnap = snapNodes.isEmpty() ? null : snapNodes.get(0);
+        if (firstSnap == null) throw new RuntimeException("模板未设计流程节点（缺少开始节点）");
         // 为每位人员创建独立提交任务（从开始节点重新走流程）
         for (Long uid : memberUids) {
             FlowTask ft = new FlowTask();
@@ -588,19 +734,20 @@ public class FlowDispatchService {
             ft.setEndTime(endTime);
             ft.setStatus(1);
             ft.setTemplateVersion(tpl.getVersion());
-            ft.setCurrentNodeId(firstNode.getId());
+            ft.setCurrentNodeId(firstSnap.getId());
             ft.setCurrentHandlerId(uid);
             ft.setFinishedNodeCount(0);
-            ft.setTotalNodeCount((int) total);
+            ft.setTotalNodeCount(snapNodes.size());
             ft.setCreatorId(dispatch.getCreatorId());
             ft.setDispatchId(dispatch.getId());
             flowTaskMapper.insert(ft);
             FlowTaskNode n = new FlowTaskNode();
             n.setTaskId(ft.getId());
-            n.setNodeId(firstNode.getId());
-            n.setNodeName(firstNode.getNodeName());
-            n.setSortNum(firstNode.getSortNum());
-            n.setNodeType(firstNode.getNodeType());
+            n.setNodeId(firstSnap.getId());
+            n.setDispatchNodeId(firstSnap.getId());
+            n.setNodeName(firstSnap.getNodeName());
+            n.setSortNum(firstSnap.getSortNum());
+            n.setNodeType(firstSnap.getNodeType());
             n.setHandlerUserId(uid);
             n.setSubmitStatus(0);
             n.setAction(0);
@@ -620,16 +767,38 @@ public class FlowDispatchService {
         if (uids.isEmpty()) throw new RuntimeException("请选择要新增的人员");
         FlowTaskDispatch dispatch = flowTaskDispatchMapper.selectById(dispatchId);
         if (dispatch == null) throw new RuntimeException("期次不存在");
-        FlowTemplate tpl = flowTemplateMapper.selectById(dispatch.getTemplateId());
-        if (tpl == null) throw new RuntimeException("模板不存在");
-        // 开始节点
-        LambdaQueryWrapper<FlowTemplateNode> sw = new LambdaQueryWrapper<>();
-        sw.eq(FlowTemplateNode::getTemplateId, dispatch.getTemplateId())
-          .eq(FlowTemplateNode::getNodeType, 1).last("LIMIT 1");
-        FlowTemplateNode firstNode = flowTemplateNodeMapper.selectOne(sw);
-        if (firstNode == null) throw new RuntimeException("模板未设计流程节点（缺少开始节点）");
-        long total = flowTemplateNodeMapper.selectCount(
-                new LambdaQueryWrapper<FlowTemplateNode>().eq(FlowTemplateNode::getTemplateId, dispatch.getTemplateId()));
+        // 期次节点快照（优先，保证与期次锁定版本一致）；存量期次无快照则降级查当前模板
+        List<FlowTaskDispatchNode> snapNodes = flowTaskDispatchNodeMapper.selectList(
+                new LambdaQueryWrapper<FlowTaskDispatchNode>()
+                        .eq(FlowTaskDispatchNode::getDispatchId, dispatchId)
+                        .orderByAsc(FlowTaskDispatchNode::getSortNum));
+        FlowTaskDispatchNode firstSnap = snapNodes.isEmpty() ? null : snapNodes.get(0);
+        Long firstNodeId;
+        String firstNodeName;
+        Integer firstNodeSort;
+        Integer firstNodeType;
+        int total;
+        if (firstSnap != null) {
+            firstNodeId = firstSnap.getId();
+            firstNodeName = firstSnap.getNodeName();
+            firstNodeSort = firstSnap.getSortNum();
+            firstNodeType = firstSnap.getNodeType();
+            total = snapNodes.size();
+        } else {
+            FlowTemplate tpl = flowTemplateMapper.selectById(dispatch.getTemplateId());
+            if (tpl == null) throw new RuntimeException("模板不存在");
+            LambdaQueryWrapper<FlowTemplateNode> sw = new LambdaQueryWrapper<>();
+            sw.eq(FlowTemplateNode::getTemplateId, dispatch.getTemplateId())
+              .eq(FlowTemplateNode::getNodeType, 1).last("LIMIT 1");
+            FlowTemplateNode firstNode = flowTemplateNodeMapper.selectOne(sw);
+            if (firstNode == null) throw new RuntimeException("模板未设计流程节点（缺少开始节点）");
+            firstNodeId = firstNode.getId();
+            firstNodeName = firstNode.getNodeName();
+            firstNodeSort = firstNode.getSortNum();
+            firstNodeType = firstNode.getNodeType();
+            total = flowTemplateNodeMapper.selectCount(
+                    new LambdaQueryWrapper<FlowTemplateNode>().eq(FlowTemplateNode::getTemplateId, dispatch.getTemplateId())).intValue();
+        }
         // 该期次已存在的人员（从节点处理人判定，避免重复新增）
         List<Long> taskIds = flowTaskMapper.selectList(
                 new LambdaQueryWrapper<FlowTask>().eq(FlowTask::getDispatchId, dispatchId))
@@ -657,18 +826,19 @@ public class FlowDispatchService {
             ft.setEndTime(dispatch.getEndTime());
             ft.setStatus(1);
             ft.setTemplateVersion(dispatch.getTemplateVersion());
-            ft.setCurrentNodeId(firstNode.getId());
+            ft.setCurrentNodeId(firstNodeId);
             ft.setCurrentHandlerId(uid);
             ft.setFinishedNodeCount(0);
-            ft.setTotalNodeCount((int) total);
+            ft.setTotalNodeCount(total);
             ft.setCreatorId(dispatch.getCreatorId());
             flowTaskMapper.insert(ft);
             FlowTaskNode n = new FlowTaskNode();
             n.setTaskId(ft.getId());
-            n.setNodeId(firstNode.getId());
-            n.setNodeName(firstNode.getNodeName());
-            n.setSortNum(firstNode.getSortNum());
-            n.setNodeType(firstNode.getNodeType());
+            n.setNodeId(firstNodeId);
+            n.setDispatchNodeId(firstSnap == null ? null : firstSnap.getId());
+            n.setNodeName(firstNodeName);
+            n.setSortNum(firstNodeSort);
+            n.setNodeType(firstNodeType);
             n.setHandlerUserId(uid);
             n.setSubmitStatus(0);
             n.setAction(0);
@@ -677,6 +847,87 @@ public class FlowDispatchService {
         }
         if (count == 0) throw new RuntimeException("所选人员均已在该期次中，无需重复新增");
         return count;
+    }
+
+    /**
+     * 期次下发时快照当期模板全部节点配置（含字段定义）到 flow_task_dispatch_node。
+     * 期次内所有成员共享；后续模板升级/删除不影响历史期次；临时人员新增复用该快照。
+     * @return 快照节点列表（按 sort_num 升序）
+     */
+    private List<FlowTaskDispatchNode> snapshotTemplateNodes(Long dispatchId, Long templateId) {
+        List<FlowTemplateNode> nodes = flowTemplateNodeMapper.selectList(
+                new LambdaQueryWrapper<FlowTemplateNode>()
+                        .eq(FlowTemplateNode::getTemplateId, templateId)
+                        .orderByAsc(FlowTemplateNode::getSortNum));
+        List<FlowTaskDispatchNode> snaps = new ArrayList<>();
+        for (FlowTemplateNode nd : nodes) {
+            FlowTaskDispatchNode s = new FlowTaskDispatchNode();
+            s.setDispatchId(dispatchId);
+            s.setNodeId(nd.getId());
+            s.setNodeName(nd.getNodeName());
+            s.setSortNum(nd.getSortNum());
+            s.setNodeType(nd.getNodeType());
+            s.setNodeTips(nd.getNodeTips());
+            s.setGuideText(nd.getGuideText());
+            // 说明文件复制为期次维度附件（防模板删除文件导致历史期次悬空引用）
+            s.setGuideFiles(copyGuideFilesForDispatch(dispatchId, nd.getGuideFiles()));
+            s.setNextHandlerTip(nd.getNextHandlerTip());
+            // 字段定义快照：该节点字段 + 绑定该节点的处理人字段（fieldRole=2）
+            List<FlowTemplateField> fields = flowTemplateFieldMapper.selectList(
+                    new LambdaQueryWrapper<FlowTemplateField>()
+                            .eq(FlowTemplateField::getTemplateId, templateId)
+                            .and(w -> w.eq(FlowTemplateField::getNodeId, nd.getId())
+                                    .or().eq(FlowTemplateField::getBindNodeId, nd.getId()))
+                            .orderByAsc(FlowTemplateField::getSortNum));
+            try {
+                s.setFieldsJson(fields.isEmpty() ? null : objectMapper.writeValueAsString(fields));
+            } catch (Exception e) {
+                s.setFieldsJson(null);
+            }
+            flowTaskDispatchNodeMapper.insert(s);
+            snaps.add(s);
+        }
+        return snaps;
+    }
+
+    /**
+     * 期次说明文件复制：把模板节点的 guide_files 每条复制为「期次维度」附件记录（新 attachId），
+     * 返回新 JSON 写入快照。模板中删除/替换说明文件不再影响历史期次；无文件或复制失败时原样返回。
+     */
+    private String copyGuideFilesForDispatch(Long dispatchId, String guideFilesJson) {
+        if (!StringUtils.hasText(guideFilesJson)) return guideFilesJson;
+        try {
+            List<Map<String, Object>> files = objectMapper.readValue(
+                    guideFilesJson, new TypeReference<List<Map<String, Object>>>() {});
+            if (files == null || files.isEmpty()) return guideFilesJson;
+            String bizId = "node-guide-dispatch-" + dispatchId;
+            SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            List<Map<String, Object>> copied = new ArrayList<>();
+            for (Map<String, Object> f : files) {
+                Attach src = new Attach();
+                src.setAttachId(f.get("attachId") == null ? null : String.valueOf(f.get("attachId")));
+                src.setFileName(f.get("fileName") == null ? null : String.valueOf(f.get("fileName")));
+                src.setEcsUrl(f.get("ecsUrl") == null ? null : String.valueOf(f.get("ecsUrl")));
+                src.setCreator(f.get("creator") == null ? null : String.valueOf(f.get("creator")));
+                if (f.get("createTime") != null) {
+                    try { src.setCreateTime(fmt.parse(String.valueOf(f.get("createTime")))); } catch (Exception ignore) { /* 忽略解析失败 */ }
+                }
+                Attach copy = attachService.copyForSnapshot(src, bizId);
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("attachId", copy.getAttachId());
+                item.put("bizId", copy.getBizId());
+                item.put("fileName", copy.getFileName());
+                item.put("ecsUrl", copy.getEcsUrl());
+                item.put("creator", copy.getCreator());
+                if (copy.getCreateTime() != null) item.put("createTime", fmt.format(copy.getCreateTime()));
+                if (copy.getModifiedTime() != null) item.put("modifiedTime", fmt.format(copy.getModifiedTime()));
+                copied.add(item);
+            }
+            return objectMapper.writeValueAsString(copied);
+        } catch (Exception e) {
+            log.warn("期次说明文件复制失败，保留原 guide_files：{}", e.getMessage());
+            return guideFilesJson;
+        }
     }
 
     private static class PeriodWindow {

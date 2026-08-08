@@ -2,6 +2,7 @@ package com.zqk.house.flowtask.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.zqk.house.flowtask.entity.FlowDispatch;
+import com.zqk.house.flowtask.vo.DispatchStatsVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -21,6 +22,9 @@ public interface FlowDispatchMapper extends BaseMapper<FlowDispatch> {
     Long selectTaskCount(@Param("taskName") String taskName,
                          @Param("status") Integer status,
                          @Param("deptId") Long deptId);
+
+    /** 任务管理页统计卡（与 selectTaskPage 同过滤口径） */
+    DispatchStatsVO selectStats(@Param("deptId") Long deptId);
 
     /** 任务人员列表（JOIN sys_user） */
     List<com.zqk.house.flowtask.vo.TaskMemberInfoVO> selectMembersByTask(@Param("taskId") Long taskId);

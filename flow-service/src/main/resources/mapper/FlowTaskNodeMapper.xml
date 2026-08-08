@@ -15,26 +15,44 @@
         <result property="nextHandlerTip" column="next_handler_tip"/>
         <result property="nodeType" column="node_type"/>
         <result property="todoStatus" column="todo_status"/>
+        <result property="dispatchId" column="dispatch_id"/>
+        <result property="planId" column="plan_id"/>
+        <result property="periodName" column="period_name"/>
+        <result property="periodNo" column="period_no"/>
+        <result property="periodStartTime" column="period_start_time"/>
+        <result property="periodEndTime" column="period_end_time"/>
         <result property="taskCreateTime" column="task_create_time"/>
     </resultMap>
 
+    <sql id="myTodoSelectColumns">
+        tn.id AS task_node_id, tn.task_id, tn.node_id AS current_node_id,
+        tn.node_name, tn.node_type,
+        t.task_name, t.template_id, t.create_time AS task_create_time,
+        tpl.template_name,
+        <!-- 节点提示/下一步提示：期次快照优先，存量任务降级模板节点 -->
+        COALESCE(dn.node_tips, n.node_tips) AS node_tips,
+        COALESCE(dn.next_handler_tip, n.next_handler_tip) AS next_handler_tip,
+        <!-- 所属期次（存量无期次任务 LEFT JOIN 为 null） -->
+        d.id AS dispatch_id, d.period_name, d.period_no,
+        d.start_time AS period_start_time, d.end_time AS period_end_time,
+        <!-- 待办状态：该用户存在未处理节点 → 0待处理，否则 1已处理（仅查看） -->
+        CASE WHEN EXISTS (
+            SELECT 1 FROM flow_task_node p
+            WHERE p.task_id = tn.task_id
+              AND p.handler_user_id = #{handlerUserId}
+              AND p.submit_status = 0
+        ) THEN 0 ELSE 1 END AS todo_status
+    </sql>
+
     <select id="selectMyTodo" resultMap="MyTodoMap">
-        SELECT tn.id AS task_node_id, tn.task_id, tn.node_id AS current_node_id,
-               tn.node_name, tn.node_type,
-               t.task_name, t.template_id, t.create_time AS task_create_time,
-               tpl.template_name,
-               n.node_tips, n.next_handler_tip,
-               <!-- 待办状态：该用户存在未处理节点 → 0待处理，否则 1已处理（仅查看） -->
-               CASE WHEN EXISTS (
-                   SELECT 1 FROM flow_task_node p
-                   WHERE p.task_id = tn.task_id
-                     AND p.handler_user_id = #{handlerUserId}
-                     AND p.submit_status = 0
-               ) THEN 0 ELSE 1 END AS todo_status
+        SELECT
+        <include refid="myTodoSelectColumns"/>
         FROM flow_task_node tn
         INNER JOIN flow_task t ON tn.task_id = t.id
         LEFT JOIN flow_template tpl ON t.template_id = tpl.id
+        LEFT JOIN flow_task_dispatch_node dn ON tn.dispatch_node_id = dn.id
         LEFT JOIN flow_template_node n ON tn.node_id = n.id
+        LEFT JOIN flow_task_dispatch d ON d.id = t.dispatch_id
         WHERE tn.handler_user_id = #{handlerUserId}
           AND t.status IN (1, 2)
           <!-- 每个任务取该用户最新一条节点记录（有待办取最新待办，否则取最新已处理） -->
@@ -56,6 +74,102 @@
               AND t.status IN (1, 2)
             GROUP BY tn.task_id
         ) sub
+    </select>
+
+    <!-- 我的任务（任务级分页）：按计划任务 flow_dispatch 分组，含期次数、待处理数。
+         节点挂靠成员实例 flow_task（成员×期次），经 flow_task_dispatch 归并到所属计划任务。
+         taskName 按任务名称模糊过滤；status 过滤任务处理状态：1=有待处理节点，0=全部已处理。 -->
+    <select id="selectMyTaskGroups" resultType="com.zqk.house.flowtask.vo.MyTodoTaskVO">
+        SELECT COALESCE(d.task_id, t.id) AS taskId,
+               COALESCE(plan.task_name, t.task_name) AS taskName,
+               COALESCE(plan.template_id, t.template_id) AS templateId,
+               COALESCE(tpl.template_name, tpl2.template_name) AS templateName,
+               COALESCE(plan.create_time, t.create_time) AS taskCreateTime,
+               COUNT(DISTINCT COALESCE(d.id, t.id)) AS periodCount,
+               SUM(CASE WHEN tn.submit_status = 0 THEN 1 ELSE 0 END) AS pendingCount
+        FROM flow_task_node tn
+        INNER JOIN flow_task t ON tn.task_id = t.id
+        LEFT JOIN flow_task_dispatch d ON d.id = t.dispatch_id
+        LEFT JOIN flow_dispatch plan ON plan.id = d.task_id
+        LEFT JOIN flow_template tpl ON plan.template_id = tpl.id
+        LEFT JOIN flow_template tpl2 ON t.template_id = tpl2.id
+        WHERE tn.handler_user_id = #{handlerUserId}
+          AND t.status IN (1, 2)
+          <if test="taskName != null and taskName != ''">
+              AND COALESCE(plan.task_name, t.task_name) LIKE CONCAT('%', #{taskName}, '%')
+          </if>
+        GROUP BY COALESCE(d.task_id, t.id), COALESCE(plan.task_name, t.task_name),
+                 COALESCE(plan.template_id, t.template_id), tpl.template_name, tpl2.template_name,
+                 COALESCE(plan.create_time, t.create_time)
+        <if test="status != null">
+            HAVING COALESCE(SUM(CASE WHEN tn.submit_status = 0 THEN 1 ELSE 0 END), 0)
+            <choose>
+                <when test="status == 1">&gt; 0</when>
+                <otherwise>= 0</otherwise>
+            </choose>
+        </if>
+        ORDER BY COALESCE(plan.create_time, t.create_time) DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectMyTaskGroupCount" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM (
+            SELECT COALESCE(d.task_id, t.id) AS taskId
+            FROM flow_task_node tn
+            INNER JOIN flow_task t ON tn.task_id = t.id
+            LEFT JOIN flow_task_dispatch d ON d.id = t.dispatch_id
+            LEFT JOIN flow_dispatch plan ON plan.id = d.task_id
+            WHERE tn.handler_user_id = #{handlerUserId}
+              AND t.status IN (1, 2)
+              <if test="taskName != null and taskName != ''">
+                  AND COALESCE(plan.task_name, t.task_name) LIKE CONCAT('%', #{taskName}, '%')
+              </if>
+            GROUP BY COALESCE(d.task_id, t.id)
+            <if test="status != null">
+                HAVING COALESCE(SUM(CASE WHEN tn.submit_status = 0 THEN 1 ELSE 0 END), 0)
+                <choose>
+                    <when test="status == 1">&gt; 0</when>
+                    <otherwise>= 0</otherwise>
+                </choose>
+            </if>
+        ) sub
+    </select>
+
+    <!-- 我的任务统计（统计卡）：任务数 / 待处理节点数 / 已完成节点数 -->
+    <select id="selectMyTodoStats" resultType="com.zqk.house.flowtask.vo.MyTodoStatsVO">
+        SELECT COUNT(DISTINCT COALESCE(d.task_id, t.id)) AS taskCount,
+               COALESCE(SUM(CASE WHEN tn.submit_status = 0 THEN 1 ELSE 0 END), 0) AS pendingNodeCount,
+               COALESCE(SUM(CASE WHEN tn.submit_status = 1 THEN 1 ELSE 0 END), 0) AS doneNodeCount
+        FROM flow_task_node tn
+        INNER JOIN flow_task t ON tn.task_id = t.id
+        LEFT JOIN flow_task_dispatch d ON d.id = t.dispatch_id
+        WHERE tn.handler_user_id = #{handlerUserId}
+          AND t.status IN (1, 2)
+    </select>
+
+    <!-- 我的任务明细：指定计划任务集内该用户各成员实例最新一条节点（含期次信息），供任务级分组组装 -->
+    <select id="selectMyTodoByTasks" resultMap="MyTodoMap">
+        SELECT
+        <include refid="myTodoSelectColumns"/>,
+        COALESCE(d.task_id, t.id) AS plan_id
+        FROM flow_task_node tn
+        INNER JOIN flow_task t ON tn.task_id = t.id
+        LEFT JOIN flow_template tpl ON t.template_id = tpl.id
+        LEFT JOIN flow_task_dispatch_node dn ON tn.dispatch_node_id = dn.id
+        LEFT JOIN flow_template_node n ON tn.node_id = n.id
+        LEFT JOIN flow_task_dispatch d ON d.id = t.dispatch_id
+        WHERE tn.handler_user_id = #{handlerUserId}
+          AND t.status IN (1, 2)
+          AND COALESCE(d.task_id, t.id) IN
+        <foreach collection="taskIds" item="taskId" open="(" separator="," close=")">
+            #{taskId}
+        </foreach>
+          AND tn.id = (
+              SELECT MAX(t2.id) FROM flow_task_node t2
+              WHERE t2.task_id = tn.task_id
+                AND t2.handler_user_id = #{handlerUserId}
+          )
+        ORDER BY tn.create_time DESC
     </select>
 
     <!-- 任务流转进度：该任务全部节点（按 sort_num）+ 处理人姓名 -->

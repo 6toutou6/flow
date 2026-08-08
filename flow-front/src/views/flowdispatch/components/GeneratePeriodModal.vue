@@ -79,7 +79,31 @@
             <span class="gpd-label"><span class="req">*</span> 期次名称</span>
             <input v-model="periodName" class="gpd-input" placeholder="如：2026-08 临时期次" maxlength="100">
           </div>
-          <div class="gpd-tip"><i class="el-icon-info" /> 手动新增临时期次不影响后续自动下发逻辑</div>
+          <div class="gpd-row">
+            <span class="gpd-label"><span class="req">*</span> 开始时间</span>
+            <el-date-picker
+              v-model="manualStartTime"
+              type="datetime"
+              placeholder="选择开始时间"
+              format="yyyy-MM-dd HH:mm:ss"
+              value-format="yyyy-MM-dd HH:mm:ss"
+              class="gpd-date"
+              :picker-options="startPickerOptions"
+            />
+          </div>
+          <div class="gpd-row">
+            <span class="gpd-label"><span class="req">*</span> 截止时间</span>
+            <el-date-picker
+              v-model="manualEndTime"
+              type="datetime"
+              placeholder="选择截止时间"
+              format="yyyy-MM-dd HH:mm:ss"
+              value-format="yyyy-MM-dd HH:mm:ss"
+              class="gpd-date"
+              :picker-options="endPickerOptions"
+            />
+          </div>
+          <div class="gpd-tip"><i class="el-icon-info" /> 临时期次的开始与截止时间由你自定义；手动新增不影响后续自动下发逻辑</div>
         </template>
       </div>
 
@@ -149,6 +173,9 @@ export default {
       periodName: '',
       preview: null,
       previewLoading: false,
+      /** 临时期次自定义开始/截止时间（字符串 yyyy-MM-dd HH:mm:ss） */
+      manualStartTime: '',
+      manualEndTime: '',
       tempMembers: [],
       saving: false,
       pickerVisible: false,
@@ -159,6 +186,24 @@ export default {
     dialogVisible: {
       get() { return this.visible },
       set(val) { if (!val) this.$emit('close') }
+    },
+    /** 开始时间选择限制：不早于当天 */
+    startPickerOptions() {
+      return {
+        disabledDate(time) { return time.getTime() < Date.now() - 24 * 3600 * 1000 }
+      }
+    },
+    /** 截止时间选择限制：不早于已选的开始时间 */
+    endPickerOptions() {
+      const start = this.manualStartTime
+      return {
+        disabledDate(time) {
+          if (!start) return time.getTime() < Date.now() - 24 * 3600 * 1000
+          const d = new Date(start)
+          d.setDate(d.getDate() - 1)
+          return time.getTime() < d.getTime()
+        }
+      }
     },
     pickerExcludeIds() {
       return this.tempMembers.map(m => m.userId)
@@ -186,6 +231,11 @@ export default {
       this.periodName = ''
       this.preview = null
       this.lastAutoName = ''
+      // 临时期次默认时间：开始=当前，截止=当前 + 配置截止天数（用户可自行修改）
+      const now = new Date()
+      const days = (this.task && this.task.deadlineDays) || 7
+      this.manualStartTime = this.formatDateTime(now)
+      this.manualEndTime = this.formatDateTime(new Date(now.getTime() + days * 24 * 3600 * 1000))
       // 默认抄用任务配置人员，可临时增删（不影响任务配置）
       this.tempMembers = (this.members || []).map(m => ({ ...m }))
       this.loadPreview()
@@ -221,6 +271,11 @@ export default {
     removeMember(userId) {
       this.tempMembers = this.tempMembers.filter(m => m.userId !== userId)
     },
+    /** 日期时间 → yyyy-MM-dd HH:mm:ss 字符串 */
+    formatDateTime(d) {
+      const p = n => (n < 10 ? '0' + n : '' + n)
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+    },
     async handleSubmit() {
       if (this.tempMembers.length === 0) {
         this.$message.warning('请至少选择一名本期次人员')
@@ -230,14 +285,29 @@ export default {
         this.$message.warning('请填写期次名称')
         return
       }
+      if (this.mode === 'manual') {
+        if (!this.manualStartTime || !this.manualEndTime) {
+          this.$message.warning('请选择临时期次的开始与截止时间')
+          return
+        }
+        if (this.manualEndTime <= this.manualStartTime) {
+          this.$message.warning('截止时间必须晚于开始时间')
+          return
+        }
+      }
       this.saving = true
       try {
-        const res = await generatePeriod(this.task.id, {
+        const payload = {
           immediate: this.mode === 'auto' ? this.immediate : true,
           periodName: this.periodName.trim(),
           manual: this.mode === 'manual',
           memberIds: this.tempMembers.map(m => m.userId)
-        })
+        }
+        if (this.mode === 'manual') {
+          payload.startTime = this.manualStartTime
+          payload.endTime = this.manualEndTime
+        }
+        const res = await generatePeriod(this.task.id, payload)
         this.$message.success(res.message || '期次生成成功')
         this.$emit('success', res.data)
       } catch (e) {
@@ -294,6 +364,7 @@ $primary: #C53030;
 .gpd-input { flex: 1; height: 34px; border: 1px solid #dcdfe6; border-radius: 6px; padding: 0 10px; font-size: 13px; outline: none; transition: all .2s;
   &:focus { border-color: $primary; box-shadow: 0 0 0 2px rgba(197,48,48,0.15); }
 }
+.gpd-date { flex: 1; width: 100%; }
 .req { color: $primary; }
 .gpd-tip { display: flex; align-items: center; gap: 5px; margin-top: 10px; font-size: 12px; color: #8a4b46; background: #FFF5F5; border-radius: 6px; padding: 7px 10px;
   i { color: $primary; }

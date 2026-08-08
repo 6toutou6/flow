@@ -75,6 +75,14 @@ export function getTemplateStats() {
   })
 }
 
+// 模板被使用情况（任务数/期次数），保存流程设计前提示用户
+export function getTemplateUsage(id) {
+  return request({
+    url: `/flow-template/usage/${id}`,
+    method: 'get'
+  })
+}
+
 // 启用模板列表（任务下发选模板用）
 export function getEnabledTemplates() {
   return request({
@@ -89,6 +97,15 @@ export function saveTemplateFlow(data) {
     url: '/flow-template/save-flow',
     method: 'put',
     data
+  })
+}
+
+// 单独保存某节点说明文件（上传/删除后即时持久化，避免刷新丢失）
+export function saveNodeGuideFiles(nodeId, guideFiles) {
+  return request({
+    url: '/flow-template/node-guide-files',
+    method: 'put',
+    data: { nodeId, guideFiles }
   })
 }
 

@@ -84,12 +84,38 @@ export function submitTask(data) {
   })
 }
 
+// 暂存（保存草稿，不校验必填、不流转；下次打开回填）
+export function saveDraftTask(data) {
+  return request({
+    url: '/flow-task/save-draft',
+    method: 'post',
+    data
+  })
+}
+
 // 我的待办（当前登录用户作为处理人且未处理的任务节点）
 export function getMyTodoList(params) {
   return request({
     url: '/flow-task/my-todo',
     method: 'post',
     data: params
+  })
+}
+
+// 我的任务（任务→期次 两级展示）：任务级分页，任务下按期次分组待办节点
+export function getMyTodoGrouped(params) {
+  return request({
+    url: '/flow-task/my-todo-grouped',
+    method: 'post',
+    data: params
+  })
+}
+
+// 我的任务统计（统计卡）
+export function getMyTodoStats() {
+  return request({
+    url: '/flow-task/my-todo-stats',
+    method: 'get'
   })
 }
 

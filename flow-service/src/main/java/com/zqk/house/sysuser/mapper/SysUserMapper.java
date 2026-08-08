@@ -18,4 +18,8 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
      */
     @Select("SELECT * FROM sys_user WHERE username = #{username}")
     SysUser selectByUsernameWithPassword(@Param("username") String username);
+
+    /** 部门数（有用户的部门） */
+    @Select("SELECT COUNT(DISTINCT dept_id) FROM sys_user")
+    Long countDistinctDept();
 }

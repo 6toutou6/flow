@@ -1,8 +1,13 @@
 package com.zqk.house.flowtemplate.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zqk.house.flowtask.entity.FlowDispatch;
+import com.zqk.house.flowtask.entity.FlowTaskDispatch;
+import com.zqk.house.flowtask.mapper.FlowDispatchMapper;
+import com.zqk.house.flowtask.mapper.FlowTaskDispatchMapper;
 import com.zqk.house.flowtemplate.entity.FlowTemplate;
 import com.zqk.house.flowtemplate.entity.FlowTemplateField;
 import com.zqk.house.flowtemplate.entity.FlowTemplateNode;
@@ -29,6 +34,7 @@ import org.springframework.util.StringUtils;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +53,10 @@ public class FlowTemplateService {
     @Autowired
     private FlowTemplateVersionMapper flowTemplateVersionMapper;
     @Autowired
+    private FlowDispatchMapper flowDispatchMapper;
+    @Autowired
+    private FlowTaskDispatchMapper flowTaskDispatchMapper;
+    @Autowired
     private ObjectMapper objectMapper;
     @Autowired
     private SysUserMapper sysUserMapper;
@@ -62,24 +72,41 @@ public class FlowTemplateService {
         if (isSuperAdmin(loginUser)) return;
         Long deptId = loginUser == null ? null : loginUser.getDeptId();
         if (deptId != null) {
+            // 样例公共可见 或 同部门创建
             wrapper.and(w -> w.eq(FlowTemplate::getIsSample, 1).or().eq(FlowTemplate::getDeptId, deptId));
         } else {
+            // 无部门用户：仅样例公共可见
             wrapper.eq(FlowTemplate::getIsSample, 1);
         }
     }
 
-    /** 操作权限校验：超管全量；样例仅超管可改；普通模板需同部门 */
+    /** 操作权限校验：超管全量；样例仅超管可改；普通模板需同部门（无部门用户不可操作） */
     private void checkPermission(FlowTemplate t) {
         if (t == null) throw new RuntimeException("模板不存在");
-        if (isSuperAdmin(SecurityUtils.getLoginUser())) return;
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        if (isSuperAdmin(loginUser)) return;
         if (t.getIsSample() != null && t.getIsSample() == 1) {
             throw new RuntimeException("样例模板仅超管可修改");
         }
-        if (t.getDeptId() != null) {
-            LoginUser loginUser = SecurityUtils.getLoginUser();
-            if (loginUser == null || !Objects.equals(t.getDeptId(), loginUser.getDeptId())) {
-                throw new RuntimeException("无权操作其他部门的模板");
-            }
+        if (loginUser == null || loginUser.getDeptId() == null) {
+            throw new RuntimeException("无权操作其他部门的模板");
+        }
+        if (t.getDeptId() == null || !Objects.equals(t.getDeptId(), loginUser.getDeptId())) {
+            throw new RuntimeException("无权操作其他部门的模板");
+        }
+    }
+
+    /** 详情可见性校验（只读）：超管全量；样例公共可见；同部门可见；否则拒绝（无部门用户不可见） */
+    private void checkVisible(FlowTemplate t) {
+        if (t == null) throw new RuntimeException("模板不存在");
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        if (isSuperAdmin(loginUser)) return;
+        if (t.getIsSample() != null && t.getIsSample() == 1) return;
+        if (loginUser == null || loginUser.getDeptId() == null) {
+            throw new RuntimeException("无权查看其他部门的模板");
+        }
+        if (t.getDeptId() == null || !Objects.equals(t.getDeptId(), loginUser.getDeptId())) {
+            throw new RuntimeException("无权查看其他部门的模板");
         }
     }
 
@@ -117,6 +144,8 @@ public class FlowTemplateService {
     public TemplateDetailVO getDetail(Long id) {
         FlowTemplate template = flowTemplateMapper.selectById(id);
         if (template == null) return null;
+        // 详情可见性校验（超管全量 / 样例公共 / 同部门，否则拒绝）
+        checkVisible(template);
         LambdaQueryWrapper<FlowTemplateNode> nw = new LambdaQueryWrapper<>();
         nw.eq(FlowTemplateNode::getTemplateId, id).orderByAsc(FlowTemplateNode::getSortNum);
         List<FlowTemplateNode> nodeList = flowTemplateNodeMapper.selectList(nw);
@@ -248,6 +277,25 @@ public class FlowTemplateService {
     }
 
     /**
+     * 模板被使用情况：任务数（flow_dispatch）+ 期次数（flow_task_dispatch），附任务/期次名称列表。
+     * 保存流程设计前调用，用于提示用户：修改仅对新下发的期次生效，已下发期次持有独立配置快照不受影响。
+     */
+    public Map<String, Object> usageCount(Long templateId) {
+        Map<String, Object> usage = new HashMap<>();
+        List<FlowDispatch> tasks = flowDispatchMapper.selectList(
+                new LambdaQueryWrapper<FlowDispatch>().eq(FlowDispatch::getTemplateId, templateId));
+        List<FlowTaskDispatch> dispatches = flowTaskDispatchMapper.selectList(
+                new LambdaQueryWrapper<FlowTaskDispatch>().eq(FlowTaskDispatch::getTemplateId, templateId));
+        usage.put("taskCount", tasks.size());
+        usage.put("dispatchCount", dispatches.size());
+        usage.put("taskNames", tasks.stream().map(FlowDispatch::getTaskName).filter(StringUtils::hasText).collect(Collectors.toList()));
+        usage.put("dispatchNames", dispatches.stream()
+                .map(d -> StringUtils.hasText(d.getPeriodName()) ? d.getPeriodName() : d.getTaskName())
+                .filter(StringUtils::hasText).collect(Collectors.toList()));
+        return usage;
+    }
+
+    /**
      * 流程设计器保存：节点链 + 每个节点的字段
      * 校验：首节点=开始(1)、末节点=结束(3)、结束节点 assignNext=0
      * 保存方式：current=保存到当前版本（覆盖，版本号不变）；new=保存为新版本（版本号+1，旧配置归档到版本记录）
@@ -345,6 +393,22 @@ public class FlowTemplateService {
         if (loginUser != null) t.setModifierId(loginUser.getId());
         flowTemplateMapper.updateById(t);
         return true;
+    }
+
+    /**
+     * 单独保存某节点的说明文件（上传/删除后即时持久化，避免刷新丢失）
+     * 只更新 guide_files 字段，不触发节点链重建（避免任务节点悬空）
+     */
+    public void saveNodeGuideFiles(Long nodeId, String guideFiles) {
+        if (nodeId == null) throw new RuntimeException("节点ID不能为空");
+        FlowTemplateNode node = flowTemplateNodeMapper.selectById(nodeId);
+        if (node == null) throw new RuntimeException("节点不存在");
+        FlowTemplate t = flowTemplateMapper.selectById(node.getTemplateId());
+        checkPermission(t);
+        LambdaUpdateWrapper<FlowTemplateNode> uw = new LambdaUpdateWrapper<>();
+        uw.eq(FlowTemplateNode::getId, nodeId)
+          .set(FlowTemplateNode::getGuideFiles, StringUtils.hasText(guideFiles) ? guideFiles : null);
+        flowTemplateNodeMapper.update(null, uw);
     }
 
     /** 构建当前模板配置快照 JSON（nodes + templateFields），供版本记录归档 */

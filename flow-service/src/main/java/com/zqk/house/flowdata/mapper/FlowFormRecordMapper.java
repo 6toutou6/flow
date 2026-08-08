@@ -2,9 +2,13 @@ package com.zqk.house.flowdata.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.zqk.house.flowdata.entity.FlowFormRecord;
+import com.zqk.house.flowdata.vo.DashboardVO;
 import com.zqk.house.flowdata.vo.DataStatsVO;
 import com.zqk.house.flowdata.vo.FormRecordListVO;
 import com.zqk.house.flowdata.vo.FormRecordQueryForm;
+import com.zqk.house.flowdata.vo.NameCountVO;
+import com.zqk.house.flowdata.vo.PersonRecordVO;
+import com.zqk.house.flowdata.vo.PersonSubmitVO;
 import com.zqk.house.flowdata.vo.TrendPointVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -25,4 +29,49 @@ public interface FlowFormRecordMapper extends BaseMapper<FlowFormRecord> {
     DataStatsVO selectStats(@Param("userId") Long userId);
 
     List<TrendPointVO> selectTrend(@Param("days") int days);
+
+    List<PersonSubmitVO> selectPersonPage(@Param("name") String name,
+                                          @Param("taskId") Long taskId,
+                                          @Param("offset") int offset,
+                                          @Param("limit") int limit);
+
+    Long selectPersonCount(@Param("name") String name,
+                           @Param("taskId") Long taskId);
+
+    List<PersonRecordVO> selectPersonRecordsPage(@Param("userId") Long userId,
+                                                 @Param("taskId") Long taskId,
+                                                 @Param("offset") int offset,
+                                                 @Param("limit") int limit);
+
+    Long selectPersonRecordsCount(@Param("userId") Long userId,
+                                  @Param("taskId") Long taskId);
+
+    DashboardVO selectDashboardTotals();
+
+    List<NameCountVO> selectTaskStatusDist();
+
+    List<NameCountVO> selectPeriodStatusDist();
+
+    /** 节点状态分布（flow_task_node.submit_status：待处理/已完成） */
+    List<NameCountVO> selectNodeStatusDist();
+
+    /** 下发周期类型分布（flow_dispatch_config.cycle_type：每周/每月/每季度/单次） */
+    List<NameCountVO> selectPeriodCycleDist();
+
+    /** 下发部门排行：各任务创建部门的下发期次数 */
+    List<NameCountVO> selectDispatchDeptRank();
+
+    /** 处理人部门排行：各提交人部门的历史提交次数 */
+    List<NameCountVO> selectHandlerDeptRank();
+
+    /** 模板节点数分布：按节点数分档统计模板数（如 1个节点有 N 个模板） */
+    List<NameCountVO> selectTemplateNodeDist();
+
+    /** 字段类型使用排行：各字段类型被使用的数量 */
+    List<NameCountVO> selectFieldTypeRank();
+
+    /** 提交趋势（按粒度：day=日 / month=月 / quarter=季度 / year=年；可选 startDate/endDate 时间范围） */
+    List<TrendPointVO> selectTrendByType(@Param("type") String type,
+                                         @Param("startDate") String startDate,
+                                         @Param("endDate") String endDate);
 }

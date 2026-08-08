@@ -14,6 +14,38 @@
           </div>
         </div>
 
+        <!-- 统计卡 -->
+        <section class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon icon-total"><i class="el-icon-user" /></div>
+            <div class="stat-body">
+              <div class="stat-label">用户总数</div>
+              <div class="stat-value">{{ stats.total || 0 }}</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-normal"><i class="el-icon-circle-check" /></div>
+            <div class="stat-body">
+              <div class="stat-label">正常用户</div>
+              <div class="stat-value">{{ stats.normalCount || 0 }}</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-disabled"><i class="el-icon-circle-close" /></div>
+            <div class="stat-body">
+              <div class="stat-label">禁用用户</div>
+              <div class="stat-value">{{ stats.disabledCount || 0 }}</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-dept"><i class="el-icon-office-building" /></div>
+            <div class="stat-body">
+              <div class="stat-label">部门数</div>
+              <div class="stat-value">{{ stats.deptCount || 0 }}</div>
+            </div>
+          </div>
+        </section>
+
         <!-- Filter Section -->
         <section class="filter-section">
           <div class="filter-grid">
@@ -158,7 +190,7 @@
 </template>
 
 <script>
-import { getUserList, addUser, updateUser, deleteUser } from '@/api/sysuser'
+import { getUserList, getSysUserStats, addUser, updateUser, deleteUser } from '@/api/sysuser'
 import AddModal from './components/AddModal.vue'
 import DetailModal from './components/DetailModal.vue'
 import DeleteModal from './components/DeleteModal.vue'
@@ -174,6 +206,8 @@ export default {
       currentPage: 1,
       pageSize: 10,
       totalPages: 1,
+      // 统计卡
+      stats: {},
       filters: {
         username: '',
         empNo: '',
@@ -209,8 +243,17 @@ export default {
   },
   mounted() {
     this.fetchData()
+    this.fetchStats()
   },
   methods: {
+    async fetchStats() {
+      try {
+        const res = await getSysUserStats()
+        this.stats = res.data || {}
+      } catch (e) {
+        console.error('获取用户统计失败:', e)
+      }
+    },
     async fetchData() {
       this.loading = true
       try {
@@ -334,6 +377,23 @@ export default {
   .active { color: #C53030; font-weight: 600; }
 }
 .page-heading { font-size: 30px; line-height: 38px; font-weight: 600; color: #1b1c1c; }
+
+// 统计卡
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+  @media (max-width: 1100px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 600px) { grid-template-columns: 1fr; }
+}
+.stat-card { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid #e4beba; border-radius: 10px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.stat-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; flex-shrink: 0;
+  &.icon-total { background: #C53030; }
+  &.icon-normal { background: #266d00; }
+  &.icon-disabled { background: #b7791f; }
+  &.icon-dept { background: #727786; }
+}
+.stat-body { flex: 1; }
+.stat-label { font-size: 13px; color: #757575; margin-bottom: 4px; }
+.stat-value { font-size: 28px; font-weight: 700; color: #1b1c1c; line-height: 1.1; }
+
 .btn-primary { display: flex; align-items: center; padding: 10px 24px; background-color: #C53030; color: white; border-radius: 8px; font-weight: 600; font-size: 13px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); transition: all 0.2s; cursor: pointer; border: none;
   &:hover { opacity: 0.9; }
 }

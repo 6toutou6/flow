@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/flow-template")
@@ -29,8 +30,12 @@ public class FlowTemplateController {
 
     @GetMapping("/{id}")
     public Result<TemplateDetailVO> detail(@PathVariable Long id) {
-        TemplateDetailVO vo = flowTemplateService.getDetail(id);
-        return vo != null ? Result.success("获取成功", vo) : Result.notFound("模板不存在");
+        try {
+            TemplateDetailVO vo = flowTemplateService.getDetail(id);
+            return vo != null ? Result.success("获取成功", vo) : Result.notFound("模板不存在");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
     }
 
     @PostMapping("/save")
@@ -86,6 +91,12 @@ public class FlowTemplateController {
         return Result.success("获取成功", flowTemplateService.getStats());
     }
 
+    /** 模板被使用情况（任务数/期次数/名称列表）：保存流程设计前提示用户修改不影响已下发期次 */
+    @GetMapping("/usage/{id}")
+    public Result<Map<String, Object>> usage(@PathVariable Long id) {
+        return Result.success("获取成功", flowTemplateService.usageCount(id));
+    }
+
     @GetMapping("/enabled-list")
     public Result<List<FlowTemplate>> enabledList() {
         return Result.success("获取成功", flowTemplateService.getEnabledList());
@@ -95,6 +106,21 @@ public class FlowTemplateController {
     public Result<Void> saveFlow(@RequestBody TemplateFlowSaveDTO dto) {
         try {
             return flowTemplateService.saveFlow(dto) ? Result.success("保存成功") : Result.fail("保存失败");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
+    /** 单独保存某节点的说明文件（上传/删除后即时持久化，避免刷新丢失） */
+    @PutMapping("/node-guide-files")
+    public Result<Void> saveNodeGuideFiles(@RequestBody Map<String, Object> body) {
+        try {
+            Object nid = body.get("nodeId");
+            Long nodeId = nid == null ? null : Long.valueOf(String.valueOf(nid));
+            Object gfs = body.get("guideFiles");
+            String guideFiles = gfs == null ? null : String.valueOf(gfs);
+            flowTemplateService.saveNodeGuideFiles(nodeId, guideFiles);
+            return Result.success("保存成功");
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         }

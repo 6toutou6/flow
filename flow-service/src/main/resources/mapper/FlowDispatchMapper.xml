@@ -54,6 +54,26 @@
         </where>
     </select>
 
+    <!-- 任务管理页统计卡：任务数 / 启用中 / 已下发期次 / 参与人员（部门可见性：样例公共或同部门；deptId 为 null 超管全量） -->
+    <select id="selectStats" resultType="com.zqk.house.flowtask.vo.DispatchStatsVO">
+        SELECT
+            (SELECT COUNT(*) FROM flow_dispatch d
+             <if test="deptId != null">WHERE (d.is_sample = 1 OR d.dept_id = #{deptId})</if>
+            ) AS taskCount,
+            (SELECT COUNT(*) FROM flow_dispatch d
+             WHERE d.status = 1
+             <if test="deptId != null">AND (d.is_sample = 1 OR d.dept_id = #{deptId})</if>
+            ) AS activeCount,
+            (SELECT COUNT(*) FROM flow_task_dispatch td
+             LEFT JOIN flow_dispatch d ON d.id = td.task_id
+             <if test="deptId != null">WHERE (d.is_sample = 1 OR d.dept_id = #{deptId})</if>
+            ) AS periodCount,
+            (SELECT COUNT(*) FROM flow_task_member m
+             LEFT JOIN flow_dispatch d ON d.id = m.task_id
+             <if test="deptId != null">WHERE (d.is_sample = 1 OR d.dept_id = #{deptId})</if>
+            ) AS memberCount
+    </select>
+
     <!-- 任务人员列表（配置人员，JOIN sys_user 取姓名/部门） -->
     <select id="selectMembersByTask" resultType="com.zqk.house.flowtask.vo.TaskMemberInfoVO">
         SELECT m.user_id AS userId, u.real_name AS realName, u.emp_no AS empNo,

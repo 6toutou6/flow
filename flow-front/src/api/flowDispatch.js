@@ -9,6 +9,14 @@ export function getDispatchTaskList(params) {
   })
 }
 
+// 任务管理页统计卡
+export function getDispatchStats() {
+  return request({
+    url: '/flow-dispatch/stats',
+    method: 'get'
+  })
+}
+
 // 任务详情（编辑回填）
 export function getDispatchTask(id) {
   return request({
@@ -23,6 +31,22 @@ export function getPreviewPeriod(taskId, immediate) {
     url: '/flow-dispatch/preview-period',
     method: 'get',
     params: { taskId, immediate }
+  })
+}
+
+// 检索当前是否有任务的期次应下发
+export function checkDueDispatches() {
+  return request({
+    url: '/flow-dispatch/check-due',
+    method: 'get'
+  })
+}
+
+// 自动下发所有到期待下发的期次
+export function autoDispatchDuePeriods() {
+  return request({
+    url: '/flow-dispatch/auto-dispatch',
+    method: 'post'
   })
 }
 
@@ -102,6 +126,14 @@ export function getConfigTemplates(keyword) {
     url: '/flow-dispatch/config-template/list',
     method: 'get',
     params: { keyword }
+  })
+}
+
+// 下发配置模板页统计卡
+export function getConfigTemplateStats() {
+  return request({
+    url: '/flow-dispatch/config-template/stats',
+    method: 'get'
   })
 }
 

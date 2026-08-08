@@ -118,7 +118,7 @@
                 <td>{{ row.updateTime || row.createTime }}</td>
                 <td class="text-right">
                   <template v-if="isSuperAdmin">
-                    <button class="action-link" @click="handleToggleSample(row)">{{ row.isSample === 1 ? '取消样例' : '设为样例' }}</button>
+                    <button class="action-link" @click="handleToggleSample(row)"><i :class="row.isSample === 1 ? 'el-icon-star-on star-on' : 'el-icon-star-off'" /> {{ row.isSample === 1 ? '取消样例' : '设为样例' }}</button>
                   </template>
                   <button class="action-link" :disabled="isSampleLocked(row)" :title="isSampleLocked(row) ? '样例模板不可修改，可复制后使用' : ''" @click="goDesigner(row)">设计流程</button>
                   <button class="action-link" :disabled="isSampleLocked(row)" :title="isSampleLocked(row) ? '样例模板不可修改，可复制后使用' : ''" @click="openEditModal(row)">编辑</button>
@@ -382,6 +382,7 @@ $primary: #C53030;
 .text-error { color: #ba1a1a; }
 .version-tag { display: inline-block; padding: 2px 8px; background: rgba(197, 48, 48, 0.1); color: $primary; border-radius: 6px; font-size: 12px; font-weight: 600; }
 .sample-tag { display: inline-block; padding: 2px 8px; background: rgba(183, 121, 31, 0.14); color: #b7791f; border-radius: 6px; font-size: 12px; font-weight: 600; margin-left: 6px; }
+.star-on { color: #E6A23C; }
 .action-link { color: $primary; background: none; border: none; cursor: pointer; font-size: 14px; margin-right: 8px;
   &:hover { text-decoration: underline; }
   &:disabled { color: #bbb; cursor: not-allowed; text-decoration: none; }

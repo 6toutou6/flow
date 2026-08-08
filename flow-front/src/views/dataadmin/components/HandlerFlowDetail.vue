@@ -23,10 +23,110 @@
       </div>
     </div>
     <div class="hfd-cols">
-    <!-- 左侧：完整流程链（去重：开始到当前节点，不显示退回重复步骤） -->
+    <!-- 左侧：完整流程链（去重：开始到当前节点，不显示退回重复步骤；支持横向/竖向切换，默认横向） -->
     <div v-if="flowChain.length > 0" class="chain-section hfd-left">
-      <div class="section-title">流程链 <span class="chain-hint">仅显示开始到当前节点；点击节点可展开查看表单与操作记录</span></div>
-      <div class="chain-track">
+      <div class="section-title">
+        流程链 <span class="chain-hint">仅显示开始到当前节点；点击节点可展开查看表单与操作记录</span>
+        <span class="orient-toggle">
+          <span class="orient-btn" :class="{ active: chainOrientation === 'horizontal' }" @click="chainOrientation = 'horizontal'"><i class="el-icon-s-fold" /> 横向</span>
+          <span class="orient-btn" :class="{ active: chainOrientation === 'vertical' }" @click="chainOrientation = 'vertical'"><i class="el-icon-s-unfold" /> 竖向</span>
+        </span>
+      </div>
+
+      <!-- 横向模式：节点 chip 轨道 + 点击展开详情 -->
+      <template v-if="chainOrientation === 'horizontal'">
+        <div class="chain-track-h">
+          <template v-for="(item, idx) in flowChain">
+            <div
+              :key="idx"
+              class="chain-chip"
+              :class="['chip-' + item.status, { clickable: item.status === 'done', expanded: expandedNodeIds.includes(item.nodeId), mine: item.isMine }]"
+              :title="`${idx + 1}. ${item.nodeName}（${statusLabel(item.status)}）`"
+              @click="toggleNodeForm(item)"
+            >
+              <span class="cc-no">{{ idx + 1 }}</span>
+              <span class="cc-name">{{ item.nodeName }}</span>
+              <span v-if="item.status === 'current'" class="cc-now">当前</span>
+              <span v-if="item.latestDone" class="cc-done-tag"><i class="el-icon-success" /></span>
+            </div>
+            <span v-if="idx < flowChain.length - 1" :key="'arr-' + idx" class="chain-arrow"><i class="el-icon-right" /></span>
+          </template>
+        </div>
+        <!-- 横向模式下展开的节点详情（支持多节点同时展开） -->
+        <div v-for="item in expandedChainItems" :key="'d-' + item.nodeId" class="step-detail" @click.stop>
+          <div class="sd-head">
+            <span class="sd-no">{{ chainIndex(item) + 1 }}</span>
+            <span class="sd-name">{{ item.nodeName }}</span>
+            <span class="step-badge" :class="'badge-' + item.status">{{ statusLabel(item.status) }}</span>
+            <span v-if="item.status === 'current'" class="cur-stage-tag">当前阶段</span>
+            <span v-if="item.latestDone" class="sd-meta"><i class="el-icon-user" /> {{ item.latestDone.handlerName || '—' }}</span>
+            <span v-if="item.latestDone" class="sd-meta"><i class="el-icon-time" /> {{ item.latestDone.handleTime || '—' }}</span>
+            <span v-if="item.rejectReason" class="meta-reason" :title="item.rejectReason"><i class="el-icon-warning-outline" /> 退回建议：{{ item.rejectReason }}</span>
+          </div>
+          <div class="step-expanded">
+            <div class="expanded-left">
+              <!-- 该节点填写说明（设计器配置，可展开/收回） -->
+              <div v-if="hasGuide(item)" class="guide-fold" :class="{ open: !isGuideFolded(item.nodeId) }">
+                <div class="guide-fold-head" @click="toggleGuideFold(item.nodeId)">
+                  <i class="el-icon-info guide-fold-flag" />
+                  <span class="guide-fold-title">填写说明</span>
+                  <span v-if="isGuideFolded(item.nodeId)" class="guide-fold-preview">点击展开查看本节点填写要求与参考文件</span>
+                  <span v-else class="guide-fold-preview">点击收回</span>
+                  <i :class="isGuideFolded(item.nodeId) ? 'el-icon-arrow-down' : 'el-icon-arrow-up'" class="guide-fold-arrow" />
+                </div>
+                <div v-show="!isGuideFolded(item.nodeId)" class="guide-fold-body">
+                  <div v-if="item.guideText" class="guide-text">{{ item.guideText }}</div>
+                  <div v-if="guideFileNames(item).length > 0" class="guide-files">
+                    <div class="guide-files-title"><i class="el-icon-paperclip" /> 说明文件<span class="chain-hint">可预览 / 下载</span></div>
+                    <AttachField readonly :value="item.guideFiles" />
+                  </div>
+                </div>
+              </div>
+              <div class="expanded-sub-title">表单数据（最近一次提交）</div>
+              <div v-if="item.latestDone && item.latestDone.formDataList && item.latestDone.formDataList.length > 0" class="form-rows">
+                <div v-for="(fd, fi) in item.latestDone.formDataList" :key="fi" class="form-row">
+                  <span class="fr-label">{{ fd.fieldLabel }}</span>
+                  <AttachField v-if="fd.fieldType === 'file' || fd.fieldType === 'image'" :value="fd.fieldValue" :field-type="fd.fieldType" readonly class="fr-value" />
+                  <span v-else class="fr-value">{{ fd.fieldValue || '—' }}</span>
+                </div>
+              </div>
+              <div v-else class="form-empty">该节点未填写表单数据</div>
+              <!-- 该节点处理人填写的任务基础字段（fieldRole=2） -->
+              <div v-if="item.latestDone && item.latestDone.baseDataList && item.latestDone.baseDataList.length > 0" class="bd-block">
+                <div class="expanded-sub-title bd-sub-title">
+                  任务基础信息
+                  <el-tooltip :content="`在「${item.nodeName}」节点由处理人填写`" placement="top">
+                    <span class="role-hint-icon role-handler"><i class="el-icon-user" /></span>
+                  </el-tooltip>
+                </div>
+                <div v-for="(bd, bi) in item.latestDone.baseDataList" :key="bi" class="form-row">
+                  <span class="fr-label">{{ bd.fieldLabel }}</span>
+                  <AttachField v-if="bd.fieldType === 'file' || bd.fieldType === 'image'" :value="bd.fieldValue" :field-type="bd.fieldType" readonly class="fr-value" />
+                  <span v-else class="fr-value">{{ bd.fieldValue || '—' }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="expanded-right">
+              <div class="expanded-sub-title">操作记录</div>
+              <div v-if="item.actionHistory.length > 0" class="action-list">
+                <div v-for="(act, ai) in item.actionHistory" :key="ai" class="action-item" :class="act.action === 1 ? 'act-reject' : 'act-pass'">
+                  <div class="action-head">
+                    <span class="action-badge">{{ act.action === 1 ? '退回' : '通过' }}</span>
+                    <span class="action-user"><i class="el-icon-user" /> {{ act.handlerName || '—' }}</span>
+                    <span class="action-time"><i class="el-icon-time" /> {{ act.handleTime || '—' }}</span>
+                  </div>
+                  <div v-if="act.action === 0 && act.passComment" class="action-comment">意见：{{ act.passComment }}</div>
+                  <div v-if="act.action === 1 && act.rejectReason" class="action-reason">原因：{{ act.rejectReason }}</div>
+                </div>
+              </div>
+              <div v-else class="form-empty">暂无操作记录</div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- 竖向模式：原有卡片式流程链 -->
+      <div v-else class="chain-track">
         <div
           v-for="(item, idx) in flowChain"
           :key="idx"
@@ -55,6 +155,23 @@
           <!-- 展开内容：左表单 + 右操作历史 -->
           <div v-if="item.status === 'done' && expandedNodeIds.includes(item.nodeId)" class="step-expanded" @click.stop>
             <div class="expanded-left">
+              <!-- 该节点填写说明（设计器配置，可展开/收回） -->
+              <div v-if="hasGuide(item)" class="guide-fold" :class="{ open: !isGuideFolded(item.nodeId) }">
+                <div class="guide-fold-head" @click="toggleGuideFold(item.nodeId)">
+                  <i class="el-icon-info guide-fold-flag" />
+                  <span class="guide-fold-title">填写说明</span>
+                  <span v-if="isGuideFolded(item.nodeId)" class="guide-fold-preview">点击展开查看本节点填写要求与参考文件</span>
+                  <span v-else class="guide-fold-preview">点击收回</span>
+                  <i :class="isGuideFolded(item.nodeId) ? 'el-icon-arrow-down' : 'el-icon-arrow-up'" class="guide-fold-arrow" />
+                </div>
+                <div v-show="!isGuideFolded(item.nodeId)" class="guide-fold-body">
+                  <div v-if="item.guideText" class="guide-text">{{ item.guideText }}</div>
+                  <div v-if="guideFileNames(item).length > 0" class="guide-files">
+                    <div class="guide-files-title"><i class="el-icon-paperclip" /> 说明文件<span class="chain-hint">可预览 / 下载</span></div>
+                    <AttachField readonly :value="item.guideFiles" />
+                  </div>
+                </div>
+              </div>
               <div class="expanded-sub-title">表单数据（最近一次提交）</div>
               <div v-if="item.latestDone && item.latestDone.formDataList && item.latestDone.formDataList.length > 0" class="form-rows">
                 <div v-for="(fd, fi) in item.latestDone.formDataList" :key="fi" class="form-row">
@@ -156,7 +273,11 @@ export default {
   },
   data() {
     return {
-      expandedNodeIds: []
+      /** 流程链展示方向：默认横向，用户可切换为竖向 */
+      chainOrientation: 'horizontal',
+      expandedNodeIds: [],
+      /** 已处理节点中「填写说明」被收起的节点 id 集合（默认全部展开） */
+      foldedGuideNodeIds: []
     }
   },
   computed: {
@@ -255,13 +376,19 @@ export default {
             pendingHandlerNames,
             rejectReason,
             branchCount: nodes.length,
-            actionHistory
+            actionHistory,
+            guideText: tpl.guideText,
+            guideFiles: tpl.guideFiles
           }
         })
     },
     /** 任务是否已全部完成（操作历史时间线末尾补完成节点） */
     taskFinished() {
       return this.taskDetail && this.taskDetail.task && this.taskDetail.task.status === 2
+    },
+    /** 横向模式：当前已展开的节点（支持多节点同时展开） */
+    expandedChainItems() {
+      return this.flowChain.filter(item => this.expandedNodeIds.includes(item.nodeId))
     },
     /** 完整操作历史：任务的全部操作节点（不区分提交人员，每条显示提交人员），按时间正序 */
     allHistory() {
@@ -276,10 +403,16 @@ export default {
   watch: {
     taskDetail() {
       this.expandedNodeIds = []
+      this.foldedGuideNodeIds = []
     }
   },
   methods: {
     statusLabel(s) { return { done: '已通过', current: '处理中', rejected: '已退回', pending: '未到' }[s] || '未到' },
+    /** 节点在流程链中的序号（1 起） */
+    chainIndex(item) {
+      const idx = this.flowChain.indexOf(item)
+      return idx >= 0 ? idx : 0
+    },
     toggleNodeForm(item) {
       if (item.status !== 'done') return
       const idx = this.expandedNodeIds.indexOf(item.nodeId)
@@ -288,6 +421,32 @@ export default {
       } else {
         this.expandedNodeIds.push(item.nodeId)
       }
+    },
+    /** 节点是否有填写说明（文字或文件） */
+    hasGuide(node) {
+      return !!(node && (node.guideText || this.guideFileNames(node).length > 0))
+    },
+    /** 填写说明是否被收起 */
+    isGuideFolded(nodeId) {
+      return this.foldedGuideNodeIds.includes(nodeId)
+    },
+    /** 切换填写说明的展开/收回 */
+    toggleGuideFold(nodeId) {
+      const idx = this.foldedGuideNodeIds.indexOf(nodeId)
+      if (idx >= 0) this.foldedGuideNodeIds.splice(idx, 1)
+      else this.foldedGuideNodeIds.push(nodeId)
+    },
+    /** 解析节点说明文件列表（guideFiles 兼容 JSON 字符串 / 数组 / 纯文件名） */
+    guideFileNames(node) {
+      const g = node && node.guideFiles
+      if (!g) return []
+      const arr = Array.isArray(g) ? g : (() => {
+        if (typeof g !== 'string') return []
+        const t = g.trim()
+        if (!t || !t.startsWith('[')) return t ? [t] : []
+        try { const p = JSON.parse(t); return Array.isArray(p) ? p : [] } catch (e) { return [] }
+      })()
+      return arr.map(x => (typeof x === 'string' ? x : (x && (x.fileName || x.name)) || '')).filter(Boolean)
     }
   }
 }
@@ -314,8 +473,43 @@ $border: #e4beba;
 .hfd-left { flex: 3; min-width: 0; }
 .hfd-right { flex: 1; min-width: 0; background: #fff; border: 1px solid $border; border-radius: 8px; padding: 20px; }
 .chain-section { background: #fff; border: 1px solid $border; border-radius: 8px; padding: 20px; }
-.section-title { font-size: 15px; font-weight: 700; color: $primary; margin-bottom: 16px; }
+.section-title { font-size: 15px; font-weight: 700; color: $primary; margin-bottom: 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .chain-hint { font-size: 12px; color: #999; font-weight: 400; margin-left: 8px; }
+// 横/竖切换按钮
+.orient-toggle { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; background: #f5f5f5; border: 1px solid #e8e8e8; border-radius: 6px; padding: 2px; }
+.orient-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 5px; font-size: 12px; color: #757575; cursor: pointer; transition: all .2s; user-select: none;
+  &:hover { color: $primary; }
+  &.active { background: $primary; color: #fff; font-weight: 600; box-shadow: 0 2px 6px rgba(197,48,48,0.3); }
+}
+// 横向模式：节点 chip 轨道
+.chain-track-h { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 0; padding: 6px 0 14px; }
+.chain-chip { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px 8px 8px; border-radius: 20px; border: 1px solid #e4beba; background: #fff; font-size: 13px; cursor: default; transition: all .2s; white-space: nowrap;
+  &.chip-done { border-color: rgba(38,109,0,0.4); background: rgba(38,109,0,0.05);
+    &.clickable { cursor: pointer; &:hover { border-color: #266d00; box-shadow: 0 2px 8px rgba(38,109,0,0.15); transform: translateY(-1px); } }
+  }
+  &.chip-current { border-color: $primary; background: #FFF5F5; box-shadow: 0 0 0 1px rgba(197,48,48,0.2); }
+  &.chip-pending { opacity: 0.55; background: #f7f7f7; border-style: dashed; }
+  &.chip-rejected { border-color: #b7791f; background: rgba(183,121,31,0.08); }
+  &.expanded { border-color: $primary; box-shadow: 0 0 0 2px rgba(197,48,48,0.15); }
+  &.mine::after { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: $primary; }
+}
+.cc-no { width: 20px; height: 20px; border-radius: 50%; background: #e4beba; color: #5b403d; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.chip-done .cc-no { background: #266d00; color: #fff; }
+.chip-current .cc-no { background: $primary; color: #fff; }
+.cc-name { font-weight: 600; color: #1b1c1c; }
+.chip-pending .cc-name { color: #999; }
+.cc-now { padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 700; background: $primary; color: #fff; }
+.cc-done-tag { color: #266d00; font-size: 15px; display: inline-flex; }
+.chain-arrow { margin: 0 2px; color: #d0a6a0; font-size: 14px; flex-shrink: 0; }
+// 横向模式：展开的节点详情面板
+.step-detail { margin-top: 10px; border: 1px solid $border; border-radius: 8px; background: #fff; overflow: hidden;
+  .sd-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #FFF5F5; border-bottom: 1px dashed rgba(197,48,48,0.3); flex-wrap: wrap; }
+  .sd-no { width: 20px; height: 20px; border-radius: 50%; background: $primary; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .sd-name { font-size: 14px; font-weight: 700; color: #1b1c1c; }
+  .sd-meta { font-size: 12px; color: #757575; display: inline-flex; align-items: center; gap: 3px; i { margin-right: 1px; } }
+  .meta-reason { font-size: 12px; color: #b7791f; font-weight: 600; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; }
+  .step-expanded { border: none; margin: 0; padding: 14px; }
+}
 .chain-track { display: flex; flex-direction: column; gap: 10px; }
 .chain-step { border: 1px solid #ebeef5; border-radius: 8px; padding: 12px 14px; background: #fff; transition: all .2s;
   &.st-done { border-color: rgba(38,109,0,0.3); background: rgba(38,109,0,0.03); }
@@ -354,6 +548,22 @@ $border: #e4beba;
 .fr-label { width: 120px; color: #757575; flex-shrink: 0; font-weight: 600; }
 .fr-value { color: #1b1c1c; flex: 1; word-break: break-all; white-space: pre-wrap; line-height: 1.5; }
 .form-empty { font-size: 12px; color: #bbb; text-align: center; padding: 8px 0; }
+// 节点填写说明（设计器配置，可展开/收回）
+.guide-fold { margin-bottom: 12px; border: 1px dashed rgba(183,121,31,0.4); border-radius: 8px; background: #FFFBF2; overflow: hidden;
+  .guide-fold-head { display: flex; align-items: center; gap: 6px; padding: 10px 14px; cursor: pointer; user-select: none;
+    &:hover { background: rgba(183,121,31,0.06); }
+  }
+  .guide-fold-flag { color: #b7791f; font-size: 15px; }
+  .guide-fold-title { font-size: 13px; font-weight: 700; color: #7a5c2e; }
+  .guide-fold-preview { flex: 1; min-width: 0; font-size: 12px; color: #b78f5c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 4px; }
+  .guide-fold-arrow { margin-left: auto; color: #b7791f; font-size: 13px; flex-shrink: 0; transition: transform 0.2s; }
+  .guide-fold-body { padding: 0 14px 12px; }
+}
+.guide-text { font-size: 13px; color: #5b403d; line-height: 1.7; white-space: pre-wrap; word-break: break-all; background: #fff; border: 1px dashed rgba(183,121,31,0.3); border-radius: 6px; padding: 10px 12px; }
+.guide-files { display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-top: 8px;
+  .attach-field { width: 100%; }
+}
+.guide-files-title { font-size: 12px; color: #b7791f; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
 .action-list { display: flex; flex-direction: column; gap: 6px; }
 .action-item { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; border-radius: 4px; font-size: 12px;
   &.act-pass { background: rgba(38,109,0,0.06); }

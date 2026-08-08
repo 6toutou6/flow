@@ -89,6 +89,12 @@ export const constantRoutes = [
         meta: { title: '下发配置模板', icon: 'el-icon-setting' }
       },
       {
+        path: 'data-view',
+        name: 'DataView',
+        component: () => import('@/views/dataview/index'),
+        meta: { title: '数据展示', icon: 'el-icon-data-analysis' }
+      },
+      {
         path: 'config-template/edit',
         name: 'FlowDispatchConfigTemplateEdit',
         component: () => import('@/views/flowdispatch/ConfigTemplateEdit'),
@@ -114,6 +120,13 @@ export const constantRoutes = [
         name: 'FlowDispatchPeriodFlow',
         component: () => import('@/views/flowdispatch/PeriodFlow'),
         meta: { title: '人员流程', activeMenu: '/flow-dispatch/index' },
+        hidden: true
+      },
+      {
+        path: 'person-view',
+        name: 'FlowDispatchPersonView',
+        component: () => import('@/views/flowdispatch/PersonView'),
+        meta: { title: '按人员查看', activeMenu: '/flow-dispatch/index' },
         hidden: true
       }
     ]

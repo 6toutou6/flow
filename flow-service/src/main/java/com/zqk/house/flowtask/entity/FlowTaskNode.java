@@ -21,6 +21,8 @@ public class FlowTaskNode {
 
     private Long taskId;
     private Long nodeId;
+    /** 期次节点快照ID flow_task_dispatch_node.id（无则回退模板解析） */
+    private Long dispatchNodeId;
     private String nodeName;
     private Integer sortNum;
     /** 节点类型 1开始 2中间 3结束 */

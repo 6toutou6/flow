@@ -1,7 +1,17 @@
 <template>
-  <el-dialog title="保存流程" :visible.sync="dialogVisible" width="520px" :close-on-click-modal="false" append-to-body>
+  <el-dialog title="保存流程" :visible.sync="dialogVisible" width="840px" :close-on-click-modal="false" append-to-body>
     <div class="sf-wrap">
-      <div class="sf-tip">保存流程前请确认节点链与字段配置无误。保存为新版本时，当前配置将归档为历史版本，已下发任务仍沿用锁定版本。</div>
+      <div class="sf-tip">保存为新版本时，当前配置将归档为历史版本。</div>
+      <!-- 模板已被任务/期次使用时的提示：明确告知修改不影响已下发期次（期次持有独立快照） -->
+      <div v-if="hasUsage" :key="usageFlashKey" class="sf-usage flash">
+        <i class="el-icon-warning-outline" />
+        <div class="sf-usage-body">
+          <p class="sf-usage-title">该模板已被 <b>{{ usage.taskCount }}</b> 个任务、<b>{{ usage.dispatchCount }}</b> 个期次使用</p>
+          <p v-if="briefTaskNames" class="sf-usage-names"><span class="sf-usage-tag">使用任务</span>{{ briefTaskNames }}</p>
+          <p v-if="briefDispatchNames" class="sf-usage-names"><span class="sf-usage-tag">使用期次</span>{{ briefDispatchNames }}</p>
+          <p class="sf-usage-desc">修改仅对新下发的期次生效，已下发期次沿用保存前的节点配置，<b>不会被同步修改</b>。</p>
+        </div>
+      </div>
       <div class="sf-group">
         <label class="sf-label">保存方式 <span class="req">*</span></label>
         <div class="save-mode-row">
@@ -39,18 +49,32 @@ export default {
   props: {
     visible: { type: Boolean, default: false },
     loading: { type: Boolean, default: false },
-    templateVersion: { type: Number, default: 1 }
+    templateVersion: { type: Number, default: 1 },
+    /** 模板被使用情况 { taskCount, dispatchCount }，用于保存前提示用户 */
+    usage: { type: Object, default: null }
   },
   data() {
     return {
       saveMode: 'current',
-      versionDesc: ''
+      versionDesc: '',
+      /** 弹窗每次打开自增，用于强制重放提示条闪烁动画 */
+      usageFlashKey: 0
     }
   },
   computed: {
     dialogVisible: {
       get() { return this.visible },
       set(val) { if (!val) this.handleClose() }
+    },
+    hasUsage() {
+      const u = this.usage
+      return !!u && (u.taskCount > 0 || u.dispatchCount > 0)
+    },
+    briefTaskNames() {
+      return this.briefNames(this.usage && this.usage.taskNames)
+    },
+    briefDispatchNames() {
+      return this.briefNames(this.usage && this.usage.dispatchNames)
     }
   },
   watch: {
@@ -58,10 +82,18 @@ export default {
       if (val) {
         this.saveMode = 'current'
         this.versionDesc = ''
+        // 强制重建提示条，重新播放闪烁动画
+        this.usageFlashKey++
       }
     }
   },
   methods: {
+    /** 名称列表 → 展示串：最多显示 3 个，超出显示「等 N 个」 */
+    briefNames(list) {
+      if (!list || !list.length) return ''
+      const head = list.slice(0, 3).join('、')
+      return list.length > 3 ? `${head} 等 ${list.length} 个` : head
+    },
     handleConfirm() {
       this.$emit('confirm', { saveMode: this.saveMode, versionDesc: this.versionDesc })
     },
@@ -75,6 +107,24 @@ export default {
 <style lang="scss" scoped>
 .sf-wrap { padding: 4px 0; }
 .sf-tip { font-size: 12px; color: #999; background: #f7f8fa; border-radius: 6px; padding: 10px 12px; margin-bottom: 16px; line-height: 1.6; }
+.sf-usage { display: flex; align-items: flex-start; gap: 10px; background: #FFF7E6; border: 1px solid #FFE3A3; border-radius: 6px; padding: 12px 14px; margin-bottom: 16px;
+  i { color: #E6A23C; font-size: 16px; line-height: 22px; flex-shrink: 0; }
+}
+.sf-usage-body { flex: 1; min-width: 0; }
+.sf-usage-title { font-size: 14px; font-weight: 700; color: #7a5a12; line-height: 1.5;
+  b { font-size: 16px; color: #B8860B; }
+}
+.sf-usage-names { font-size: 13px; color: #8c6d1f; margin-top: 6px; line-height: 1.6; }
+.sf-usage-tag { display: inline-block; background: #FDE8C8; color: #A0690C; font-size: 11px; font-weight: 600; border-radius: 3px; padding: 1px 6px; margin-right: 6px; vertical-align: 1px; }
+.sf-usage-desc { font-size: 12px; color: #9a7b2e; margin-top: 6px; line-height: 1.6;
+  b { color: #C53030; }
+}
+/* 弹窗出现时提示条闪烁两次，引起注意 */
+@keyframes sfFlash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+.flash { animation: sfFlash 0.45s ease 2; }
 .sf-group { margin-bottom: 16px; }
 .sf-label { display: block; font-size: 13px; font-weight: 600; color: #414755; margin-bottom: 8px; }
 .req { color: #C53030; }

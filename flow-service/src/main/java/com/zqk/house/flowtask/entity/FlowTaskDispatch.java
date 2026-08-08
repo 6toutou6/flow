@@ -39,6 +39,8 @@ public class FlowTaskDispatch {
     private String taskDesc;
     /** 模板级字段值 JSON（{fieldId: value}，下发时创建人赋值，新增成员任务时复制） */
     private String templateData;
+    /** 模板级字段定义 JSON（快照，node_id 为空的创建人/处理人字段，防模板升级影响历史期次） */
+    private String templateFieldsJson;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date startTime;

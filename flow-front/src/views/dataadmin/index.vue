@@ -146,7 +146,15 @@
             </table>
             <!-- 分页 -->
             <div class="pagination">
-              <span class="pagination-info">共计 {{ taskTotal }} 个任务</span>
+              <div class="pagination-left">
+                <span class="pagination-info">共计 {{ taskTotal }} 个任务</span>
+                <select v-model="pageSize" class="page-size-select" @change="onPageSizeChange">
+                  <option :value="5">5 条/页</option>
+                  <option :value="10">10 条/页</option>
+                  <option :value="20">20 条/页</option>
+                  <option :value="50">50 条/页</option>
+                </select>
+              </div>
               <div class="pagination-controls">
                 <button class="page-btn" :disabled="currentPage === 1" @click="prevPage"><i class="el-icon-arrow-left" /></button>
                 <span class="page-current">{{ currentPage }} / {{ totalPages }}</span>
@@ -210,7 +218,6 @@
                   <td class="font-bold">
                     {{ row.periodName || row.taskName }}
                     <span v-if="row.manualFlag === 1" class="tag-manual">临时</span>
-                    <span v-if="row.periodName" class="sub-text">{{ row.taskName }}</span>
                   </td>
                   <td>{{ row.planName || '—' }}</td>
                   <td>{{ tplName(row.templateId) }}</td>
@@ -240,7 +247,15 @@
             </table>
             <!-- 分页 -->
             <div class="pagination">
-              <span class="pagination-info">共计 {{ periodTotal }} 个期次</span>
+              <div class="pagination-left">
+                <span class="pagination-info">共计 {{ periodTotal }} 个期次</span>
+                <select v-model="pageSize" class="page-size-select" @change="onPageSizeChange">
+                  <option :value="5">5 条/页</option>
+                  <option :value="10">10 条/页</option>
+                  <option :value="20">20 条/页</option>
+                  <option :value="50">50 条/页</option>
+                </select>
+              </div>
               <div class="pagination-controls">
                 <button class="page-btn" :disabled="periodPage === 1" @click="periodPrevPage"><i class="el-icon-arrow-left" /></button>
                 <span class="page-current">{{ periodPage }} / {{ periodTotalPages }}</span>
@@ -342,10 +357,10 @@
                 <div class="pagination-left">
                   <span class="pagination-info">共计 {{ memberTotal }} 人</span>
                   <select v-model="memberPageSize" class="page-size-select" @change="onMemberPageSizeChange">
+                    <option :value="5">5 条/页</option>
                     <option :value="10">10 条/页</option>
                     <option :value="20">20 条/页</option>
                     <option :value="50">50 条/页</option>
-                    <option :value="100">100 条/页</option>
                   </select>
                 </div>
                 <div class="pagination-controls">
@@ -716,6 +731,13 @@ export default {
     },
     prevPage() { if (this.currentPage > 1) { this.currentPage--; this.fetchTaskList() } },
     nextPage() { if (this.currentPage < this.totalPages) { this.currentPage++; this.fetchTaskList() } },
+    /** 第一/二级分页：切换每页条数（最小 5 条/页），回到第 1 页重新查询 */
+    onPageSizeChange() {
+      this.currentPage = 1
+      this.periodPage = 1
+      if (this.level === 1) this.fetchTaskList()
+      else if (this.level === 2) this.fetchPeriods()
+    },
     handleSearch() { this.currentPage = 1; this.fetchTaskList() },
     resetFilters() {
       this.filters = { status: '', taskName: '' }

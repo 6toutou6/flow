@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zqk.house.config.SuperAdminProperties;
 import com.zqk.house.sysuser.entity.SysUser;
 import com.zqk.house.sysuser.mapper.SysUserMapper;
+import com.zqk.house.sysuser.vo.SysUserStatsVO;
 import com.zqk.house.user.vo.LoginResponse;
 import com.zqk.house.util.JwtUtil;
 import com.zqk.house.util.PageResult;
@@ -43,6 +44,16 @@ public class SysUserService {
 
     public boolean addUser(SysUser user) {
         return sysUserMapper.insert(user) > 0;
+    }
+
+    /** 用户管理页统计卡 */
+    public SysUserStatsVO stats() {
+        SysUserStatsVO vo = new SysUserStatsVO();
+        vo.setTotal(sysUserMapper.selectCount(new LambdaQueryWrapper<SysUser>()));
+        vo.setNormalCount(sysUserMapper.selectCount(new LambdaQueryWrapper<SysUser>().eq(SysUser::getStatus, 1)));
+        vo.setDisabledCount(sysUserMapper.selectCount(new LambdaQueryWrapper<SysUser>().eq(SysUser::getStatus, 0)));
+        vo.setDeptCount(sysUserMapper.countDistinctDept());
+        return vo;
     }
 
     public boolean updateUser(SysUser user) {

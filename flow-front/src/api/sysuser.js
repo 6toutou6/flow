@@ -8,6 +8,14 @@ export function getUserList(params) {
   })
 }
 
+// 用户管理页统计卡
+export function getSysUserStats() {
+  return request({
+    url: '/sys-user/stats',
+    method: 'get'
+  })
+}
+
 export function addUser(data) {
   return request({
     url: '/sys-user/add',

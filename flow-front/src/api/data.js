@@ -33,3 +33,30 @@ export function getDataTrend(days = 30) {
     params: { days }
   })
 }
+
+// 按人员展示：人员提交汇总列表（分页）
+export function getPersonList(params) {
+  return request({
+    url: '/flow-data/person-list',
+    method: 'get',
+    params
+  })
+}
+
+// 按人员展示：某人全部历史提交记录（分页）
+export function getPersonRecords(params) {
+  return request({
+    url: '/flow-data/person-records',
+    method: 'get',
+    params
+  })
+}
+
+// 数据展示页聚合数据（统计卡 + 各图表；trendType: day/month/quarter/year，可选时间范围 startDate/endDate）
+export function getDashboard(params = {}) {
+  return request({
+    url: '/flow-data/dashboard',
+    method: 'get',
+    params: Object.assign({ trendType: 'day' }, params)
+  })
+}

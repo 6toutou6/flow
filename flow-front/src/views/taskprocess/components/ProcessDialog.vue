@@ -3,205 +3,261 @@
     <div v-loading="loading" class="process-wrap">
       <!-- 左侧：表单与操作区 -->
       <div class="pd-left">
-      <!-- 任务信息 -->
-      <div class="info-section">
-        <div class="section-title"><i class="el-icon-document" /> 任务信息</div>
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="info-label">任务名称</span>
-            <span class="info-value">{{ todo && todo.taskName }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">所属模板</span>
-            <span class="info-value">{{ todo && todo.templateName }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">当前节点</span>
-            <span class="info-value">{{ todo && todo.nodeName }}</span>
-          </div>
-          <div v-if="taskDesc" class="info-item info-item-full">
-            <span class="info-label">任务说明</span>
-            <span class="info-value">{{ taskDesc }}</span>
-          </div>
-        </div>
-        <!-- 任务基础信息（模板级字段，创建人下发时赋值，处理人可见） -->
-        <template v-if="templateFieldRows.length > 0">
-          <div class="tpl-header"><i class="el-icon-collection" /> 任务基础信息</div>
-          <div class="tpl-grid">
-            <div v-for="r in templateFieldRows" :key="r.id" class="tpl-item">
-              <span class="tpl-label">
-                {{ r.label }}
-                <el-tooltip v-if="r.roleTip" :content="r.roleTip" placement="top">
-                  <span class="role-hint-icon" :class="r.role === 2 ? 'role-handler' : 'role-creator'">
-                    <i :class="r.role === 2 ? 'el-icon-user' : 'el-icon-s-custom'" />
-                  </span>
-                </el-tooltip>
-              </span>
-              <span class="tpl-value">{{ r.value || '—' }}</span>
+        <!-- 任务信息 -->
+        <div class="info-section">
+          <div class="section-title"><i class="el-icon-document" /> 任务信息</div>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">任务名称</span>
+              <span class="info-value">{{ todo && todo.taskName }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">所属模板</span>
+              <span class="info-value">{{ todo && todo.templateName }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">当前节点</span>
+              <span class="info-value">{{ todo && todo.nodeName }}</span>
+            </div>
+            <div v-if="taskDesc" class="info-item info-item-full">
+              <span class="info-label">任务说明</span>
+              <span class="info-value">{{ taskDesc }}</span>
             </div>
           </div>
-        </template>
-      </div>
-
-      <!-- 完整流程链（横向展示：已通过绿 / 处理中红 / 退回黄 / 未到灰，点击已处理节点展开详情） -->
-      <div v-if="flowChain.length > 0" class="chain-section">
-        <div class="section-title">流程链 <span class="chain-hint">横向展示全流程，点击已处理/已退回节点可查看填写内容</span></div>
-        <div class="chain-track-h">
-          <template v-for="(item, idx) in flowChain">
-            <div
-              :key="idx"
-              class="chain-chip"
-              :class="['chip-' + item.status, { clickable: item.status === 'done' || item.status === 'rejected', expanded: expandedNodeId === item.nodeId }]"
-              :title="`${idx + 1}. ${item.nodeName}（${statusLabel(item.status)}）`"
-              @click="toggleNodeForm(item)"
-            >
-              <span class="cc-no">{{ idx + 1 }}</span>
-              <span class="cc-name">{{ item.nodeName }}</span>
-              <span v-if="item.status === 'current'" class="cc-now">当前</span>
-            </div>
-            <span v-if="idx < flowChain.length - 1" :key="'arr-' + idx" class="chain-arrow"><i class="el-icon-right" /></span>
-          </template>
-        </div>
-        <!-- 点击节点展开的详情 -->
-        <div v-if="expandedItem" class="step-detail" @click.stop>
-          <div class="sd-head">
-            <span class="sd-no">{{ expandedIdx + 1 }}</span>
-            <span class="sd-name">{{ expandedItem.nodeName }}</span>
-            <span class="step-badge" :class="'badge-' + expandedItem.status">{{ statusLabel(expandedItem.status) }}</span>
-            <template v-if="expandedItem.taskNode && expandedItem.taskNode.submitStatus === 1">
-              <span class="sd-meta"><i class="el-icon-user" /> {{ expandedItem.taskNode.handlerName || '—' }}</span>
-              <span class="sd-meta"><i class="el-icon-time" /> {{ expandedItem.taskNode.handleTime || '—' }}</span>
-              <span v-if="expandedItem.taskNode.action === 1 && expandedItem.taskNode.rejectReason" class="meta-reason" :title="expandedItem.taskNode.rejectReason">原因：{{ expandedItem.taskNode.rejectReason }}</span>
-              <span v-if="expandedItem.taskNode.action === 0 && expandedItem.taskNode.passComment" class="meta-pass" :title="expandedItem.taskNode.passComment">意见：{{ expandedItem.taskNode.passComment }}</span>
-            </template>
-            <template v-else-if="expandedItem.taskNode && expandedItem.taskNode.submitStatus === 0">
-              <span class="sd-meta"><i class="el-icon-user" /> {{ expandedItem.pendingNames || expandedItem.taskNode.handlerName || '待处理' }}</span>
-              <span v-if="expandedItem.taskNode.rejectReason" class="meta-reason"><i class="el-icon-warning-outline" /> 退回建议：{{ expandedItem.taskNode.rejectReason }}</span>
-            </template>
-          </div>
-          <!-- 该节点填写说明（设计器配置） -->
-          <div v-if="hasGuide(expandedItem)" class="node-guide">
-            <div v-if="expandedItem.guideText" class="guide-text">{{ expandedItem.guideText }}</div>
-            <div v-if="guideFileNames(expandedItem).length > 0" class="guide-files">
-              <span class="guide-files-title"><i class="el-icon-paperclip" /> 说明文件：</span>
-              <span v-for="(fn, fi) in guideFileNames(expandedItem)" :key="fi" class="guide-file-tag"><i class="el-icon-document" /> {{ fn }}</span>
-            </div>
-          </div>
-          <template v-if="expandedItem.status === 'rejected'">
-            <div class="form-empty">该节点已退回，无需显示表单</div>
-          </template>
-          <template v-else>
-            <div v-if="expandedItem.taskNode && expandedItem.taskNode.formDataList && expandedItem.taskNode.formDataList.length > 0">
-              <div class="sd-sub-title">表单数据（最近一次提交）</div>
-              <div v-for="(fd, fi) in expandedItem.taskNode.formDataList" :key="fi" class="form-row">
-                <span class="fr-label">{{ fd.fieldLabel }}</span>
-                <AttachField v-if="fd.fieldType === 'file' || fd.fieldType === 'image'" :value="fd.fieldValue" :field-type="fd.fieldType" readonly class="fr-value" />
-                <span v-else class="fr-value">{{ fd.fieldValue || '—' }}</span>
+          <!-- 任务基础信息（模板级字段，创建人下发时赋值，处理人可见） -->
+          <template v-if="templateFieldRows.length > 0">
+            <div class="tpl-header"><i class="el-icon-collection" /> 任务基础信息</div>
+            <div class="tpl-grid">
+              <div v-for="r in templateFieldRows" :key="r.id" class="tpl-item">
+                <span class="tpl-label">
+                  {{ r.label }}
+                  <el-tooltip v-if="r.roleTip" :content="r.roleTip" placement="top">
+                    <span class="role-hint-icon" :class="r.role === 2 ? 'role-handler' : 'role-creator'">
+                      <i :class="r.role === 2 ? 'el-icon-user' : 'el-icon-s-custom'" />
+                    </span>
+                  </el-tooltip>
+                </span>
+                <span class="tpl-value">{{ r.value || '—' }}</span>
               </div>
             </div>
-            <div v-else class="form-empty">该节点未填写表单数据</div>
           </template>
-          <!-- 该节点处理人填写的任务基础字段（fieldRole=2） -->
-          <div v-if="expandedItem.taskNode && expandedItem.taskNode.baseDataList && expandedItem.taskNode.baseDataList.length > 0" class="bd-block">
-            <div class="bd-title">
-              <i class="el-icon-collection" /> 任务基础信息
-              <el-tooltip :content="`在「${expandedItem.nodeName}」节点由处理人填写`" placement="top">
-                <span class="role-hint-icon role-handler"><i class="el-icon-user" /></span>
-              </el-tooltip>
+        </div>
+
+        <!-- 完整流程链（横向展示：已通过绿 / 处理中红 / 退回黄 / 未到灰，点击已处理节点展开详情） -->
+        <div v-if="flowChain.length > 0" class="chain-section">
+          <div class="section-title">流程链 <span class="chain-hint">横向展示全流程，点击已处理/已退回节点可查看填写内容</span></div>
+          <div class="chain-track-h">
+            <template v-for="(item, idx) in flowChain">
+              <div
+                :key="idx"
+                class="chain-chip"
+                :class="['chip-' + item.status, { clickable: item.status === 'done' || item.status === 'rejected', expanded: expandedNodeId === item.nodeId }]"
+                :title="`${idx + 1}. ${item.nodeName}（${statusLabel(item.status)}）`"
+                @click="toggleNodeForm(item)"
+              >
+                <span class="cc-no">{{ idx + 1 }}</span>
+                <span class="cc-name">{{ item.nodeName }}</span>
+                <span v-if="item.status === 'current'" class="cc-now">当前</span>
+              </div>
+              <span v-if="idx < flowChain.length - 1" :key="'arr-' + idx" class="chain-arrow"><i class="el-icon-right" /></span>
+            </template>
+          </div>
+          <!-- 点击节点展开的详情 -->
+          <div v-if="expandedItem" class="step-detail" @click.stop>
+            <div class="sd-head">
+              <span class="sd-no">{{ expandedIdx + 1 }}</span>
+              <span class="sd-name">{{ expandedItem.nodeName }}</span>
+              <span class="step-badge" :class="'badge-' + expandedItem.status">{{ statusLabel(expandedItem.status) }}</span>
+              <template v-if="expandedItem.taskNode && expandedItem.taskNode.submitStatus === 1">
+                <span class="sd-meta"><i class="el-icon-user" /> {{ expandedItem.taskNode.handlerName || '—' }}</span>
+                <span class="sd-meta"><i class="el-icon-time" /> {{ expandedItem.taskNode.handleTime || '—' }}</span>
+                <span v-if="expandedItem.taskNode.action === 1 && expandedItem.taskNode.rejectReason" class="meta-reason" :title="expandedItem.taskNode.rejectReason">原因：{{ expandedItem.taskNode.rejectReason }}</span>
+                <span v-if="expandedItem.taskNode.action === 0 && expandedItem.taskNode.passComment" class="meta-pass" :title="expandedItem.taskNode.passComment">意见：{{ expandedItem.taskNode.passComment }}</span>
+              </template>
+              <template v-else-if="expandedItem.taskNode && expandedItem.taskNode.submitStatus === 0">
+                <span class="sd-meta"><i class="el-icon-user" /> {{ expandedItem.pendingNames || expandedItem.taskNode.handlerName || '待处理' }}</span>
+                <span v-if="expandedItem.taskNode.rejectReason" class="meta-reason"><i class="el-icon-warning-outline" /> 退回建议：{{ expandedItem.taskNode.rejectReason }}</span>
+              </template>
             </div>
-            <div v-for="(bd, bi) in expandedItem.taskNode.baseDataList" :key="bi" class="form-row">
-              <span class="fr-label">{{ bd.fieldLabel }}</span>
-              <AttachField v-if="bd.fieldType === 'file' || bd.fieldType === 'image'" :value="bd.fieldValue" :field-type="bd.fieldType" readonly class="fr-value" />
-              <span v-else class="fr-value">{{ bd.fieldValue || '—' }}</span>
+            <!-- 该节点填写说明（设计器配置，可展开/收回） -->
+            <div v-if="hasGuide(expandedItem)" class="guide-fold" :class="{ open: !isGuideFolded(expandedItem.nodeId) }">
+              <div class="guide-fold-head" @click="toggleGuideFold(expandedItem.nodeId)">
+                <i class="el-icon-info guide-fold-flag" />
+                <span class="guide-fold-title">填写说明</span>
+                <span v-if="isGuideFolded(expandedItem.nodeId)" class="guide-fold-preview">点击展开查看本节点填写要求与参考文件</span>
+                <span v-else class="guide-fold-preview">点击收回</span>
+                <i :class="isGuideFolded(expandedItem.nodeId) ? 'el-icon-arrow-down' : 'el-icon-arrow-up'" class="guide-fold-arrow" />
+              </div>
+              <div v-show="!isGuideFolded(expandedItem.nodeId)" class="guide-fold-body">
+                <div v-if="expandedItem.guideText" class="guide-text">{{ expandedItem.guideText }}</div>
+                <div v-if="guideFileNames(expandedItem).length > 0" class="guide-files">
+                  <div class="guide-files-title"><i class="el-icon-paperclip" /> 说明文件<span class="chain-hint">可预览 / 下载</span></div>
+                  <AttachField readonly :value="expandedItem.guideFiles" />
+                </div>
+              </div>
+            </div>
+            <template v-if="expandedItem.status === 'rejected'">
+              <div class="form-empty">该节点已退回，无需显示表单</div>
+            </template>
+            <template v-else>
+              <div v-if="expandedItem.taskNode && expandedItem.taskNode.formDataList && expandedItem.taskNode.formDataList.length > 0">
+                <div class="sd-sub-title">表单数据（最近一次提交）</div>
+                <div v-for="(fd, fi) in expandedItem.taskNode.formDataList" :key="fi" class="form-row">
+                  <span class="fr-label">{{ fd.fieldLabel }}</span>
+                  <AttachField v-if="fd.fieldType === 'file' || fd.fieldType === 'image'" :value="fd.fieldValue" :field-type="fd.fieldType" readonly class="fr-value" />
+                  <span v-else class="fr-value">{{ fd.fieldValue || '—' }}</span>
+                </div>
+              </div>
+              <div v-else class="form-empty">该节点未填写表单数据</div>
+            </template>
+            <!-- 该节点处理人填写的任务基础字段（fieldRole=2） -->
+            <div v-if="expandedItem.taskNode && expandedItem.taskNode.baseDataList && expandedItem.taskNode.baseDataList.length > 0" class="bd-block">
+              <div class="bd-title">
+                <i class="el-icon-collection" /> 任务基础信息
+                <el-tooltip :content="`在「${expandedItem.nodeName}」节点由处理人填写`" placement="top">
+                  <span class="role-hint-icon role-handler"><i class="el-icon-user" /></span>
+                </el-tooltip>
+              </div>
+              <div v-for="(bd, bi) in expandedItem.taskNode.baseDataList" :key="bi" class="form-row">
+                <span class="fr-label">{{ bd.fieldLabel }}</span>
+                <AttachField v-if="bd.fieldType === 'file' || bd.fieldType === 'image'" :value="bd.fieldValue" :field-type="bd.fieldType" readonly class="fr-value" />
+                <span v-else class="fr-value">{{ bd.fieldValue || '—' }}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- 处理人填写的任务基础信息（fieldRole=2，不依附节点，随本节点提交；置于流程字段前填写） -->
-      <div v-if="!isReadonly && handlerBaseFields.length > 0" class="form-section bd-form-section">
-        <div class="section-title">
-          <i class="el-icon-collection" /> 任务基础信息
-          <el-tooltip :content="`在「${todo && todo.nodeName}」节点由处理人填写，仅此处填写，随提交保存`" placement="top">
-            <span class="role-hint-icon role-handler"><i class="el-icon-user" /></span>
-          </el-tooltip>
-          <span class="chain-hint">绑定当前节点「{{ todo && todo.nodeName }}」，仅此处填写，随提交保存</span>
+        <!-- 处理人填写的任务基础信息（fieldRole=2，不依附节点，随本节点提交；置于流程字段前填写） -->
+        <div v-if="!isReadonly && handlerBaseFields.length > 0" class="form-section bd-form-section">
+          <div class="section-title">
+            <i class="el-icon-collection" /> 任务基础信息
+            <el-tooltip :content="`在「${todo && todo.nodeName}」节点由处理人填写，仅此处填写，随提交保存`" placement="top">
+              <span class="role-hint-icon role-handler"><i class="el-icon-user" /></span>
+            </el-tooltip>
+            <span class="chain-hint">绑定当前节点「{{ todo && todo.nodeName }}」，仅此处填写，随提交保存</span>
+          </div>
+
+          <!-- 节点填写说明（仅当本节点无动态字段时在此展示，避免与动态表单卡片重复） -->
+          <div v-if="currentFields.length === 0 && currentGuideNode && hasGuide(currentGuideNode)" class="guide-fold" :class="{ open: guideExpanded }">
+            <div class="guide-fold-head" @click="guideExpanded = !guideExpanded">
+              <i class="el-icon-info guide-fold-flag" />
+              <span class="guide-fold-title">填写说明</span>
+              <span v-if="!guideExpanded" class="guide-fold-preview">点击展开查看本节点填写要求与参考文件</span>
+              <span v-else class="guide-fold-preview">点击收回</span>
+              <i :class="guideExpanded ? 'el-icon-arrow-up' : 'el-icon-arrow-down'" class="guide-fold-arrow" />
+            </div>
+            <div v-show="guideExpanded" class="guide-fold-body">
+              <div v-if="currentGuideNode.guideText" class="guide-text">{{ currentGuideNode.guideText }}</div>
+              <div v-if="guideFileNames(currentGuideNode).length > 0" class="guide-files">
+                <div class="guide-files-title"><i class="el-icon-paperclip" /> 说明文件<span class="chain-hint">可预览 / 下载</span></div>
+                <AttachField readonly :value="currentGuideNode.guideFiles" />
+              </div>
+            </div>
+          </div>
+
+          <el-form ref="baseForm" :model="handlerBaseForm" label-position="top" class="process-form">
+            <el-form-item
+              v-for="f in handlerBaseFields"
+              :key="f.id"
+              :label="f.fieldLabel"
+              :required="f.required === 1"
+            >
+              <el-input v-if="f.fieldType === 'text'" v-model="handlerBaseForm[f.id]" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" />
+              <el-input v-else-if="f.fieldType === 'textarea'" v-model="handlerBaseForm[f.id]" type="textarea" :rows="3" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" />
+              <el-input-number v-else-if="f.fieldType === 'number'" v-model="handlerBaseForm[f.id]" :placeholder="f.placeholder || '请输入'" controls-position="right" style="width: 100%" />
+              <el-date-picker v-else-if="f.fieldType === 'date'" v-model="handlerBaseForm[f.id]" type="date" placeholder="选择日期" value-format="yyyy-MM-dd" style="width: 100%" />
+              <el-radio-group v-else-if="f.fieldType === 'radio'" v-model="handlerBaseForm[f.id]">
+                <el-radio v-for="opt in parseEnum(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-radio>
+              </el-radio-group>
+              <el-checkbox-group v-else-if="f.fieldType === 'checkbox'" v-model="handlerBaseForm[f.id]">
+                <el-checkbox v-for="opt in parseEnum(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-checkbox>
+              </el-checkbox-group>
+              <AttachField v-else-if="f.fieldType === 'file' || f.fieldType === 'image'" v-model="handlerBaseForm[f.id]" :field-type="f.fieldType" :biz-id="bizIdFor(f)" :ref="'af_' + f.id" />
+              <el-input v-else v-model="handlerBaseForm[f.id]" :placeholder="f.placeholder || (f.fieldType === 'image' ? '请输入图片名称' : '请输入文件名称')" />
+              <div v-if="f.fieldTips" class="field-tip">{{ f.fieldTips }}</div>
+            </el-form-item>
+          </el-form>
         </div>
-        <el-form ref="baseForm" :model="handlerBaseForm" label-position="top" class="process-form">
-          <el-form-item
-            v-for="f in handlerBaseFields"
-            :key="f.id"
-            :label="f.fieldLabel"
-            :required="f.required === 1"
-          >
-            <el-input v-if="f.fieldType === 'text'" v-model="handlerBaseForm[f.id]" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" />
-            <el-input v-else-if="f.fieldType === 'textarea'" v-model="handlerBaseForm[f.id]" type="textarea" :rows="3" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" />
-            <el-input-number v-else-if="f.fieldType === 'number'" v-model="handlerBaseForm[f.id]" :placeholder="f.placeholder || '请输入'" controls-position="right" style="width: 100%" />
-            <el-date-picker v-else-if="f.fieldType === 'date'" v-model="handlerBaseForm[f.id]" type="date" placeholder="选择日期" value-format="yyyy-MM-dd" style="width: 100%" />
-            <el-radio-group v-else-if="f.fieldType === 'radio'" v-model="handlerBaseForm[f.id]">
-              <el-radio v-for="opt in parseEnum(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-radio>
-            </el-radio-group>
-            <el-checkbox-group v-else-if="f.fieldType === 'checkbox'" v-model="handlerBaseForm[f.id]">
-              <el-checkbox v-for="opt in parseEnum(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-checkbox>
-            </el-checkbox-group>
-            <AttachField v-else-if="f.fieldType === 'file' || f.fieldType === 'image'" v-model="handlerBaseForm[f.id]" :field-type="f.fieldType" :biz-id="bizIdForUpload" />
-            <el-input v-else v-model="handlerBaseForm[f.id]" :placeholder="f.placeholder || (f.fieldType === 'image' ? '请输入图片名称' : '请输入文件名称')" />
-            <div v-if="f.fieldTips" class="field-tip">{{ f.fieldTips }}</div>
-          </el-form-item>
-        </el-form>
-      </div>
 
-      <!-- 节点填写说明（设计器配置，处理端展示：文字 + 说明文件） -->
-      <div v-if="currentGuideNode && hasGuide(currentGuideNode)" class="guide-section">
-        <div class="section-title"><i class="el-icon-info" /> 填写说明<span class="chain-hint">本节点的填写要求与参考文件</span></div>
-        <div v-if="currentGuideNode.guideText" class="guide-text">{{ currentGuideNode.guideText }}</div>
-        <div v-if="guideFileNames(currentGuideNode).length > 0" class="guide-files">
-          <span class="guide-files-title"><i class="el-icon-paperclip" /> 说明文件：</span>
-          <span v-for="(fn, fi) in guideFileNames(currentGuideNode)" :key="fi" class="guide-file-tag"><i class="el-icon-document" /> {{ fn }}</span>
+        <!-- 动态表单（流程节点字段）：填写说明并入本卡片，可展开/收回 -->
+        <div v-if="!isReadonly && currentFields.length > 0" class="form-section">
+          <div class="section-title">
+            <span class="cur-stage-tag">当前阶段</span>{{ todo && todo.nodeName }}
+            <span v-if="todo && todo.nodeTips" class="node-tip-inline"><i class="el-icon-bell" /> {{ todo.nodeTips }}</span>
+            <span v-if="isRefill" class="refill-tag"><i class="el-icon-refresh-left" /> 已回填上次数据，可修改后重新提交</span>
+          </div>
+
+          <!-- 节点填写说明（设计器配置，折叠面板，默认展开） -->
+          <div v-if="currentGuideNode && hasGuide(currentGuideNode)" class="guide-fold" :class="{ open: guideExpanded }">
+            <div class="guide-fold-head" @click="guideExpanded = !guideExpanded">
+              <i class="el-icon-info guide-fold-flag" />
+              <span class="guide-fold-title">填写说明</span>
+              <span v-if="!guideExpanded" class="guide-fold-preview">点击展开查看本节点填写要求与参考文件</span>
+              <span v-else class="guide-fold-preview">点击收回</span>
+              <i :class="guideExpanded ? 'el-icon-arrow-up' : 'el-icon-arrow-down'" class="guide-fold-arrow" />
+            </div>
+            <div v-show="guideExpanded" class="guide-fold-body">
+              <div v-if="currentGuideNode.guideText" class="guide-text">{{ currentGuideNode.guideText }}</div>
+              <div v-if="guideFileNames(currentGuideNode).length > 0" class="guide-files">
+                <div class="guide-files-title"><i class="el-icon-paperclip" /> 说明文件<span class="chain-hint">可预览 / 下载</span></div>
+                <AttachField readonly :value="currentGuideNode.guideFiles" />
+              </div>
+            </div>
+          </div>
+
+          <el-form ref="processForm" :model="formData" label-position="top" class="process-form">
+            <el-form-item
+              v-for="f in currentFields"
+              :key="f.id"
+              :label="f.fieldLabel"
+              :required="f.required === 1"
+            >
+              <el-input v-if="f.fieldType === 'text'" v-model="formData[f.id]" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" />
+              <el-input v-else-if="f.fieldType === 'textarea'" v-model="formData[f.id]" type="textarea" :rows="3" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" />
+              <el-input-number v-else-if="f.fieldType === 'number'" v-model="formData[f.id]" :placeholder="f.placeholder || '请输入'" controls-position="right" style="width: 100%" />
+              <el-date-picker v-else-if="f.fieldType === 'date'" v-model="formData[f.id]" type="date" placeholder="选择日期" value-format="yyyy-MM-dd" style="width: 100%" />
+              <el-radio-group v-else-if="f.fieldType === 'radio'" v-model="formData[f.id]">
+                <el-radio v-for="opt in parseEnum(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-radio>
+              </el-radio-group>
+              <el-checkbox-group v-else-if="f.fieldType === 'checkbox'" v-model="formData[f.id]">
+                <el-checkbox v-for="opt in parseEnum(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-checkbox>
+              </el-checkbox-group>
+              <AttachField v-else-if="f.fieldType === 'file' || f.fieldType === 'image'" v-model="formData[f.id]" :field-type="f.fieldType" :biz-id="bizIdFor(f)" :ref="'af_' + f.id" />
+              <el-input v-else v-model="formData[f.id]" :placeholder="f.placeholder || (f.fieldType === 'image' ? '请输入图片名称' : '请输入文件名称')" />
+              <div v-if="f.fieldTips" class="field-tip">{{ f.fieldTips }}</div>
+            </el-form-item>
+          </el-form>
         </div>
-      </div>
 
-      <!-- 动态表单（流程节点字段） -->
-      <div v-if="!isReadonly && currentFields.length > 0" class="form-section">
-        <div class="section-title">
-          <span class="cur-stage-tag">当前阶段</span>{{ todo && todo.nodeName }}
-          <span v-if="todo && todo.nodeTips" class="node-tip-inline"><i class="el-icon-bell" /> {{ todo.nodeTips }}</span>
-          <span v-if="isRefill" class="refill-tag"><i class="el-icon-refresh-left" /> 已回填上次数据，可修改后重新提交</span>
+        <div v-else-if="!isReadonly && handlerBaseFields.length === 0 && !loading" class="form-section">
+          <div class="section-title"><span class="cur-stage-tag">当前阶段</span>{{ todo && todo.nodeName }}</div>
+
+          <!-- 节点填写说明（折叠面板，默认展开） -->
+          <div v-if="currentGuideNode && hasGuide(currentGuideNode)" class="guide-fold" :class="{ open: guideExpanded }">
+            <div class="guide-fold-head" @click="guideExpanded = !guideExpanded">
+              <i class="el-icon-info guide-fold-flag" />
+              <span class="guide-fold-title">填写说明</span>
+              <span v-if="!guideExpanded" class="guide-fold-preview">点击展开查看本节点填写要求与参考文件</span>
+              <span v-else class="guide-fold-preview">点击收回</span>
+              <i :class="guideExpanded ? 'el-icon-arrow-up' : 'el-icon-arrow-down'" class="guide-fold-arrow" />
+            </div>
+            <div v-show="guideExpanded" class="guide-fold-body">
+              <div v-if="currentGuideNode.guideText" class="guide-text">{{ currentGuideNode.guideText }}</div>
+              <div v-if="guideFileNames(currentGuideNode).length > 0" class="guide-files">
+                <div class="guide-files-title"><i class="el-icon-paperclip" /> 说明文件<span class="chain-hint">可预览 / 下载</span></div>
+                <AttachField readonly :value="currentGuideNode.guideFiles" />
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-form">该节点无需填写字段</div>
         </div>
-        <el-form ref="processForm" :model="formData" label-position="top" class="process-form">
-          <el-form-item
-            v-for="f in currentFields"
-            :key="f.id"
-            :label="f.fieldLabel"
-            :required="f.required === 1"
-          >
-            <el-input v-if="f.fieldType === 'text'" v-model="formData[f.id]" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" />
-            <el-input v-else-if="f.fieldType === 'textarea'" v-model="formData[f.id]" type="textarea" :rows="3" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" />
-            <el-input-number v-else-if="f.fieldType === 'number'" v-model="formData[f.id]" :placeholder="f.placeholder || '请输入'" controls-position="right" style="width: 100%" />
-            <el-date-picker v-else-if="f.fieldType === 'date'" v-model="formData[f.id]" type="date" placeholder="选择日期" value-format="yyyy-MM-dd" style="width: 100%" />
-            <el-radio-group v-else-if="f.fieldType === 'radio'" v-model="formData[f.id]">
-              <el-radio v-for="opt in parseEnum(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-radio>
-            </el-radio-group>
-            <el-checkbox-group v-else-if="f.fieldType === 'checkbox'" v-model="formData[f.id]">
-              <el-checkbox v-for="opt in parseEnum(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-checkbox>
-            </el-checkbox-group>
-            <AttachField v-else-if="f.fieldType === 'file' || f.fieldType === 'image'" v-model="formData[f.id]" :field-type="f.fieldType" :biz-id="bizIdForUpload" />
-            <el-input v-else v-model="formData[f.id]" :placeholder="f.placeholder || (f.fieldType === 'image' ? '请输入图片名称' : '请输入文件名称')" />
-            <div v-if="f.fieldTips" class="field-tip">{{ f.fieldTips }}</div>
-          </el-form-item>
-        </el-form>
-      </div>
 
-      <div v-else-if="!isReadonly && handlerBaseFields.length === 0 && !loading" class="form-section">
-        <div class="section-title"><span class="cur-stage-tag">当前阶段</span>{{ todo && todo.nodeName }}</div>
-        <div class="empty-form">该节点无需填写字段</div>
-      </div>
-
-      <!-- 完成节点提示（结束节点显示；已办只读模式也保留提示） -->
-      <div v-if="isEndNode" class="next-section">
-        <div class="section-title">完成节点</div>
-        <div class="end-tip"><i class="el-icon-success" /> {{ isReadonly ? '该节点为结束节点，本节点处理完成即任务完成' : '当前为结束节点，提交后任务将标记为已完成' }}</div>
-      </div>
+        <!-- 完成节点提示（结束节点显示；已办只读模式也保留提示） -->
+        <div v-if="isEndNode" class="next-section">
+          <div class="section-title">完成节点</div>
+          <div class="end-tip"><i class="el-icon-success" /> {{ isReadonly ? '该节点为结束节点，本节点处理完成即任务完成' : '当前为结束节点，提交后任务将标记为已完成' }}</div>
+        </div>
       </div><!-- /pd-left -->
 
       <!-- 右侧：完整操作历史（通过/退回步骤） -->
@@ -244,6 +300,10 @@
       <!-- 只读模式：已处理完成，仅查看 -->
       <span v-if="isReadonly" class="readonly-tip"><i class="el-icon-finished" /> 您已处理完成该任务，可查看上方流程链与操作记录</span>
       <template v-else>
+        <!-- 暂存按钮（保存草稿，不流转） -->
+        <el-button :loading="drafting" @click="onDraftClick">
+          <i class="el-icon-document-add" /> 暂存
+        </el-button>
         <!-- 退回按钮（非开始节点、非结束节点） -->
         <el-button v-if="!isStartNode && processedNodes.length > 0" type="warning" :loading="submitting && isRejecting" @click="onRejectClick">
           <i class="el-icon-back" /> 退回
@@ -290,7 +350,9 @@ export default {
     visible: { type: Boolean, default: false },
     todo: { type: Object, default: null },
     detail: { type: Object, default: null },
-    submitting: { type: Boolean, default: false }
+    submitting: { type: Boolean, default: false },
+    /** 暂存请求中（控制暂存按钮 loading） */
+    drafting: { type: Boolean, default: false }
   },
   data() {
     return {
@@ -298,6 +360,10 @@ export default {
       formData: {},
       /** 处理人填写的任务基础字段值（fieldRole=2） */
       handlerBaseForm: {},
+      /** 节点填写说明折叠面板是否展开（默认展开） */
+      guideExpanded: true,
+      /** 流程链已处理节点中「填写说明」被收起的节点 id 集合（默认全部展开） */
+      foldedGuideNodeIds: [],
       expandedNodeId: null,
       isRejecting: false,
       // 子弹窗
@@ -342,10 +408,6 @@ export default {
     /** 只读模式：该用户已处理完成（todoStatus=1），仅查看详情 */
     isReadonly() {
       return this.todo && this.todo.todoStatus === 1
-    },
-    /** 附件上传的业务id（当前处理的节点任务记录） */
-    bizIdForUpload() {
-      return this.todo ? this.todo.taskNodeId : null
     },
     /** 任务说明（下发时填写，处理人可见；detail.task 优先，兼容待办项带说明的情况） */
     taskDesc() {
@@ -496,6 +558,12 @@ export default {
     }
   },
   methods: {
+    /** 附件上传的业务id：任务节点 + 字段 唯一（同一节点多个文件/图片字段互不串档） */
+    bizIdFor(f) {
+      const tn = this.todo && this.todo.taskNodeId
+      if (!tn) return null
+      return tn + ':' + ((f && (f.fieldKey || f.id)) || 'f')
+    },
     statusLabel(s) { return { done: '已通过', current: '处理中', rejected: '已退回', pending: '未到' }[s] || '未到' },
     parseEnum(str) {
       try { return JSON.parse(str) || [] } catch (e) { return [] }
@@ -504,14 +572,24 @@ export default {
     hasGuide(node) {
       return !!(node && (node.guideText || this.guideFileNames(node).length > 0))
     },
-    /** 解析节点说明文件列表（guideFiles 为 JSON 字符串，兼容 {name} 对象或纯文件名） */
+    /** 流程链已处理节点：填写说明是否被收起 */
+    isGuideFolded(nodeId) {
+      return this.foldedGuideNodeIds.includes(nodeId)
+    },
+    /** 切换流程链节点填写说明的展开/收回 */
+    toggleGuideFold(nodeId) {
+      const idx = this.foldedGuideNodeIds.indexOf(nodeId)
+      if (idx >= 0) this.foldedGuideNodeIds.splice(idx, 1)
+      else this.foldedGuideNodeIds.push(nodeId)
+    },
+    /** 解析节点说明文件列表（guideFiles 为 JSON 字符串，兼容 attach 格式 {fileName}、旧格式 {name} 或纯文件名） */
     guideFileNames(node) {
       const g = node && node.guideFiles
       if (!g) return []
       try {
         const arr = JSON.parse(g)
         if (!Array.isArray(arr)) return []
-        return arr.map(x => (typeof x === 'string' ? x : (x && x.name) || '')).filter(Boolean)
+        return arr.map(x => (typeof x === 'string' ? x : (x && (x.fileName || x.name)) || '')).filter(Boolean)
       } catch (e) {
         return []
       }
@@ -562,6 +640,8 @@ export default {
         }
       })
       this.handlerBaseForm = base
+      this.guideExpanded = true
+      this.foldedGuideNodeIds = []
       this.expandedNodeId = null
       this.isRejecting = false
       this.pendingRejectToNodeId = null
@@ -599,22 +679,60 @@ export default {
       }
       return true
     },
-    /** 点击通过：校验后打开确认弹窗（弹窗内选择下一处理人） */
-    onPassClick() {
+    /** 点击通过：校验后打开确认弹窗（弹窗内选择下一处理人）；先提醒未上传的文件 */
+    async onPassClick() {
       if (!this.validateForm()) return
       if (!this.validateBaseForm()) return
+      if (!(await this.confirmUnconfirmedFiles('提交'))) return
       this.isRejecting = false
       this.confirmAction = 'pass'
       this.confirmSummary = this.isEndNode ? '提交后任务将标记为已完成' : '确认后将流转至下一节点，请在弹窗中选择处理人'
       this.confirmVisible = true
     },
-    /** 点击退回：选目标节点+原因，再弹确认（退回不校验表单，可不填） */
-    onRejectClick() {
+    /** 点击退回：选目标节点+原因，再弹确认（退回不校验表单，可不填）；先提醒未上传的文件 */
+    async onRejectClick() {
       if (this.processedNodes.length === 0) {
         this.$message.warning('没有可退回的节点')
         return
       }
+      if (!(await this.confirmUnconfirmedFiles('退回'))) return
       this.rejectTargetVisible = true
+    },
+    /** 暂存（保存草稿，不校验必填、不流转） */
+    async onDraftClick() {
+      if (!(await this.confirmUnconfirmedFiles('暂存'))) return
+      const payload = this.buildPayload()
+      payload.action = 'draft'
+      this.$emit('draft', payload)
+    },
+    /** 收集所有 AttachField 中「已选择但未确认上传」的文件名，提交/退回/暂存前提醒 */
+    unconfirmedFiles() {
+      const names = []
+      Object.keys(this.$refs).forEach(k => {
+        if (!k.startsWith('af_')) return
+        const insts = Array.isArray(this.$refs[k]) ? this.$refs[k] : [this.$refs[k]]
+        insts.forEach(inst => {
+          if (inst && inst.pendingFiles && inst.pendingFiles.length > 0) {
+            inst.pendingFiles.forEach(pf => names.push(pf.name || pf.fileName))
+          }
+        })
+      })
+      return names
+    },
+    /** 若有未上传文件则弹确认；用户取消返回 false 中止操作 */
+    async confirmUnconfirmedFiles(actionLabel) {
+      const names = this.unconfirmedFiles()
+      if (names.length === 0) return true
+      try {
+        await this.$confirm(
+          `有 ${names.length} 个文件已选择但未上传：${names.join('、')}。${actionLabel}后这些文件不会被保存，是否仍要继续？`,
+          '文件未上传',
+          { confirmButtonText: `仍要${actionLabel}`, cancelButtonText: '先上传', type: 'warning' }
+        )
+        return true
+      } catch (e) {
+        return false
+      }
     },
     onPickRejectTarget(payload) {
       const { nodeId, reason } = payload || {}
@@ -628,9 +746,8 @@ export default {
       this.confirmSummary = `将退回到节点「${targetName}」\n退回原因：${reason}\n表单将回填上次数据可修改重交`
       this.confirmVisible = true
     },
-    /** 确认提交：组装 payload 并 emit（接收 ConfirmActionModal 的 passComment） */
-    onConfirmSubmit(modalPayload) {
-      const isReject = this.confirmAction === 'reject'
+    /** 组装表单与基础字段数据（暂存/提交共用） */
+    buildPayload() {
       const formDataList = this.currentFields.map(f => {
         let val = this.formData[f.id]
         if (f.fieldType === 'checkbox' && Array.isArray(val)) val = val.join(',')
@@ -648,13 +765,18 @@ export default {
         if (f.fieldType === 'checkbox' && Array.isArray(val)) val = val.join(',')
         baseData[f.id] = String(val)
       })
-      const payload = {
+      return {
         taskId: this.todo.taskId,
         taskNodeId: this.todo.taskNodeId,
         formData: formDataList,
-        baseData,
-        action: isReject ? 'reject' : 'pass'
+        baseData
       }
+    },
+    /** 确认提交：组装 payload 并 emit（接收 ConfirmActionModal 的 passComment） */
+    onConfirmSubmit(modalPayload) {
+      const isReject = this.confirmAction === 'reject'
+      const payload = this.buildPayload()
+      payload.action = isReject ? 'reject' : 'pass'
       if (isReject) {
         payload.rejectToNodeId = this.pendingRejectToNodeId
         payload.rejectReason = this.pendingRejectReason
@@ -797,7 +919,20 @@ $border: #e4beba;
 .node-guide { margin-bottom: 10px; padding: 10px 12px; background: #FFFBF2; border: 1px dashed rgba(183,121,31,0.4); border-radius: 6px;
   .guide-text { border: none; padding: 0 0 4px; background: transparent; }
 }
-.guide-files { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+// 折叠面板：并入当前节点卡片，可展开/收回
+.guide-fold { margin-bottom: 14px; border: 1px dashed rgba(183,121,31,0.4); border-radius: 8px; background: #FFFBF2; overflow: hidden;
+  .guide-fold-head { display: flex; align-items: center; gap: 6px; padding: 10px 14px; cursor: pointer; user-select: none;
+    &:hover { background: rgba(183,121,31,0.06); }
+  }
+  .guide-fold-flag { color: #b7791f; font-size: 15px; }
+  .guide-fold-title { font-size: 13px; font-weight: 700; color: #7a5c2e; }
+  .guide-fold-preview { flex: 1; min-width: 0; font-size: 12px; color: #b78f5c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 4px; }
+  .guide-fold-arrow { margin-left: auto; color: #b7791f; font-size: 13px; flex-shrink: 0; transition: transform 0.2s; }
+  .guide-fold-body { padding: 0 14px 12px; }
+}
+.guide-files { display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-top: 8px;
+  .attach-field { width: 100%; }
+}
 .node-guide .guide-files { margin-top: 4px; }
 .guide-files-title { font-size: 12px; color: #b7791f; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
 .guide-file-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; background: #fff; border: 1px solid #e8d9b8; border-radius: 12px; font-size: 12px; color: #7a5c2e;

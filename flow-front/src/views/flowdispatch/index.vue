@@ -18,10 +18,54 @@
           </div>
         </div>
 
+        <!-- 统计卡 -->
+        <section class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon icon-total"><i class="el-icon-s-order" /></div>
+            <div class="stat-body">
+              <div class="stat-label">任务总数</div>
+              <div class="stat-value">{{ stats.taskCount || 0 }}</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-active"><i class="el-icon-circle-check" /></div>
+            <div class="stat-body">
+              <div class="stat-label">启用中</div>
+              <div class="stat-value">{{ stats.activeCount || 0 }}</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-period"><i class="el-icon-tickets" /></div>
+            <div class="stat-body">
+              <div class="stat-label">已下发期次</div>
+              <div class="stat-value">{{ stats.periodCount || 0 }}</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-member"><i class="el-icon-user" /></div>
+            <div class="stat-body">
+              <div class="stat-label">参与人员</div>
+              <div class="stat-value">{{ stats.memberCount || 0 }}</div>
+            </div>
+          </div>
+        </section>
+
         <!-- 提示条 -->
         <section class="tip-bar">
           <i class="el-icon-info" />
           展开任务可查看期次情况与下一期次下发时间；点「生成期次」可在弹窗中确认本期次人员后下发。
+        </section>
+
+        <!-- 到期待下发提示 -->
+        <section v-if="dueList.length > 0" class="due-bar">
+          <i class="el-icon-alarm-clock" />
+          <span class="due-text">有 <b>{{ dueList.length }}</b> 个周期期次已到下发时间：</span>
+          <span class="due-item" v-for="(d, i) in dueList" :key="d.taskId + '-' + i">
+            「{{ d.taskName }}」· {{ d.periodName || '第' + d.periodNo + '期' }}
+          </span>
+          <button class="due-btn" :disabled="dispatching" @click="handleAutoDispatch">
+            <i v-if="dispatching" class="el-icon-loading" /><i v-else class="el-icon-s-promotion" /> 一键下发
+          </button>
         </section>
 
         <!-- 筛选区 -->
@@ -57,7 +101,7 @@
         </div>
         <div v-else class="task-collapse">
           <div v-if="loading" class="loading-bar"><i class="el-icon-loading" /> 加载中...</div>
-          <div v-for="t in taskList" :key="t.id" class="task-panel" :class="{ 'is-open': isTaskOpen(t.id), 'flash-open': flashTasks.indexOf(t.id) >= 0 }">
+          <div v-for="t in taskList" :key="t.id" class="task-panel" :class="{ 'is-open': isTaskOpen(t.id), 'is-disabled': t.status !== 1, 'flash-open': flashTasks.indexOf(t.id) >= 0 }">
             <div class="tp-head" @click="toggleTask(t.id)">
               <div class="ct-icon"><i class="el-icon-s-order" /></div>
               <div class="ct-main">
@@ -75,6 +119,10 @@
             <div v-show="isTaskOpen(t.id)" class="tp-body">
               <div class="task-detail">
                 <!-- 概览 -->
+                <div v-if="t.status !== 1" class="disabled-tip">
+                  <i class="el-icon-warning-outline" />
+                  <span><b>该任务已停用</b>：不能生成新期次，自动下发暂停；已下发的期次与处理进度不受影响，点击「启用」可恢复。</span>
+                </div>
                 <div class="overview-grid">
                   <div class="ov-item">
                     <i class="ov-icon el-icon-document" />
@@ -123,11 +171,12 @@
                 <!-- 操作行 -->
                 <div class="action-row">
                   <template v-if="isSuperAdmin">
-                    <button class="btn-ghost" @click="toggleSample(t)"><i class="el-icon-star-off" /> {{ t.isSample === 1 ? '取消样例' : '设为样例' }}</button>
+                    <button class="btn-ghost" @click="toggleSample(t)"><i :class="t.isSample === 1 ? 'el-icon-star-on star-on' : 'el-icon-star-off'" /> {{ t.isSample === 1 ? '取消样例' : '设为样例' }}</button>
                   </template>
                   <button class="btn-gen" :disabled="t.status !== 1 || isSampleLocked(t)" :title="t.status !== 1 ? '请先启用任务' : (isSampleLocked(t) ? '样例任务仅超管可操作' : '生成期次')" @click="openGen(t)">
                     <i class="el-icon-s-promotion" /> 生成期次
                   </button>
+                  <button class="btn-ghost btn-person" @click="openPersonView(t)"><i class="el-icon-user" /> 按人员查看</button>
                   <button class="btn-ghost" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例任务仅超管可修改' : ''" @click="openEdit(t)"><i class="el-icon-edit" /> 编辑</button>
                   <button class="btn-ghost" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例任务仅超管可操作' : ''" @click="toggleStatus(t)"><i class="el-icon-refresh" /> {{ t.status === 1 ? '停用' : '启用' }}</button>
                   <button class="btn-ghost text-error" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例任务仅超管可删除' : ''" @click="onDelete(t)"><i class="el-icon-delete" /> 删除</button>
@@ -136,8 +185,8 @@
                 <!-- 期次列表 -->
                 <div class="period-section">
                   <div class="sec-title"><i class="el-icon-tickets" /> 期次列表 <span class="sec-sub">共 {{ taskData[t.id] ? taskData[t.id].periods.length : 0 }} 期</span></div>
-                  <!-- 拉取期次时的骨架占位 -->
-                  <div v-if="taskData[t.id] && taskData[t.id].loading" class="period-skeleton"><i class="el-icon-loading" /> 正在加载期次...</div>
+                  <!-- 拉取期次时的骨架占位（含展开后尚未加载完成的情况） -->
+                  <div v-if="!taskData[t.id] || taskData[t.id].loading" class="period-skeleton"><i class="el-icon-loading" /> 正在加载期次...</div>
                   <div v-else-if="taskData[t.id] && taskData[t.id].periods.length === 0" class="period-empty">暂无期次，点击上方「生成期次」下发</div>
                   <table v-else-if="taskData[t.id] && taskData[t.id].periods.length > 0" class="period-table">
                     <thead>
@@ -145,6 +194,7 @@
                         <th>期次</th>
                         <th class="text-center">成员</th>
                         <th class="text-center">状态</th>
+                        <th class="text-center">进度</th>
                         <th>开始时间</th>
                         <th>截止时间</th>
                         <th>下发时间</th>
@@ -152,22 +202,28 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="p in periodSlice(t)" :key="p.dispatchId" class="hover-row">
+                      <tr v-for="p in periodSlice(t)" :key="p.dispatchId" class="hover-row" :class="{ 'flash-period': flashPeriod === p.dispatchId }">
                         <td class="font-bold">
                           {{ p.periodName || p.taskName }}
                           <span v-if="p.manualFlag === 1" class="tag-manual">临时</span>
-                          <span v-if="p.periodName" class="sub-text">{{ p.taskName }}</span>
                         </td>
                         <td class="text-center">{{ p.memberCount || 0 }} 人</td>
                         <td class="text-center">
                           <span :class="taskStatusClass(p.status)">{{ taskStatusText(p.status) }}</span>
+                        </td>
+                        <td class="text-center">
+                          <template v-if="p.memberCount > 0">
+                            <div class="pd-track"><div class="pd-fill" :style="{ width: periodProgress(p) + '%' }" /></div>
+                            <span class="pd-text">{{ p.finishedCount || 0 }}/{{ p.memberCount }} 人</span>
+                          </template>
+                          <span v-else class="text-muted">—</span>
                         </td>
                         <td>{{ p.startTime || '—' }}</td>
                         <td>{{ p.endTime || '—' }}</td>
                         <td>{{ p.dispatchTime }}</td>
                         <td class="text-right">
                           <button class="action-link" @click="openPeriodUsers(t, p)"><i class="el-icon-user" /> 查看人员</button>
-                          <button class="action-link text-error" :disabled="p.memberCount > 0" :title="p.memberCount > 0 ? '请先删除所有人员' : '删除期次'" @click="onDeletePeriod(t, p)"><i class="el-icon-delete" /> 删除</button>
+                          <button class="action-link text-error" @click="onDeletePeriod(t, p)"><i class="el-icon-delete" /> 删除</button>
                         </td>
                       </tr>
                     </tbody>
@@ -221,7 +277,7 @@
 </template>
 
 <script>
-import { getDispatchTaskList, toggleDispatchPlanStatus, toggleDispatchSample, deleteDispatchPlan, getTaskMembers, getPreviewPeriod } from '@/api/flowDispatch'
+import { getDispatchTaskList, getDispatchStats, toggleDispatchPlanStatus, toggleDispatchSample, deleteDispatchPlan, getTaskMembers, getPreviewPeriod, checkDueDispatches, autoDispatchDuePeriods } from '@/api/flowDispatch'
 import { getTaskList, deleteTaskGroup } from '@/api/task'
 import { getTemplateList } from '@/api/template'
 import GeneratePeriodModal from './components/GeneratePeriodModal.vue'
@@ -239,13 +295,21 @@ export default {
       filters: { taskName: '', status: '' },
       templates: [],
       activeTasks: [],
+      // 统计卡
+      stats: {},
       // 跳转返回后需要红色双闪高亮的面板（来自 sessionStorage 恢复）
       flashTasks: [],
+      // 跳转返回后需要高亮的期次（点「查看人员」跳转，返回时定位到对应期次行）
+      flashPeriod: null,
       taskData: {},
       // 生成期次弹窗
       genVisible: false,
       genTask: null,
-      genMembers: []
+      genMembers: [],
+      // 到期待下发的期次
+      dueList: [],
+      dueLoading: false,
+      dispatching: false
     }
   },
   computed: {
@@ -257,9 +321,19 @@ export default {
     // 恢复上次跳转前展开的面板（跳去编辑/数据后台再返回时保持展开，并红色双闪提示）
     this.restoreExpandState()
     this.fetchList()
+    this.fetchStats()
     this.loadTemplates()
+    this.fetchDue()
   },
   methods: {
+    async fetchStats() {
+      try {
+        const res = await getDispatchStats()
+        this.stats = res.data || {}
+      } catch (e) {
+        console.error(e)
+      }
+    },
     /** 样例锁定：非超管用户对样例任务不可改/删 */
     isSampleLocked(t) {
       return !this.isSuperAdmin && t.isSample === 1
@@ -267,25 +341,39 @@ export default {
     async toggleSample(t) {
       try {
         await toggleDispatchSample(t.id)
-        this.$message.success(t.isSample === 1 ? '已取消样例' : '已设为样例')
-        this.fetchList()
+        // 本地翻转样例标记即可，不整表刷新（避免列表/期次闪烁跳动）
+        t.isSample = t.isSample === 1 ? 0 : 1
+        this.$message.success(t.isSample === 1 ? '已设为样例' : '已取消样例')
       } catch (e) {
         this.$message.error((e && e.message) || '操作失败')
       }
     },
-    /** 从 sessionStorage 恢复展开状态，返回本页时只高亮闪烁「跳转来源」的那个面板 */
+    /** 恢复展开/双闪状态：仅当「从本页点击按钮跳转到其他页面再返回」时才恢复展开并双闪，
+        直接进入（菜单/路由直达）不做任何高亮，清除遗留标记 */
     restoreExpandState() {
       try {
+        if (sessionStorage.getItem('flowDispatchJumpOut') !== '1') {
+          sessionStorage.removeItem('flowDispatchFlash')
+          sessionStorage.removeItem('flowDispatchFlashPeriod')
+          return
+        }
+        sessionStorage.removeItem('flowDispatchJumpOut')
         const saved = sessionStorage.getItem('flowDispatchExpanded')
-        if (!saved) return
-        const ids = JSON.parse(saved)
-        if (!Array.isArray(ids) || ids.length === 0) return
-        this.activeTasks = ids
-        // 仅闪烁跳转来源任务（如编辑/查看人员跳转前记录的那一个）
+        if (saved) {
+          const ids = JSON.parse(saved)
+          if (Array.isArray(ids) && ids.length) this.activeTasks = ids
+        }
+        // 双闪跳转来源任务面板
         const flashId = Number(sessionStorage.getItem('flowDispatchFlash'))
-        this.flashTasks = (Number.isInteger(flashId) && ids.indexOf(flashId) >= 0) ? [flashId] : []
-        if (this.flashTasks.length) {
+        if (Number.isInteger(flashId) && this.activeTasks.indexOf(flashId) >= 0) {
+          this.flashTasks = [flashId]
           setTimeout(() => { this.flashTasks = [] }, 2200)
+        }
+        // 高亮跳转来源期次（如点「查看人员」跳转，返回时定位到该期次行）
+        const flashPeriod = Number(sessionStorage.getItem('flowDispatchFlashPeriod'))
+        if (Number.isInteger(flashPeriod)) {
+          this.flashPeriod = flashPeriod
+          setTimeout(() => { this.flashPeriod = null }, 2200)
         }
       } catch (e) {
         console.error(e)
@@ -299,10 +387,14 @@ export default {
         console.error(e)
       }
     },
-    /** 记录跳转来源任务 id（返回本页时该面板红色双闪） */
-    saveFlashId(id) {
+    /** 记录跳转来源任务 id（返回本页时该面板红色双闪）与期次 id（对应期次行高亮） */
+    saveFlashId(id, dispatchId) {
       try {
+        sessionStorage.setItem('flowDispatchJumpOut', '1')
+        sessionStorage.setItem('flowDispatchExpanded', JSON.stringify(this.activeTasks))
         sessionStorage.setItem('flowDispatchFlash', String(id))
+        if (dispatchId) sessionStorage.setItem('flowDispatchFlashPeriod', String(dispatchId))
+        else sessionStorage.removeItem('flowDispatchFlashPeriod')
       } catch (e) {
         console.error(e)
       }
@@ -330,6 +422,11 @@ export default {
     },
     taskStatusText(s) { return { 0: '空', 1: '进行中', 2: '已完成', 3: '已作废' }[s] || '—' },
     taskStatusClass(s) { return { 1: 'tag-running', 2: 'tag-done', 3: 'tag-cancel', 0: 'tag-empty' }[s] || '' },
+    /** 期次整体完成进度：已完成人数 / 总人数 */
+    periodProgress(p) {
+      if (!p.memberCount) return 0
+      return Math.round(((Number(p.finishedCount) || 0) / Number(p.memberCount)) * 100)
+    },
     nextPeriodText(t) {
       const d = this.taskData[t.id]
       if (!d) return '展开查看'
@@ -359,6 +456,35 @@ export default {
     handleSearch() {
       this.page = 1
       this.fetchList()
+    },
+    /** 检索当前是否有任务的期次应下发 */
+    async fetchDue() {
+      this.dueLoading = true
+      try {
+        const res = await checkDueDispatches()
+        this.dueList = (res && res.data) || []
+      } catch (e) {
+        console.error(e)
+        this.dueList = []
+      } finally {
+        this.dueLoading = false
+      }
+    },
+    /** 一键下发所有到期待下发的期次 */
+    async handleAutoDispatch() {
+      if (this.dispatching) return
+      this.dispatching = true
+      try {
+        const res = await autoDispatchDuePeriods()
+        const n = (res && res.data) || 0
+        this.$message.success(n > 0 ? `已自动下发 ${n} 个期次` : '暂无到期待下发的期次')
+        this.fetchDue()
+        this.fetchList()
+      } catch (e) {
+        this.$message.error((e && e.message) || '下发失败')
+      } finally {
+        this.dispatching = false
+      }
     },
     resetFilters() {
       this.filters = { taskName: '', status: '' }
@@ -475,6 +601,15 @@ export default {
       this.saveFlashId(t.id)
       this.$router.push({ path: '/flow-dispatch/edit', query: { id: t.id }})
     },
+    /** 打开「按人员查看」界面（该任务下所有人员的历史提交，人员→期次→节点折叠展示） */
+    openPersonView(t) {
+      this.saveExpandState()
+      this.saveFlashId(t.id)
+      this.$router.push({
+        path: '/flow-dispatch/person-view',
+        query: { taskId: t.id, taskName: t.taskName || '' }
+      })
+    },
     /** 生成期次弹窗内点击「去调整」：关闭弹窗并跳转编辑任务页（步骤2下发配置） */
     onEditConfig() {
       const t = this.genTask
@@ -487,7 +622,7 @@ export default {
       this.$router.push('/flow-dispatch/edit')
     },
     openPeriodUsers(t, p) {
-      this.saveFlashId(t.id)
+      this.saveFlashId(t.id, p.dispatchId)
       this.$router.push({
         path: '/flow-dispatch/period-users',
         query: {
@@ -498,6 +633,11 @@ export default {
       })
     },
     async onDeletePeriod(t, p) {
+      const cnt = p.memberCount || 0
+      if (cnt > 0) {
+        this.$message.warning(`该期次下还有 ${cnt} 名人员，请先在「数据后台」查看该期次并清空所有人员，再回来删除期次。`)
+        return
+      }
       try {
         await this.$confirm(`确定删除期次「${p.periodName || p.taskName}」吗？删除后不可恢复。`, '删除期次确认', {
           confirmButtonText: '删除',
@@ -518,13 +658,27 @@ export default {
       }
     },
     toggleStatus(t) {
-      toggleDispatchPlanStatus(t.id).then(res => {
-        this.$message.success(res.message || '操作成功')
-        this.fetchList()
-      }).catch(e => {
-        console.error(e)
-        this.$message.error('操作失败')
-      })
+      const toDisable = t.status === 1
+      this.$confirm(
+        toDisable
+          ? '停用后：不能生成新期次，自动下发将暂停；已下发的期次与处理进度不受影响，可随时重新启用。确定停用「' + t.taskName + '」吗？'
+          : '启用后：恢复生成期次与自动下发功能。确定启用「' + t.taskName + '」吗？',
+        toDisable ? '停用确认' : '启用确认',
+        {
+          confirmButtonText: toDisable ? '停用' : '启用',
+          cancelButtonText: '取消',
+          type: 'warning',
+          confirmButtonClass: 'el-button--danger'
+        }
+      ).then(() => {
+        toggleDispatchPlanStatus(t.id).then(res => {
+          this.$message.success(res.message || '操作成功')
+          this.fetchList()
+        }).catch(e => {
+          console.error(e)
+          this.$message.error('操作失败')
+        })
+      }).catch(() => {})
     },
     onDelete(t) {
       this.$confirm(`确定删除任务「${t.taskName}」吗？仅当任务下无任何期次时可删除。`, '删除确认', {
@@ -556,6 +710,22 @@ $border: #e4beba;
   .active { color: $primary; font-weight: 600; }
 }
 .page-heading { font-size: 30px; line-height: 38px; font-weight: 600; color: #1b1c1c; }
+
+// 统计卡
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+  @media (max-width: 1100px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 600px) { grid-template-columns: 1fr; }
+}
+.stat-card { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid $border; border-radius: 10px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.stat-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; flex-shrink: 0;
+  &.icon-total { background: $primary; }
+  &.icon-active { background: #266d00; }
+  &.icon-period { background: #b7791f; }
+  &.icon-member { background: #545f72; }
+}
+.stat-body { flex: 1; }
+.stat-label { font-size: 13px; color: #757575; margin-bottom: 4px; }
+.stat-value { font-size: 28px; font-weight: 700; color: #1b1c1c; line-height: 1.1; }
 .btn-create { display: flex; align-items: center; gap: 5px; padding: 10px 22px; background: $primary; color: #fff; border: none; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; box-shadow: 0 2px 8px rgba(197,48,48,0.25); transition: all .2s;
   &:hover { opacity: 0.9; transform: translateY(-1px); }
 }
@@ -566,6 +736,16 @@ $border: #e4beba;
 }
 .tip-bar { display: flex; align-items: center; gap: 8px; background: #FFF5F5; border: 1px solid $border; color: #8a4b46; font-size: 13px; border-radius: 10px; padding: 10px 14px;
   i { color: $primary; }
+}
+// 到期待下发提示条
+.due-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: linear-gradient(90deg, #FFF5F5, #FFFBF0); border: 1px solid rgba(183,121,31,0.4); border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #7a4a13;
+  > i { color: #b7791f; font-size: 16px; }
+  .due-text b { color: #b7791f; font-size: 15px; }
+  .due-item { background: #fff; border: 1px solid rgba(183,121,31,0.3); color: #7a4a13; padding: 2px 10px; border-radius: 12px; font-size: 12px; }
+  .due-btn { margin-left: auto; display: flex; align-items: center; gap: 4px; padding: 6px 16px; background: #b7791f; color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;
+    &:hover { opacity: 0.9; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
 }
 .filter-section { background: #fff; border: 1px solid $border; border-radius: 10px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
 .filter-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
@@ -613,9 +793,25 @@ $border: #e4beba;
 .ct-sub { font-size: 12px; color: #909399; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ct-status { padding: 2px 12px; border-radius: 12px; font-size: 12px; flex-shrink: 0;
   &.on { background: rgba(197,48,48,0.1); color: $primary; font-weight: 600; }
-  &.off { background: #f0f0f0; color: #909399; }
+  &.off { background: #5c5f66; color: #fff; font-weight: 600; }
 }
 .sample-tag { padding: 2px 8px; background: rgba(183,121,31,0.14); color: #b7791f; border-radius: 10px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+
+// 停用任务面板整体置灰，状态区分明显
+.task-panel.is-disabled {
+  border-color: #d9dadd;
+  .tp-head { background: #f7f7f8; }
+  .tp-head:hover { background: #f1f1f3; }
+  .ct-icon { background: #e9eaec; color: #9a9da3; }
+  .ct-name { color: #909399; }
+  .overview-grid { background: #f4f4f5; border-color: #e4e5e7; }
+}
+
+// 展开区停用提示条
+.disabled-tip { display: flex; align-items: center; gap: 8px; background: #f5f5f6; border: 1px solid #d5d6d8; color: #4b4e55; font-size: 13px; border-radius: 10px; padding: 10px 14px;
+  i { color: #6b6f76; font-size: 15px; }
+  b { color: #3a3d43; }
+}
 
 .task-detail { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
 .overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: #FAFAFA; border: 1px solid #f0e3e1; border-radius: 10px; padding: 14px 16px;
@@ -634,7 +830,12 @@ $border: #e4beba;
 .btn-ghost { display: flex; align-items: center; gap: 4px; padding: 8px 16px; background: #fff; border: 1px solid $border; border-radius: 8px; color: #5b403d; cursor: pointer; font-size: 13px;
   &:hover { background: #f6f3f2; }
 }
+.btn-person { color: #8f1d1d; border-color: rgba(197,48,48,0.35);
+  i { color: $primary; }
+  &:hover { background: #FFF5F5; border-color: $primary; }
+}
 .text-error { color: #ba1a1a; }
+.star-on { color: #E6A23C; }
 .period-section { background: #fff; border: 1px solid $border; border-radius: 10px; padding: 14px 16px; }
 .sec-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: #1b1c1c; margin-bottom: 12px;
   i { color: $primary; }
@@ -647,6 +848,8 @@ $border: #e4beba;
   td { padding: 10px 12px; border-bottom: 1px solid $border; font-size: 13px; }
   tbody tr:last-child td { border-bottom: none; }
   .hover-row:hover { background: #FFF5F5; }
+  /* 从「查看人员」跳转返回时，定位并高亮跳转来源期次行 */
+  .flash-period td { background: #FFE9E9; }
 }
 .font-bold { font-weight: 700; }
 .sub-text { display: block; font-size: 12px; color: #909399; font-weight: 400; margin-top: 2px; }
@@ -657,6 +860,10 @@ $border: #e4beba;
 .tag-done { padding: 2px 10px; background: rgba(38,109,0,0.1); color: #266d00; border-radius: 10px; font-size: 12px; font-weight: 600; }
 .tag-cancel { padding: 2px 10px; background: rgba(186,26,26,0.1); color: #ba1a1a; border-radius: 10px; font-size: 12px; font-weight: 600; }
 .tag-empty { padding: 2px 10px; background: rgba(144,147,153,0.1); color: #909399; border-radius: 10px; font-size: 12px; }
+// 期次完成进度（任务管理期次列表）
+.pd-track { display: inline-block; width: 72px; height: 6px; background: #f0e3e1; border-radius: 3px; overflow: hidden; vertical-align: middle; }
+.pd-fill { height: 100%; background: $primary; border-radius: 3px; transition: width .4s; }
+.pd-text { font-size: 11px; color: #909399; margin-left: 6px; vertical-align: middle; font-weight: 600; }
 .action-link { color: $primary; background: none; border: none; cursor: pointer; font-size: 13px; margin-left: 8px;
   &:hover { text-decoration: underline; }
   &:disabled { color: #bbb; cursor: not-allowed; text-decoration: none; }

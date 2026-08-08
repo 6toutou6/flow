@@ -158,34 +158,44 @@ CREATE TABLE `flow_task_dispatch` (
   `creator_id` bigint NOT NULL COMMENT '创建人ID',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `template_data` text DEFAULT NULL COMMENT '模板级字段值 JSON',
+  `template_fields_json` text DEFAULT NULL COMMENT '模板级字段定义JSON（快照，node_id 为空的创建人/处理人字段，防模板升级影响历史期次）',
   PRIMARY KEY (`id`),
   KEY `idx_template` (`template_id`),
   KEY `idx_task` (`task_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='期次（任务按周期自动或手动生成，为每位配置人员创建提交任务）';
 
 -- ============================================================
--- 表8：flow_task_user 任务填报人员关联表【废弃，保留兼容】
--- 顺序流转模型改用 flow_task_node 承载处理人，此表停止使用
+-- 表8：flow_task_dispatch_node 期次节点快照表
+-- 下发期次时锁定当期模板节点全部配置（提示/填写说明/说明文件/下一步提示/字段定义），
+-- 防模板后续升级影响历史期次；临时人员新增时也从该快照复制节点
 -- ============================================================
-CREATE TABLE `flow_task_user` (
-  `id` bigint NOT NULL AUTO_INCREMENT,
-  `task_id` bigint NOT NULL COMMENT '任务ID',
-  `user_id` bigint NOT NULL COMMENT '填报人用户ID',
-  `submit_status` tinyint NOT NULL DEFAULT 0 COMMENT '0未填报 1草稿 2已提交 3作废',
-  `submit_time` datetime DEFAULT NULL COMMENT '提交时间',
+CREATE TABLE `flow_task_dispatch_node` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `dispatch_id` bigint NOT NULL COMMENT '期次ID flow_task_dispatch.id',
+  `node_id` bigint DEFAULT NULL COMMENT '来源模板节点ID flow_template_node.id（溯源）',
+  `node_name` varchar(100) DEFAULT NULL COMMENT '节点名称',
+  `sort_num` int DEFAULT NULL COMMENT '节点顺序',
+  `node_type` int DEFAULT NULL COMMENT '节点类型 1开始 2中间 3结束',
+  `node_tips` varchar(1000) DEFAULT NULL COMMENT '节点提示（快照）',
+  `guide_text` varchar(2000) DEFAULT NULL COMMENT '节点填写说明（快照）',
+  `guide_files` text DEFAULT NULL COMMENT '说明文件JSON（快照，期次维度附件副本，防模板删文件导致悬空引用）',
+  `next_handler_tip` varchar(500) DEFAULT NULL COMMENT '下一步处理人提示（快照）',
+  `fields_json` text DEFAULT NULL COMMENT '节点字段定义JSON（快照，含绑定该节点的处理人字段）',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY uk_task_user (`task_id`,`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='任务-填报人员关联（废弃兼容）';
+  KEY `idx_dispatch` (`dispatch_id`, `sort_num`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='期次节点快照';
 
 -- ============================================================
 -- 表9：flow_task_node 任务流转节点表【核心】
 -- 任务实际流转记录，每个节点一条；action/reject_reason/pass_comment 存处理动作与意见
+-- dispatch_node_id 引用期次节点快照（无则回退模板解析）
 -- ============================================================
 CREATE TABLE `flow_task_node` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
   `task_id` bigint NOT NULL COMMENT '任务ID',
   `node_id` bigint NOT NULL COMMENT '模板节点ID flow_template_node.id',
+  `dispatch_node_id` bigint DEFAULT NULL COMMENT '期次节点快照ID flow_task_dispatch_node.id（无则回退模板解析）',
   `node_name` varchar(100) NOT NULL COMMENT '节点名称（冗余）',
   `sort_num` int NOT NULL DEFAULT 0 COMMENT '排序号',
   `node_type` tinyint NOT NULL DEFAULT 2 COMMENT '节点类型 1开始 2中间 3结束',
@@ -274,23 +284,7 @@ CREATE TABLE `flow_form_data` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='表单填报明细数据';
 
 -- ============================================================
--- 表14：flow_attachment 附件文件表
--- ============================================================
-CREATE TABLE `flow_attachment` (
-  `id` bigint NOT NULL AUTO_INCREMENT,
-  `record_id` bigint DEFAULT NULL COMMENT '关联填报记录ID',
-  `file_name` varchar(255) NOT NULL COMMENT '原始文件名',
-  `file_path` varchar(500) NOT NULL COMMENT 'oss/minio存储路径',
-  `file_size` bigint NOT NULL COMMENT '文件大小byte',
-  `file_suffix` varchar(20) DEFAULT NULL COMMENT '后缀',
-  `upload_user_id` bigint NOT NULL,
-  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY idx_record_id (`record_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='附件文件';
-
--- ============================================================
--- 表15：attach 附件表（文件/图片上传，biz_id 关联业务，ecs_url 随机字符）
+-- 表14：attach 附件表（文件/图片上传，biz_id 关联业务，ecs_url 随机字符）
 -- 字段按业务要求固定，不许减少或变更
 -- ============================================================
 CREATE TABLE `attach` (
@@ -305,7 +299,7 @@ CREATE TABLE `attach` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='附件表';
 
 -- ============================================================
--- 表16：flow_dispatch 任务表（一次下发计划 = 一个任务）
+-- 表15：flow_dispatch 任务表（一次下发计划 = 一个任务）
 -- 周期/截止/催办等下发配置独立存储于 flow_dispatch_config（每任务一份）
 -- ============================================================
 CREATE TABLE `flow_dispatch` (

@@ -18,88 +18,119 @@
         <!-- 提示条 -->
         <section class="tip-bar">
           <i class="el-icon-info" />
-          一个页面完成全部配置：基本信息、下发周期、任务人员；保存后任务即可按周期生成期次。
+          一个页面完成全部配置：基本信息、模板配置、下发周期、任务人员；保存后任务即可按周期生成期次。
         </section>
 
         <!-- 基本信息 -->
         <div class="form-card">
-          <div class="card-title"><i class="el-icon-document" /> 基本信息</div>
-          <div class="form-row">
-            <label class="form-label"><span class="req">*</span> 任务名称</label>
-            <input v-model="form.taskName" class="form-input" placeholder="如：巡查问题整改" maxlength="100">
+          <div class="card-head" @click="toggleCollapse('basic')">
+            <div class="card-title"><i class="el-icon-document" /> 基本信息 <span class="card-sub">任务的基础说明信息</span></div>
+            <i class="el-icon-arrow-up card-fold" :class="{ folded: collapsed.basic }" />
           </div>
-          <div class="form-row">
-            <label class="form-label">任务说明</label>
-            <textarea v-model="form.taskDesc" class="form-textarea" rows="2" placeholder="任务说明（选填）" maxlength="500" />
-          </div>
-          <div class="form-row">
-            <label class="form-label"><span class="req">*</span> 流程模板</label>
-            <el-select v-model="form.templateId" placeholder="选择启用的流程模板" style="width:100%" @change="onTemplateChange">
-              <el-option v-for="t in templates" :key="t.id" :label="t.templateName" :value="t.id" />
-            </el-select>
-          </div>
-          <!-- 模板配置信息（模板级字段，任务配置好后期次抄用；下方为模板流程预览） -->
-          <div v-if="creatorFields.length || templateNodes.length" class="tpl-fields-box">
-            <div class="tpl-fields-title">
-              <i class="el-icon-collection" /> 模板配置信息
-              <span class="tpl-fields-tip">（期次生成时自动抄用，处理人与后台可见）</span>
+          <div v-show="!collapsed.basic">
+            <div class="form-row">
+              <label class="form-label"><span class="req">*</span> 任务名称</label>
+              <input v-model="form.taskName" class="form-input" placeholder="如: xxx整改" maxlength="100">
             </div>
-            <div v-for="f in creatorFields" :key="f.id" class="form-row">
-              <label class="form-label"><span v-if="f.required === 1" class="req">*</span> {{ f.fieldLabel }}</label>
-              <el-input v-if="f.fieldType === 'text'" v-model="templateForm[f.id]" :placeholder="f.placeholder || '请输入' + f.fieldLabel" :maxlength="f.maxLength || undefined" />
-              <el-input v-else-if="f.fieldType === 'textarea'" v-model="templateForm[f.id]" type="textarea" :rows="2" :placeholder="f.placeholder || '请输入' + f.fieldLabel" :maxlength="f.maxLength || undefined" />
-              <el-input v-else-if="f.fieldType === 'number'" v-model="templateForm[f.id]" type="number" :placeholder="f.placeholder || '请输入' + f.fieldLabel" />
-              <el-date-picker v-else-if="f.fieldType === 'date'" v-model="templateForm[f.id]" type="date" value-format="yyyy-MM-dd" :placeholder="f.placeholder || '选择日期'" style="width:100%" />
-              <el-select v-else-if="f.fieldType === 'radio'" v-model="templateForm[f.id]" :placeholder="f.placeholder || '请选择'" style="width:100%">
-                <el-option v-for="opt in parseOptions(f.enumOptions)" :key="opt.value" :label="opt.label" :value="opt.value" />
+            <div class="form-row">
+              <label class="form-label">任务说明</label>
+              <textarea v-model="form.taskDesc" class="form-textarea" rows="2" placeholder="任务说明（选填）" maxlength="500" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 模板配置 -->
+        <div class="form-card">
+          <div class="card-head" @click="toggleCollapse('template')">
+            <div class="card-title"><i class="el-icon-collection" /> 模板配置 <span class="card-sub">选择流程模板并填写模板级字段</span></div>
+            <i class="el-icon-arrow-up card-fold" :class="{ folded: collapsed.template }" />
+          </div>
+          <div v-show="!collapsed.template">
+            <div class="form-row">
+              <label class="form-label"><span class="req">*</span> 流程模板</label>
+              <el-select v-model="form.templateId" placeholder="选择启用的流程模板" style="width:100%" @change="onTemplateChange">
+                <el-option v-for="t in templates" :key="t.id" :label="t.templateName" :value="t.id" />
               </el-select>
-              <el-checkbox-group v-else-if="f.fieldType === 'checkbox'" v-model="templateForm[f.id]">
-                <el-checkbox v-for="opt in parseOptions(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-checkbox>
-              </el-checkbox-group>
-              <el-input v-else v-model="templateForm[f.id]" :placeholder="f.placeholder || '请输入' + f.fieldLabel" />
             </div>
-            <!-- 模板流程预览（横向流程链，点击节点展开查看表单字段） -->
-            <div v-if="templateNodes.length > 0" class="tpl-flow-preview">
-              <div class="tpl-flow-title">
-                <i class="el-icon-set-up" /> 模板流程预览
-                <span class="tpl-fields-tip">（节点横向展示，点击节点可查看该节点填写的表单字段）</span>
+            <!-- 模板配置信息（模板级字段，任务配置好后期次抄用；下方为模板流程预览） -->
+            <div v-if="creatorFields.length || templateNodes.length" class="tpl-fields-box">
+              <div class="tpl-fields-title">
+                <i class="el-icon-collection" /> 模板级字段与流程预览
+                <span class="tpl-fields-tip">（期次生成时自动抄用，处理人与后台可见）</span>
               </div>
-              <div class="chain-track-h">
-                <div v-for="(nv, ni) in templateNodes" :key="ni" class="chain-seg">
-                  <div
-                    class="chain-chip"
-                    :class="['chip-pending', { clickable: true, expanded: expandedNodeIdx === ni }]"
-                    :title="`${ni + 1}. ${nodeName(nv)}`"
-                    @click="toggleNodePreview(ni)"
-                  >
-                    <span class="cc-no">{{ ni + 1 }}</span>
-                    <span class="cc-name">{{ nodeName(nv) }}</span>
-                    <span v-if="isStartNode(nv)" class="cc-tag">开始</span>
-                    <span v-else-if="isEndNode(nv)" class="cc-tag">结束</span>
-                    <span v-if="nodeFields(nv).length > 0" class="cc-count">{{ nodeFields(nv).length }} 字段</span>
-                  </div>
-                  <span v-if="ni < templateNodes.length - 1" class="chain-arrow"><i class="el-icon-right" /></span>
-                </div>
+              <div v-for="f in creatorFields" :key="f.id" class="form-row">
+                <label class="form-label"><span v-if="f.required === 1" class="req">*</span> {{ f.fieldLabel }}</label>
+                <el-input v-if="f.fieldType === 'text'" v-model="templateForm[f.id]" :placeholder="f.placeholder || '请输入' + f.fieldLabel" :maxlength="f.maxLength || undefined" />
+                <el-input v-else-if="f.fieldType === 'textarea'" v-model="templateForm[f.id]" type="textarea" :rows="2" :placeholder="f.placeholder || '请输入' + f.fieldLabel" :maxlength="f.maxLength || undefined" />
+                <el-input v-else-if="f.fieldType === 'number'" v-model="templateForm[f.id]" type="number" :placeholder="f.placeholder || '请输入' + f.fieldLabel" />
+                <el-date-picker v-else-if="f.fieldType === 'date'" v-model="templateForm[f.id]" type="date" value-format="yyyy-MM-dd" :placeholder="f.placeholder || '选择日期'" style="width:100%" />
+                <el-select v-else-if="f.fieldType === 'radio'" v-model="templateForm[f.id]" :placeholder="f.placeholder || '请选择'" style="width:100%">
+                  <el-option v-for="opt in parseOptions(f.enumOptions)" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
+                <el-checkbox-group v-else-if="f.fieldType === 'checkbox'" v-model="templateForm[f.id]">
+                  <el-checkbox v-for="opt in parseOptions(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-checkbox>
+                </el-checkbox-group>
+                <el-input v-else v-model="templateForm[f.id]" :placeholder="f.placeholder || '请输入' + f.fieldLabel" />
               </div>
-              <!-- 点击节点展开的字段详情 -->
-              <div v-if="expandedNode" class="node-detail" @click.stop>
-                <div class="nd-head">
-                  <span class="nd-no">{{ expandedNodeIdx + 1 }}</span>
-                  <span class="nd-name">{{ nodeName(expandedNode) }}</span>
-                  <span v-if="expandedNode.node && expandedNode.node.nodeTips" class="nd-tips">{{ expandedNode.node.nodeTips }}</span>
+              <!-- 模板流程预览（横向流程链，点击节点展开查看表单字段） -->
+              <div v-if="templateNodes.length > 0" class="tpl-flow-preview">
+                <div class="tpl-flow-title">
+                  <i class="el-icon-set-up" /> 模板流程预览
+                  <span class="tpl-fields-tip">（节点横向展示，点击节点可查看该节点填写的表单字段）</span>
                 </div>
-                <div v-if="expandedNode.node && expandedNode.node.nextHandlerTip" class="nd-tip-next"><i class="el-icon-user" /> 下一步处理人提示：{{ expandedNode.node.nextHandlerTip }}</div>
-                <div v-if="nodeFields(expandedNode).length > 0" class="nd-fields">
-                  <div v-for="(f, fi) in nodeFields(expandedNode)" :key="fi" class="nd-field-row">
-                    <span class="ndf-label">
-                      {{ f.fieldLabel }}
-                      <span v-if="f.required === 1" class="req">*</span>
-                    </span>
-                    <span class="ndf-type">{{ fieldTypeText(f.fieldType) }}</span>
-                    <span v-if="f.enumOptions" class="ndf-options">选项：{{ optionsText(f) }}</span>
+                <div class="chain-track-h">
+                  <div v-for="(nv, ni) in templateNodes" :key="ni" class="chain-seg">
+                    <div
+                      class="chain-chip"
+                      :class="['chip-pending', { clickable: true, expanded: expandedNodeIdx === ni }]"
+                      :title="`${ni + 1}. ${nodeName(nv)}`"
+                      @click="toggleNodePreview(ni)"
+                    >
+                      <span class="cc-no">{{ ni + 1 }}</span>
+                      <span class="cc-name">{{ nodeName(nv) }}</span>
+                      <span v-if="isStartNode(nv)" class="cc-tag">开始</span>
+                      <span v-else-if="isEndNode(nv)" class="cc-tag">结束</span>
+                      <span v-if="nodeFields(nv).length > 0" class="cc-count">{{ nodeFields(nv).length }} 字段</span>
+                    </div>
+                    <span v-if="ni < templateNodes.length - 1" class="chain-arrow"><i class="el-icon-right" /></span>
                   </div>
                 </div>
-                <div v-else class="nd-empty">该节点无需填写表单字段</div>
+                <!-- 点击节点展开的字段详情 -->
+                <div v-if="expandedNode" class="node-detail" @click.stop>
+                  <div class="nd-head">
+                    <span class="nd-no">{{ expandedNodeIdx + 1 }}</span>
+                    <span class="nd-name">{{ nodeName(expandedNode) }}</span>
+                    <span v-if="expandedNode.node && expandedNode.node.nodeTips" class="nd-tips">{{ expandedNode.node.nodeTips }}</span>
+                  </div>
+                  <div v-if="expandedNode.node && expandedNode.node.nextHandlerTip" class="nd-tip-next"><i class="el-icon-user" /> 下一步处理人提示：{{ expandedNode.node.nextHandlerTip }}</div>
+                  <div v-if="hasNodeGuide" class="guide-fold" :class="{ open: !guideFoldedEdit }" @click.stop>
+                    <div class="guide-fold-head" @click="guideFoldedEdit = !guideFoldedEdit">
+                      <i class="el-icon-info guide-fold-flag" />
+                      <span class="guide-fold-title">填写说明</span>
+                      <span v-if="guideFoldedEdit" class="guide-fold-preview">点击展开查看本节点填写要求与参考文件</span>
+                      <span v-else class="guide-fold-preview">点击收回</span>
+                      <i :class="guideFoldedEdit ? 'el-icon-arrow-down' : 'el-icon-arrow-up'" class="guide-fold-arrow" />
+                    </div>
+                    <div v-show="!guideFoldedEdit" class="guide-fold-body">
+                      <div v-if="expandedNode.node && expandedNode.node.guideText" class="nd-guide-text">{{ expandedNode.node.guideText }}</div>
+                      <div v-if="expandedNode.node && expandedNode.node.guideFiles" class="nd-guide-files">
+                        <div class="nd-sub-title"><i class="el-icon-paperclip" /> 说明文件<span class="chain-hint">可预览 / 下载</span></div>
+                        <AttachField readonly :value="expandedNode.node.guideFiles" />
+                      </div>
+                    </div>
+                  </div>
+                  <div v-if="nodeFields(expandedNode).length > 0" class="nd-fields">
+                    <div v-for="(f, fi) in nodeFields(expandedNode)" :key="fi" class="nd-field-row">
+                      <span class="ndf-label">
+                        {{ f.fieldLabel }}
+                        <span v-if="f.required === 1" class="req">*</span>
+                      </span>
+                      <span class="ndf-type">{{ fieldTypeText(f.fieldType) }}</span>
+                      <span v-if="f.enumOptions" class="ndf-options">选项：{{ optionsText(f) }}</span>
+                    </div>
+                  </div>
+                  <div v-else class="nd-empty">该节点无需填写表单字段</div>
+                </div>
               </div>
             </div>
           </div>
@@ -107,108 +138,118 @@
 
         <!-- 下发配置 -->
         <div class="form-card">
-          <div class="card-title"><i class="el-icon-alarm-clock" /> 下发配置 <span class="card-sub">决定每期什么时候下发、最晚什么时候完成</span></div>
+          <div class="card-head" @click="toggleCollapse('dispatch')">
+            <div class="card-title"><i class="el-icon-alarm-clock" /> 下发配置 <span class="card-sub">决定每期什么时候下发、最晚什么时候完成</span></div>
+            <i class="el-icon-arrow-up card-fold" :class="{ folded: collapsed.dispatch }" />
+          </div>
+          <div v-show="!collapsed.dispatch">
 
-          <!-- 从配置模板一键拉取 -->
-          <div class="tpl-pick-card">
-            <div class="tpl-pick-head">
-              <span><i class="el-icon-setting" /> 从下发配置模板拉取</span>
-              <button class="tpl-manage" @click="$router.push('/flow-dispatch/config-template')">管理模板</button>
+            <!-- 从配置模板一键拉取 -->
+            <div class="tpl-pick-card">
+              <div class="tpl-pick-head">
+                <span><i class="el-icon-setting" /> 从下发配置模板拉取</span>
+                <button class="tpl-manage" @click="$router.push('/flow-dispatch/config-template')">管理模板</button>
+              </div>
+              <div class="tpl-pick-body">
+                <el-select
+                  v-model="pickedTplId"
+                  placeholder="选择一套已保存的配置模板，一键填充下方配置"
+                  style="width:100%"
+                  clearable
+                  filterable
+                  :loading="tplLoading"
+                  @change="onPickTemplate"
+                >
+                  <el-option v-for="t in configTemplates" :key="t.id" :label="tplLabel(t)" :value="t.id" />
+                </el-select>
+                <div v-if="pickedTplId" class="tpl-picked-tip"><i class="el-icon-check" /> 已拉取「{{ pickedTplName }}」，可继续微调下方配置</div>
+              </div>
             </div>
-            <div class="tpl-pick-body">
-              <el-select
-                v-model="pickedTplId"
-                placeholder="选择一套已保存的配置模板，一键填充下方配置"
-                style="width:100%"
-                clearable
-                filterable
-                :loading="tplLoading"
-                @change="onPickTemplate"
-              >
-                <el-option v-for="t in configTemplates" :key="t.id" :label="tplLabel(t)" :value="t.id" />
+
+            <div class="form-row">
+              <label class="form-label"><span class="req">*</span> 周期类型</label>
+              <el-radio-group v-model="form.cycleType" @change="onCycleChange">
+                <el-radio-button :label="1">每周</el-radio-button>
+                <el-radio-button :label="2">每月</el-radio-button>
+                <el-radio-button :label="3">每季度</el-radio-button>
+                <el-radio-button :label="4">单次下发</el-radio-button>
+              </el-radio-group>
+            </div>
+            <div v-if="form.cycleType === 1" class="form-row">
+              <label class="form-label"><span class="req">*</span> 每周几</label>
+              <el-select v-model="form.cycleDay" placeholder="选择触发日（周几）" style="width:100%">
+                <el-option v-for="d in weekDays" :key="d.value" :label="d.label" :value="d.value" />
               </el-select>
-              <div v-if="pickedTplId" class="tpl-picked-tip"><i class="el-icon-check" /> 已拉取「{{ pickedTplName }}」，可继续微调下方配置</div>
             </div>
-          </div>
+            <div v-else-if="form.cycleType === 2 || form.cycleType === 3" class="form-row">
+              <label class="form-label"><span class="req">*</span> 每月几号</label>
+              <el-select v-model="form.cycleDay" placeholder="选择触发日（几号）" style="width:100%">
+                <el-option v-for="n in 31" :key="n" :label="n + ' 号'" :value="n" />
+              </el-select>
+            </div>
+            <div v-if="form.cycleType === 4" class="cycle-tip">单次下发：不按周期，每次生成期次为一个独立期次，期次名称在生成时填写</div>
+            <div class="form-row">
+              <label class="form-label" :class="{ req: true }">{{ form.cycleType === 4 ? '截止天数' : '截止时间' }}</label>
+              <div class="inline-control">
+                <el-input-number v-model="form.deadlineDays" :min="1" :max="365" />
+                <span class="field-tip">{{ form.cycleType === 4 ? '下发后 N 天截止' : '触发日后 N 天截止' }}</span>
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="form-label">提前催办</label>
+              <div class="inline-control">
+                <el-input-number v-model="form.urgeDays" :min="0" :max="180" />
+                <span class="field-tip">截止前 N 天自动催办（仅写后端日志，不真实通知）</span>
+              </div>
+            </div>
 
-          <div class="form-row">
-            <label class="form-label"><span class="req">*</span> 周期类型</label>
-            <el-radio-group v-model="form.cycleType" @change="onCycleChange">
-              <el-radio-button :label="1">每周</el-radio-button>
-              <el-radio-button :label="2">每月</el-radio-button>
-              <el-radio-button :label="3">每季度</el-radio-button>
-              <el-radio-button :label="4">单次下发</el-radio-button>
-            </el-radio-group>
-          </div>
-          <div v-if="form.cycleType === 1" class="form-row">
-            <label class="form-label"><span class="req">*</span> 每周几</label>
-            <el-select v-model="form.cycleDay" placeholder="选择触发日（周几）" style="width:100%">
-              <el-option v-for="d in weekDays" :key="d.value" :label="d.label" :value="d.value" />
-            </el-select>
-          </div>
-          <div v-else-if="form.cycleType === 2 || form.cycleType === 3" class="form-row">
-            <label class="form-label"><span class="req">*</span> 每月几号</label>
-            <el-select v-model="form.cycleDay" placeholder="选择触发日（几号）" style="width:100%">
-              <el-option v-for="n in 31" :key="n" :label="n + ' 号'" :value="n" />
-            </el-select>
-          </div>
-          <div v-if="form.cycleType === 4" class="cycle-tip">单次下发：不按周期，每次生成期次为一个独立期次，期次名称在生成时填写</div>
-          <div class="form-row">
-            <label class="form-label" :class="{ req: true }">{{ form.cycleType === 4 ? '截止天数' : '截止时间' }}</label>
-            <div class="inline-control">
-              <el-input-number v-model="form.deadlineDays" :min="1" :max="365" />
-              <span class="field-tip">{{ form.cycleType === 4 ? '下发后 N 天截止' : '触发日后 N 天截止' }}</span>
-            </div>
-          </div>
-          <div class="form-row">
-            <label class="form-label">提前催办</label>
-            <div class="inline-control">
-              <el-input-number v-model="form.urgeDays" :min="0" :max="180" />
-              <span class="field-tip">截止前 N 天自动催办（仅写后端日志，不真实通知）</span>
-            </div>
-          </div>
-
-          <!-- 下发效果预览 -->
-          <div v-if="form.cycleType !== 4" class="preview-bar">
-            <div class="pv-item"><span class="pv-label">下期触发</span><b>{{ triggerPreview || '—' }}</b></div>
-            <i class="el-icon-right pv-arrow" />
-            <div class="pv-item"><span class="pv-label">下期截止</span><b>{{ deadlinePreview || '—' }}</b></div>
-            <template v-if="form.urgeDays > 0">
+            <!-- 下发效果预览 -->
+            <div v-if="form.cycleType !== 4" class="preview-bar">
+              <div class="pv-item"><span class="pv-label">下期触发</span><b>{{ triggerPreview || '—' }}</b></div>
               <i class="el-icon-right pv-arrow" />
-              <div class="pv-item"><span class="pv-label">提前{{ form.urgeDays }}天提醒</span><b>{{ urgePreview || '—' }}</b></div>
-            </template>
+              <div class="pv-item"><span class="pv-label">下期截止</span><b>{{ deadlinePreview || '—' }}</b></div>
+              <template v-if="form.urgeDays > 0">
+                <i class="el-icon-right pv-arrow" />
+                <div class="pv-item"><span class="pv-label">提前{{ form.urgeDays }}天提醒</span><b>{{ urgePreview || '—' }}</b></div>
+              </template>
+            </div>
           </div>
         </div>
 
         <!-- 配置人员 -->
         <div class="form-card">
-          <div class="card-title"><i class="el-icon-user" /> 配置人员 <span class="card-sub">每次生成期次时自动为这些人员创建提交任务</span></div>
-          <div class="members-head">
-            <div class="selected-summary">
-              <i class="el-icon-user" />
-              <span>已选 <b>{{ firstHandlers.length }}</b> 个人员</span>
-              <span v-if="firstHandlers.length === 0" class="sum-tip">· 点击「添加人员」选择</span>
-            </div>
-            <button class="btn-add-user" @click="pickerVisible = true"><i class="el-icon-plus" /> 添加人员</button>
+          <div class="card-head" @click="toggleCollapse('member')">
+            <div class="card-title"><i class="el-icon-user" /> 配置人员 <span class="card-sub">每次生成期次时自动为这些人员创建提交任务</span></div>
+            <i class="el-icon-arrow-up card-fold" :class="{ folded: collapsed.member }" />
           </div>
-          <div v-if="firstHandlers.length > 0" class="handler-list">
-            <div v-for="(h, i) in firstHandlers" :key="h.id" class="handler-card">
-              <div class="handler-info">
-                <div class="handler-avatar">{{ h.realName ? h.realName.charAt(0) : 'U' }}</div>
-                <div class="handler-detail">
-                  <div class="handler-name">{{ h.realName }} <span class="handler-emp">{{ h.empNo }}</span></div>
-                  <div class="handler-dept">{{ h.deptName || '—' }}</div>
+          <div v-show="!collapsed.member">
+            <div class="members-head">
+              <div class="selected-summary">
+                <i class="el-icon-user" />
+                <span>已选 <b>{{ firstHandlers.length }}</b> 个人员</span>
+                <span v-if="firstHandlers.length === 0" class="sum-tip">· 点击「添加人员」选择</span>
+              </div>
+              <button class="btn-add-user" @click="pickerVisible = true"><i class="el-icon-plus" /> 添加人员</button>
+            </div>
+            <div v-if="firstHandlers.length > 0" class="handler-list">
+              <div v-for="(h, i) in firstHandlers" :key="h.id" class="handler-card">
+                <div class="handler-info">
+                  <div class="handler-avatar">{{ h.realName ? h.realName.charAt(0) : 'U' }}</div>
+                  <div class="handler-detail">
+                    <div class="handler-name">{{ h.realName }} <span class="handler-emp">{{ h.empNo }}</span></div>
+                    <div class="handler-dept">{{ h.deptName || '—' }}</div>
+                  </div>
+                </div>
+                <div class="handler-actions">
+                  <span class="handler-idx">#{{ i + 1 }}</span>
+                  <button class="action-link text-error" @click="removeHandler(h.id)"><i class="el-icon-close" /> 移除</button>
                 </div>
               </div>
-              <div class="handler-actions">
-                <span class="handler-idx">#{{ i + 1 }}</span>
-                <button class="action-link text-error" @click="removeHandler(h.id)"><i class="el-icon-close" /> 移除</button>
-              </div>
             </div>
-          </div>
-          <div v-else class="empty-handler">
-            <i class="el-icon-user" />
-            <p>尚未配置人员</p>
+            <div v-else class="empty-handler">
+              <i class="el-icon-user" />
+              <p>尚未配置人员</p>
+            </div>
           </div>
         </div>
 
@@ -238,14 +279,17 @@
 import { getTemplateDetail, getTemplateList } from '@/api/template'
 import { saveDispatchPlan, updateDispatchPlan, getTaskMembers, getDispatchTask, getConfigTemplates } from '@/api/flowDispatch'
 import UserPicker from '@/components/UserPicker'
+import AttachField from '@/components/AttachField'
 
 export default {
   name: 'TaskEditPage',
-  components: { UserPicker },
+  components: { UserPicker, AttachField },
   data() {
     return {
       loading: false,
       saving: false,
+      // 四大板块折叠状态（默认全部展开）
+      collapsed: { basic: false, template: false, dispatch: false, member: false },
       templates: [],
       weekDays: [
         { value: 1, label: '周一' },
@@ -265,6 +309,8 @@ export default {
       // 模板流程预览（节点链 + 当前展开节点）
       templateNodes: [],
       expandedNodeIdx: -1,
+      /** 预览节点填写说明是否收起（默认展开） */
+      guideFoldedEdit: false,
       firstHandlers: [],
       pickerVisible: false,
       // 下发配置模板
@@ -306,6 +352,11 @@ export default {
     // 当前展开预览的模板节点
     expandedNode() {
       return this.expandedNodeIdx >= 0 ? this.templateNodes[this.expandedNodeIdx] : null
+    },
+    /** 展开预览的节点是否配置了填写说明（文字或文件） */
+    hasNodeGuide() {
+      const n = this.expandedNode && this.expandedNode.node
+      return !!(n && (n.guideText || n.guideFiles))
     }
   },
   created() {
@@ -314,6 +365,10 @@ export default {
     if (this.isEdit) this.initEdit()
   },
   methods: {
+    /** 折叠/展开板块 */
+    toggleCollapse(key) {
+      this.$set(this.collapsed, key, !this.collapsed[key])
+    },
     async loadConfigTemplates() {
       this.tplLoading = true
       try {
@@ -425,6 +480,7 @@ export default {
     },
     toggleNodePreview(idx) {
       this.expandedNodeIdx = this.expandedNodeIdx === idx ? -1 : idx
+      this.guideFoldedEdit = false
     },
     fieldTypeText(t) {
       return { text: '单行文本', textarea: '多行文本', number: '数字', date: '日期', radio: '单选', checkbox: '多选', file: '文件', image: '图片' }[t] || t || '—'
@@ -604,8 +660,14 @@ $border: #e4beba;
   i { color: $primary; }
 }
 .form-card { background: #fff; border: 1px solid $border; border-radius: 10px; padding: 18px 20px; }
-.card-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: #1b1c1c; margin-bottom: 14px;
+.card-head { display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; margin-bottom: 14px;
+  &:hover .card-fold { color: $primary; }
+}
+.card-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: #1b1c1c;
   i { color: $primary; }
+}
+.card-fold { font-size: 16px; color: #c0c4cc; transition: all .25s;
+  &.folded { transform: rotate(180deg); color: $primary; }
 }
 .card-sub { font-size: 12px; color: #999; font-weight: 400; }
 .form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px;
@@ -652,6 +714,24 @@ $border: #e4beba;
 .nd-tips { font-size: 12px; color: #8a4b46; background: #FFF5F5; border-radius: 4px; padding: 3px 8px; line-height: 1.5; }
 .nd-tip-next { font-size: 12px; color: #b7791f; background: rgba(183,121,31,0.08); border-radius: 4px; padding: 5px 9px; margin-bottom: 8px; line-height: 1.5;
   i { margin-right: 3px; }
+}
+.nd-sub-title { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: #4a4f58; margin-bottom: 4px;
+  i { color: $primary; }
+}
+.nd-guide { margin-bottom: 8px; }
+.nd-guide-text { margin: 0; font-size: 13px; line-height: 1.7; color: #606266; background: #f7f7f9; border-radius: 6px; padding: 8px 12px; white-space: pre-wrap; word-break: break-all; }
+.nd-guide-files { margin-bottom: 8px; }
+// 填写说明折叠面板（节点预览内）
+.guide-fold { margin-bottom: 10px; border: 1px dashed rgba(183,121,31,0.4); border-radius: 8px; background: #FFFBF2; overflow: hidden;
+  .guide-fold-head { display: flex; align-items: center; gap: 6px; padding: 10px 14px; cursor: pointer; user-select: none;
+    &:hover { background: rgba(183,121,31,0.06); }
+  }
+  .guide-fold-flag { color: #b7791f; font-size: 15px; }
+  .guide-fold-title { font-size: 13px; font-weight: 700; color: #7a5c2e; }
+  .guide-fold-preview { flex: 1; min-width: 0; font-size: 12px; color: #b78f5c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 4px; }
+  .guide-fold-arrow { margin-left: auto; color: #b7791f; font-size: 13px; flex-shrink: 0; transition: transform 0.2s; }
+  .guide-fold-body { padding: 0 14px 12px; }
+  .nd-guide-text { background: #fff; border: 1px dashed rgba(183,121,31,0.3); }
 }
 .nd-fields { display: flex; flex-direction: column; gap: 4px; }
 .nd-field-row { display: flex; align-items: baseline; gap: 10px; padding: 6px 10px; background: #f7f7f9; border-radius: 4px; font-size: 13px; }

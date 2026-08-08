@@ -5,6 +5,8 @@ import com.zqk.house.flowtask.entity.FlowTaskLog;
 import com.zqk.house.flowtask.entity.FlowTaskQueryForm;
 import com.zqk.house.flowtask.service.FlowTaskService;
 import com.zqk.house.flowtask.vo.AddHandlersDTO;
+import com.zqk.house.flowtask.vo.MyTodoStatsVO;
+import com.zqk.house.flowtask.vo.MyTodoTaskVO;
 import com.zqk.house.flowtask.vo.MyTodoVO;
 import com.zqk.house.flowtask.vo.NodeSubmitDTO;
 import com.zqk.house.flowtask.vo.TaskDetailVO;
@@ -100,10 +102,33 @@ public class FlowTaskController {
         }
     }
 
+    /** 暂存（保存草稿，不校验必填、不流转；下次打开处理弹窗自动回填） */
+    @PostMapping("/save-draft")
+    public Result<Void> saveDraft(@RequestBody NodeSubmitDTO dto) {
+        try {
+            flowTaskService.saveDraft(dto);
+            return Result.success("暂存成功", null);
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
     /** 我的待办 */
     @PostMapping("/my-todo")
     public Result<PageResult<MyTodoVO>> myTodo(@RequestBody FlowTaskQueryForm form) {
         return Result.success("获取成功", flowTaskService.myTodo(form.getPage(), form.getLimit()));
+    }
+
+    /** 我的任务（任务→期次 两级展示）：任务级分页，任务下按期次分组待办节点 */
+    @PostMapping("/my-todo-grouped")
+    public Result<PageResult<MyTodoTaskVO>> myTodoGrouped(@RequestBody FlowTaskQueryForm form) {
+        return Result.success("获取成功", flowTaskService.myTodoGrouped(form.getPage(), form.getLimit(), form.getTaskName(), form.getStatus()));
+    }
+
+    /** 我的任务统计（统计卡） */
+    @GetMapping("/my-todo-stats")
+    public Result<MyTodoStatsVO> myTodoStats() {
+        return Result.success("获取成功", flowTaskService.myTodoStats());
     }
 
     /** 任务流转进度 */

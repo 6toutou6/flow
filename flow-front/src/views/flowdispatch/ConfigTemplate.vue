@@ -15,6 +15,31 @@
           <button class="btn-create" @click="openCreate"><i class="el-icon-plus" /> 新增模板</button>
         </div>
 
+        <!-- 统计卡 -->
+        <section class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon icon-total"><i class="el-icon-setting" /></div>
+            <div class="stat-body">
+              <div class="stat-label">配置模板总数</div>
+              <div class="stat-value">{{ stats.total || 0 }}</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-sample"><i class="el-icon-star-on" /></div>
+            <div class="stat-body">
+              <div class="stat-label">样例模板</div>
+              <div class="stat-value">{{ stats.sampleCount || 0 }}</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-mine"><i class="el-icon-user" /></div>
+            <div class="stat-body">
+              <div class="stat-label">我创建的</div>
+              <div class="stat-value">{{ stats.mineCount || 0 }}</div>
+            </div>
+          </div>
+        </section>
+
         <!-- 提示条 -->
         <section class="tip-bar">
           <i class="el-icon-info" />
@@ -77,7 +102,7 @@
                 <td>{{ t.updateTime || '—' }}</td>
                 <td class="text-right">
                   <template v-if="isSuperAdmin">
-                    <button class="action-link" @click="toggleSample(t)"><i class="el-icon-star-off" /> {{ t.isSample === 1 ? '取消样例' : '设为样例' }}</button>
+                    <button class="action-link" @click="toggleSample(t)"><i :class="t.isSample === 1 ? 'el-icon-star-on star-on' : 'el-icon-star-off'" /> {{ t.isSample === 1 ? '取消样例' : '设为样例' }}</button>
                   </template>
                   <button class="action-link" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例配置模板仅超管可修改' : ''" @click="openEdit(t)"><i class="el-icon-edit" /> 编辑</button>
                   <button class="action-link text-error" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例配置模板仅超管可删除' : ''" @click="onDelete(t)"><i class="el-icon-delete" /> 删除</button>
@@ -92,7 +117,7 @@
 </template>
 
 <script>
-import { getConfigTemplates, deleteConfigTemplate, toggleConfigTemplateSample } from '@/api/flowDispatch'
+import { getConfigTemplates, getConfigTemplateStats, deleteConfigTemplate, toggleConfigTemplateSample } from '@/api/flowDispatch'
 
 export default {
   name: 'FlowDispatchConfigTemplate',
@@ -100,7 +125,9 @@ export default {
     return {
       loading: false,
       keyword: '',
-      list: []
+      list: [],
+      // 统计卡
+      stats: {}
     }
   },
   computed: {
@@ -110,8 +137,17 @@ export default {
   },
   created() {
     this.fetchList()
+    this.fetchStats()
   },
   methods: {
+    async fetchStats() {
+      try {
+        const res = await getConfigTemplateStats()
+        this.stats = res.data || {}
+      } catch (e) {
+        console.error(e)
+      }
+    },
     /** 样例锁定：非超管用户对样例配置模板不可改/删 */
     isSampleLocked(t) {
       return !this.isSuperAdmin && t.isSample === 1
@@ -193,6 +229,20 @@ $border: #e4beba;
 .btn-create { display: flex; align-items: center; gap: 5px; padding: 10px 22px; background: $primary; color: #fff; border: none; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; box-shadow: 0 2px 8px rgba(197,48,48,0.25); transition: all .2s;
   &:hover { opacity: 0.9; transform: translateY(-1px); }
 }
+
+// 统计卡
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  @media (max-width: 900px) { grid-template-columns: 1fr; }
+}
+.stat-card { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid $border; border-radius: 10px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.stat-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; flex-shrink: 0;
+  &.icon-total { background: $primary; }
+  &.icon-sample { background: #b7791f; }
+  &.icon-mine { background: #727786; }
+}
+.stat-body { flex: 1; }
+.stat-label { font-size: 13px; color: #757575; margin-bottom: 4px; }
+.stat-value { font-size: 28px; font-weight: 700; color: #1b1c1c; line-height: 1.1; }
 .tip-bar { display: flex; align-items: center; gap: 8px; background: #FFF5F5; border: 1px solid $border; color: #8a4b46; font-size: 13px; border-radius: 10px; padding: 10px 14px;
   i { color: $primary; }
 }
@@ -232,4 +282,5 @@ $border: #e4beba;
   &:hover { background: rgba(197,48,48,0.08); text-decoration: none; }
 }
 .text-error { color: #ba1a1a; }
+.star-on { color: #E6A23C; }
 </style>
