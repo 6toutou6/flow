@@ -166,13 +166,13 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(51, 65, 85, 0.1);
+  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.1);
 }
 
 .modal-title {
   font-size: 18px;
   font-weight: bold;
-  color: #334155;
+  color: var(--color-primary);
   margin: 0;
 }
 
@@ -185,7 +185,7 @@ export default {
   transition: color 0.2s;
 
   &:hover {
-    color: #334155;
+    color: var(--color-primary);
   }
 }
 
@@ -214,7 +214,7 @@ export default {
 
 .modal-footer {
   padding: 14px 20px;
-  border-top: 1px solid rgba(51, 65, 85, 0.1);
+  border-top: 1px solid rgba(var(--color-primary-rgb), 0.1);
   display: flex;
   justify-content: flex-end;
 }
@@ -224,22 +224,22 @@ export default {
   border: 1px solid #CBD5E1;
   border-radius: 4px;
   font-size: 14px;
-  color: #334155;
+  color: var(--color-primary);
   background: white;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: #F1F5F9;
-    border-color: #334155;
-    color: #334155;
+    background: var(--color-primary-light);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
   }
 }
 
 /* 基本信息卡片 */
 .info-card {
-  background: #F8FAFC;
-  border: 1px solid rgba(51, 65, 85, 0.1);
+  background: var(--color-primary-surface);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.1);
   border-radius: 3px;
   padding: 16px;
 }
@@ -249,7 +249,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding-bottom: 14px;
-  border-bottom: 1px solid rgba(51, 65, 85, 0.08);
+  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.08);
   margin-bottom: 14px;
 }
 
@@ -263,7 +263,7 @@ export default {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #334155, #c71530);
+  background: linear-gradient(135deg, var(--color-primary), #c71530);
   color: white;
   display: flex;
   align-items: center;
@@ -293,8 +293,8 @@ export default {
 
 .round-badge-lg {
   padding: 6px 12px;
-  background: rgba(51, 65, 85, 0.1);
-  color: #334155;
+  background: rgba(var(--color-primary-rgb), 0.1);
+  color: var(--color-primary);
   border-radius: 4px;
   font-size: 13px;
   font-weight: bold;
@@ -324,7 +324,7 @@ export default {
 
 /* 区块卡片 */
 .section-card {
-  border: 1px solid rgba(51, 65, 85, 0.1);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.1);
   border-radius: 3px;
   padding: 16px;
 }
@@ -332,10 +332,10 @@ export default {
 .section-title {
   font-size: 14px;
   font-weight: bold;
-  color: #334155;
+  color: var(--color-primary);
   margin: 0 0 12px 0;
   padding-left: 8px;
-  border-left: 3px solid #334155;
+  border-left: 3px solid var(--color-primary);
 }
 
 .remark-text {
@@ -357,14 +357,14 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px;
-  background: #F8FAFC;
+  background: var(--color-primary-surface);
   border-radius: 2px;
   text-decoration: none;
-  color: #334155;
+  color: var(--color-primary);
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(51, 65, 85, 0.05);
+    background: rgba(var(--color-primary-rgb), 0.05);
   }
 
   i {
@@ -387,8 +387,8 @@ export default {
 
 /* 流程卡片 */
 .flow-card {
-  background: #F8FAFC;
-  border: 1px solid rgba(51, 65, 85, 0.1);
+  background: var(--color-primary-surface);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.1);
   border-radius: 3px;
   padding: 16px;
   flex: 1;
@@ -399,10 +399,10 @@ export default {
 .flow-title {
   font-size: 14px;
   font-weight: bold;
-  color: #334155;
+  color: var(--color-primary);
   margin: 0 0 16px 0;
   padding-left: 8px;
-  border-left: 3px solid #334155;
+  border-left: 3px solid var(--color-primary);
 }
 
 .flow-empty {
@@ -449,12 +449,12 @@ export default {
   flex-shrink: 0;
 
   &.step-completed {
-    background: #334155;
+    background: var(--color-primary);
     color: white;
   }
 
   &.step-pending {
-    background: #F1F5F9;
+    background: var(--color-primary-light);
     color: #94A3B8;
     border: 1px solid #CBD5E1;
   }

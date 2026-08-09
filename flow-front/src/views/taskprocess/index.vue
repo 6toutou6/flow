@@ -339,9 +339,9 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #334155;
+$primary: var(--color-primary);
 $border: #CBD5E1;
-.dashboard-container { display: flex; min-height: 100vh; background: #F8FAFC;  color: #1b1c1c; }
+.dashboard-container { display: flex; min-height: 100vh; background: var(--color-primary-surface);  color: #1b1c1c; }
 .main-content { width: 100%; display: flex; flex-direction: column; min-height: 100vh; }
 .page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; }
@@ -373,21 +373,21 @@ $border: #CBD5E1;
 .filter-item { display: flex; flex-direction: column; gap: 4px; }
 .filter-label { font-size: 13px; color: #757575; }
 .filter-select, .filter-input { height: 36px; border: 1px solid $border; border-radius: 2px; padding: 0 10px; font-size: 13px; outline: none; background: #fff; transition: all .2s;
-  &:focus { border-color: $primary; box-shadow: 0 0 0 2px rgba(51,65,85,0.12); }
+  &:focus { border-color: $primary; box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb),0.12); }
 }
-.filter-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(51,65,85,0.08); }
+.filter-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(var(--color-primary-rgb),0.08); }
 .filter-actions-right { display: flex; gap: 8px; }
-.btn-reset { padding: 0 16px; height: 36px; border: 1px solid $border; border-radius: 2px; font-size: 13px; color: #334155; background: #fff; cursor: pointer;
-  &:hover { background: #F1F5F9; }
+.btn-reset { padding: 0 16px; height: 36px; border: 1px solid $border; border-radius: 2px; font-size: 13px; color: var(--color-primary); background: #fff; cursor: pointer;
+  &:hover { background: var(--color-primary-light); }
 }
 .btn-search { padding: 0 16px; height: 36px; border: none; border-radius: 2px; font-size: 13px; font-weight: bold; color: #fff; background: $primary; cursor: pointer; display: flex; align-items: center; gap: 4px;
   &:hover { opacity: 0.9; }
 }
-.btn-refresh { display: flex; align-items: center; gap: 5px; padding: 10px 16px; background: #fff; border: 1px solid $border; border-radius: 3px; color: #334155; font-weight: 600; font-size: 13px; cursor: pointer; transition: all .2s;
+.btn-refresh { display: flex; align-items: center; gap: 5px; padding: 10px 16px; background: #fff; border: 1px solid $border; border-radius: 3px; color: var(--color-primary); font-weight: 600; font-size: 13px; cursor: pointer; transition: all .2s;
   i { color: $primary; }
-  &:hover { border-color: $primary; color: $primary; background: #F8FAFC; }
+  &:hover { border-color: $primary; color: $primary; background: var(--color-primary-surface); }
 }
-.tip-bar { display: flex; align-items: center; gap: 8px; background: #F1F5F9; border: 1px solid $border; color: #475569; font-size: 13px; border-radius: 3px; padding: 10px 14px;
+.tip-bar { display: flex; align-items: center; gap: 8px; background: var(--color-primary-light); border: 1px solid $border; color: var(--color-primary-hover); font-size: 13px; border-radius: 3px; padding: 10px 14px;
   i { color: $primary; }
 }
 .empty-state { text-align: center; padding: 60px 20px; color: #bbb; background: #fff; border: 1px solid $border; border-radius: 3px;
@@ -400,17 +400,17 @@ $border: #CBD5E1;
 // 折叠面板（卡片式，同任务管理）
 .task-panel { background: #fff; border: 1px solid $border; border-radius: 3px; margin-bottom: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
 .tp-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; transition: background .2s;
-  &:hover { background: #F8FAFC; }
+  &:hover { background: var(--color-primary-surface); }
 }
 .tp-arrow { color: #94A3B8; font-size: 14px; flex-shrink: 0; transition: transform .25s; cursor: pointer; }
 .task-panel:hover .tp-arrow { color: $primary; }
 .task-panel.is-open .tp-arrow { transform: rotate(180deg); }
 .tp-body { border-top: 1px solid $border; }
-.ct-icon { width: 40px; height: 40px; border-radius: 3px; background: #F1F5F9; color: $primary; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.ct-icon { width: 40px; height: 40px; border-radius: 3px; background: var(--color-primary-light); color: $primary; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
 .ct-main { flex: 1; min-width: 0; }
 .ct-name-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .ct-name { font-size: 15px; font-weight: 700; color: #1b1c1c; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pending-tag { padding: 2px 10px; background: rgba(51,65,85,0.1); color: $primary; border-radius: 3px; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.pending-tag { padding: 2px 10px; background: rgba(var(--color-primary-rgb),0.1); color: $primary; border-radius: 3px; font-size: 12px; font-weight: 600; flex-shrink: 0; }
 .ct-sub { font-size: 12px; color: #909399; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .task-detail { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
@@ -420,7 +420,7 @@ $border: #CBD5E1;
   i { color: $primary; }
 }
 .sec-sub { font-size: 12px; color: #999; font-weight: 400; }
-.period-no { font-size: 11px; color: $primary; background: rgba(51,65,85,0.1); border-radius: 3px; padding: 1px 8px; font-weight: 600; margin-left: 6px; }
+.period-no { font-size: 11px; color: $primary; background: rgba(var(--color-primary-rgb),0.1); border-radius: 3px; padding: 1px 8px; font-weight: 600; margin-left: 6px; }
 .period-empty { text-align: center; padding: 24px; color: #bbb; font-size: 13px;
   i { margin-right: 4px; }
 }
@@ -428,17 +428,17 @@ $border: #CBD5E1;
 .text-muted { color: #bbb; }
 .text-center { text-align: center; }
 .period-table { width: 100%; text-align: left; border-collapse: collapse;
-  th { padding: 10px 12px; font-weight: 700; color: #414755; background: #F1F5F9; border-bottom: 1px solid $border; font-size: 13px; }
+  th { padding: 10px 12px; font-weight: 700; color: #414755; background: var(--color-primary-light); border-bottom: 1px solid $border; font-size: 13px; }
   td { padding: 10px 12px; border-bottom: 1px solid $border; font-size: 13px; }
   tbody tr:last-child td { border-bottom: none; }
-  .hover-row:hover { background: #F1F5F9; }
+  .hover-row:hover { background: var(--color-primary-light); }
 }
 .text-center { text-align: center; }
 .text-right { text-align: right; }
 .node-badge { padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: 600; margin-right: 4px; }
 .badge-start { background: rgba(21, 128, 61,0.1); color: #15803D; }
 .badge-mid { background: #f0f3ff; color: #545f72; }
-.badge-end { background: rgba(51,65,85,0.1); color: $primary; }
+.badge-end { background: rgba(var(--color-primary-rgb),0.1); color: $primary; }
 .btn-process { display: flex; align-items: center; gap: 4px; padding: 6px 14px; background: $primary; color: #fff; border: none; border-radius: 2px; cursor: pointer; font-size: 13px; font-weight: 600;
   &:hover { opacity: 0.9; }
 }
@@ -446,7 +446,7 @@ $border: #CBD5E1;
   &:hover { background: #f0f3ff; border-color: #b7c3d8; }
 }
 .status-badge { display: inline-block; padding: 2px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;
-  &.st-todo { background: rgba(51,65,85,0.1); color: $primary; }
+  &.st-todo { background: rgba(var(--color-primary-rgb),0.1); color: $primary; }
   &.st-done { background: rgba(21, 128, 61,0.1); color: #15803D; }
 }
 
@@ -457,7 +457,7 @@ $border: #CBD5E1;
 }
 .node-chip { flex-shrink: 0; padding: 2px 9px; border-radius: 4px; font-size: 11px; font-weight: 600; line-height: 1.6; white-space: nowrap;
   &.chip-done { background: #15803D; color: #fff; }
-  &.chip-current { background: rgba(51,65,85,0.14); color: $primary; border: 1px solid rgba(51,65,85,0.4); }
+  &.chip-current { background: rgba(var(--color-primary-rgb),0.14); color: $primary; border: 1px solid rgba(var(--color-primary-rgb),0.4); }
   &.chip-pending { background: #f0f0f0; color: #aaa; }
 }
 // 已超期标识（软性标记：仍可提交，仅提示）

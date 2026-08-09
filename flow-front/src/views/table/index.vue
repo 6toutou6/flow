@@ -450,7 +450,7 @@ export default {
 // -- Page Header --
 .page-header  { @include page-header; }
 .breadcrumb   { @include breadcrumb; }
-.page-heading { font-size: $font-size-2xl; font-weight: 600; color: $color-primary; margin: 0; }
+.page-heading { font-size: $font-size-2xl; font-weight: 600; color: var(--color-primary); margin: 0; }
 
 // -- Stats Grid --
 .stats-section { margin-bottom: $space-4; }
@@ -460,9 +460,9 @@ export default {
 .stat-content  { @include stat-content; }
 .stat-value    { @include stat-value; }
 .stat-label    { @include stat-label; }
-.stat-total   .stat-icon { background: linear-gradient(135deg, #334155, #334155); }
+.stat-total   .stat-icon { background: linear-gradient(135deg, var(--color-primary), var(--color-primary)); }
 .stat-pending .stat-icon { background: linear-gradient(135deg, #616161, #9e9e9e); }
-.stat-progress.stat-icon { background: linear-gradient(135deg, #475569, #334155); }
+.stat-progress.stat-icon { background: linear-gradient(135deg, var(--color-primary-hover), var(--color-primary)); }
 .stat-closed  .stat-icon { background: linear-gradient(135deg, #15803D, #22c55e); }
 
 // -- Filter --
@@ -482,8 +482,8 @@ export default {
 
 // -- Status Tags --
 .status-chip    { @include status-chip; display: inline-flex; margin: 0 4px; }
-.status-pending { @include chip-pending;   border: 1px solid $color-primary; }
-.status-active  { @include chip-active;    border: 1px solid $color-success; }
+.status-pending { @include chip-pending;   border: 1px solid var(--color-primary); }
+.status-active  { @include chip-active;    border: 1px solid var(--color-success); }
 .status-closed  { @include chip-closed;    border: 1px solid $text-tertiary; }
 
 // -- Pagination --

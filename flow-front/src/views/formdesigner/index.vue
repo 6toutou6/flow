@@ -199,7 +199,7 @@
             </div>
             <div class="prop-group prop-row">
               <label class="prop-label">是否必填</label>
-              <el-switch v-model="selectedField.required" :active-value="1" :inactive-value="0" active-color="#334155" />
+              <el-switch v-model="selectedField.required" :active-value="1" :inactive-value="0" active-color="var(--color-primary)" />
             </div>
 
             <!-- 任务基础字段：填写方式（创建人填写 / 处理人填写） -->
@@ -707,24 +707,24 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #334155;
+$primary: var(--color-primary);
 $border: #CBD5E1;
-.designer-container { display: flex; flex-direction: column; height: calc(100vh - 64px); background: #F8FAFC;  overflow: hidden; }
+.designer-container { display: flex; flex-direction: column; height: calc(100vh - 64px); background: var(--color-primary-surface);  overflow: hidden; }
 
 // 顶部
 .designer-header { display: flex; justify-content: space-between; align-items: center; padding: 0 24px; height: 60px; background: #fff; border-bottom: 1px solid $border; flex-shrink: 0; }
 .header-left { display: flex; align-items: center; gap: 16px; }
-.back-btn { display: flex; align-items: center; gap: 4px; padding: 6px 12px; background: transparent; border: 1px solid $border; border-radius: 2px; color: #334155; cursor: pointer; font-size: 13px;
-  &:hover { background: #F1F5F9; }
+.back-btn { display: flex; align-items: center; gap: 4px; padding: 6px 12px; background: transparent; border: 1px solid $border; border-radius: 2px; color: var(--color-primary); cursor: pointer; font-size: 13px;
+  &:hover { background: var(--color-primary-light); }
 }
 .tpl-info { display: flex; align-items: center; gap: 8px; }
 .tpl-name { font-size: 16px; font-weight: 600; color: #1b1c1c; }
-.tpl-cat { padding: 2px 8px; background: rgba(51,65,85,0.1); color: $primary; border-radius: 4px; font-size: 12px; }
+.tpl-cat { padding: 2px 8px; background: rgba(var(--color-primary-rgb),0.1); color: $primary; border-radius: 4px; font-size: 12px; }
 .header-right { display: flex; align-items: center; gap: 16px; }
 .field-count { font-size: 13px; color: #757575; }
 .tfe-count { color: $primary; margin-left: 4px; }
-.btn-versions { display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: transparent; border: 1px solid $border; border-radius: 2px; color: #334155; font-size: 13px; cursor: pointer;
-  &:hover { border-color: $primary; color: $primary; background: #F1F5F9; }
+.btn-versions { display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: transparent; border: 1px solid $border; border-radius: 2px; color: var(--color-primary); font-size: 13px; cursor: pointer;
+  &:hover { border-color: $primary; color: $primary; background: var(--color-primary-light); }
 }
 .btn-save { display: flex; align-items: center; gap: 4px; padding: 8px 20px; background: $primary; color: #fff; border: none; border-radius: 2px; font-weight: 600; font-size: 13px; cursor: pointer;
   &:hover { opacity: 0.9; } &:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -736,7 +736,7 @@ $border: #CBD5E1;
   // hover 仅轻微提示，避免与选中态混淆
   &:hover { background: #f7f8fa; border-color: #cbd5e0; }
   // 选中态才显示红色系
-  &.active { border-color: $primary; background: #F1F5F9; box-shadow: 0 0 0 1px $primary;
+  &.active { border-color: $primary; background: var(--color-primary-light); box-shadow: 0 0 0 1px $primary;
     i { color: $primary; }
   }
 }
@@ -744,10 +744,10 @@ $border: #CBD5E1;
 .tfe-entry-title { font-size: 13px; font-weight: 700; color: #1b1c1c; }
 .tfe-entry-desc { font-size: 11px; color: #999; }
 .tfe-tip { font-size: 12px; color: #999; line-height: 1.7; padding: 8px 0; }
-.badge-tpl { background: rgba(51,65,85,0.1); color: $primary; }
+.badge-tpl { background: rgba(var(--color-primary-rgb),0.1); color: $primary; }
 .field-role-select { display: flex; gap: 8px; }
 .role-btn { flex: 1; padding: 6px 0; border: 1px solid #ddd; border-radius: 2px; background: #fff; color: #555; font-size: 13px; cursor: pointer;
-  &.active { border-color: $primary; color: $primary; background: rgba(51,65,85,0.06); font-weight: 600; }
+  &.active { border-color: $primary; color: $primary; background: rgba(var(--color-primary-rgb),0.06); font-weight: 600; }
 }
 .role-tip { font-size: 11px; color: #999; margin-top: 5px; }
 
@@ -762,7 +762,7 @@ $border: #CBD5E1;
 .node-item { padding: 12px; border: 1px solid #e4e7ed; border-radius: 3px; margin-bottom: 0; cursor: pointer; transition: all 0.2s; position: relative;
   // hover 仅轻微提示，避免与选中态混淆
   &:hover { background: #f7f8fa; }
-  &.active { border-color: $primary; background: #F1F5F9; box-shadow: 0 0 0 1px $primary; }
+  &.active { border-color: $primary; background: var(--color-primary-light); box-shadow: 0 0 0 1px $primary; }
 }
 .node-item-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
 .node-idx { width: 20px; height: 20px; border-radius: 50%; background: $primary; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -770,7 +770,7 @@ $border: #CBD5E1;
 .node-type-badge { padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
 .badge-start { background: rgba(21, 128, 61,0.1); color: #15803D; }
 .badge-mid { background: #f0f3ff; color: #545f72; }
-.badge-end { background: rgba(51,65,85,0.1); color: $primary; }
+.badge-end { background: rgba(var(--color-primary-rgb),0.1); color: $primary; }
 .node-item-meta { display: flex; gap: 10px; font-size: 12px; color: #999; flex-wrap: wrap;
   i { margin-right: 2px; }
 }
@@ -783,7 +783,7 @@ $border: #CBD5E1;
   .empty-tip { font-size: 12px; color: #bbb; }
 }
 .btn-add-node { margin-top: 12px; padding: 10px; border: 1px dashed #cbd5e0; background: transparent; border-radius: 2px; cursor: pointer; color: $primary; font-size: 13px; font-weight: 600; flex-shrink: 0;
-  &:hover { border-color: $primary; background: #F1F5F9; }
+  &:hover { border-color: $primary; background: var(--color-primary-light); }
 }
 
 // 中栏
@@ -798,13 +798,13 @@ $border: #CBD5E1;
 .field-cards { display: flex; flex-wrap: wrap; gap: 8px; }
 .field-card { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border: 1px dashed #cbd5e0; border-radius: 2px; cursor: pointer; font-size: 12px; color: #414755; transition: all 0.2s;
   i { color: $primary; font-size: 14px; }
-  &:hover { border-color: $primary; background: #F1F5F9; color: $primary; }
+  &:hover { border-color: $primary; background: var(--color-primary-light); color: $primary; }
 }
 
 .canvas-list { flex: 1; overflow-y: auto; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 16px; }
 .field-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid #e4e7ed; border-radius: 2px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
   &:hover { border-color: $primary; }
-  &.active { border-color: $primary; background: #F1F5F9; box-shadow: 0 0 0 1px $primary; }
+  &.active { border-color: $primary; background: var(--color-primary-light); box-shadow: 0 0 0 1px $primary; }
 }
 .field-item-main { flex: 1; }
 .field-item-label { font-size: 14px; font-weight: 600; color: #1b1c1c; display: flex; align-items: center; gap: 6px; }
@@ -839,8 +839,8 @@ $border: #CBD5E1;
   &:hover { color: $primary; }
 }
 .collapse-arrow { margin-left: auto; color: #94A3B8; font-size: 16px; transition: transform 0.25s ease; cursor: pointer;
-  &.open { transform: rotate(180deg); color: #334155; }
-  &:hover { color: #334155; }
+  &.open { transform: rotate(180deg); color: var(--color-primary); }
+  &:hover { color: var(--color-primary); }
 }
 .panel-empty { text-align: center; padding: 30px 0; color: #ccc;
   p { font-size: 13px; color: #999; margin-top: 8px; }
@@ -849,11 +849,11 @@ $border: #CBD5E1;
 .prop-group { display: flex; flex-direction: column; gap: 5px; }
 .prop-label { font-size: 13px; color: #4a4f58; font-weight: 600; }
 .prop-input { height: 36px; border: 1px solid #dcdfe6; border-radius: 2px; padding: 0 10px; font-size: 13px; outline: none; transition: all 0.2s; background: #fff;
-  &:focus { border-color: $primary; box-shadow: 0 0 0 2px rgba(51,65,85,0.12); }
+  &:focus { border-color: $primary; box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb),0.12); }
   &:hover { border-color: #c0c4cc; }
 }
 .prop-textarea { width: 100%; border: 1px solid #dcdfe6; border-radius: 2px; padding: 8px 10px; font-size: 13px; font-family: inherit; line-height: 1.6; resize: vertical; outline: none; box-sizing: border-box; transition: all 0.2s; background: #fff;
-  &:focus { border-color: $primary; box-shadow: 0 0 0 2px rgba(51,65,85,0.12); }
+  &:focus { border-color: $primary; box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb),0.12); }
   &:hover { border-color: #c0c4cc; }
 }
 .node-type-line { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
@@ -867,7 +867,7 @@ $border: #CBD5E1;
   &:hover { border-color: #DC2626; }
 }
 .gf-add { padding: 6px; border: 1px dashed #cbd5e0; background: transparent; border-radius: 4px; cursor: pointer; color: $primary; font-size: 12px; text-align: center;
-  &:hover { border-color: $primary; background: #F1F5F9; }
+  &:hover { border-color: $primary; background: var(--color-primary-light); }
 }
 .prop-row { flex-direction: row; align-items: center; justify-content: space-between; }
 .prop-hint { font-size: 12px; color: $primary; margin: 0; }
@@ -878,6 +878,6 @@ $border: #CBD5E1;
 }
 .enum-del { width: 28px; height: 28px; border: 1px solid #dcdfe6; background: #fff; border-radius: 4px; cursor: pointer; color: #DC2626; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .enum-add { width: 100%; padding: 6px; border: 1px dashed #cbd5e0; background: transparent; border-radius: 4px; cursor: pointer; color: $primary; font-size: 12px;
-  &:hover { border-color: $primary; background: #F1F5F9; }
+  &:hover { border-color: $primary; background: var(--color-primary-light); }
 }
 </style>

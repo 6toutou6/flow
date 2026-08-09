@@ -52,13 +52,6 @@
 }
 
 // ============================================================
-// 主题色变量
-// ============================================================
-$--color-primary: #334155;
-$--color-primary-hover: #475569;
-$--color-primary-light: rgba(51, 65, 85, 0.08);
-
-// ============================================================
 // 按钮 — 精致圆角 + 微妙阴影
 // ============================================================
 .el-button {
@@ -73,40 +66,40 @@ $--color-primary-light: rgba(51, 65, 85, 0.08);
 }
 
 .el-button--primary {
-  background-color: $--color-primary;
-  border-color: $--color-primary;
-  box-shadow: 0 2px 4px rgba(51, 65, 85, 0.18);
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 4px rgba(var(--color-primary-rgb), 0.18);
 
   &:hover, &:focus {
-    background-color: $--color-primary-hover;
-    border-color: $--color-primary-hover;
-    box-shadow: 0 4px 8px rgba(51, 65, 85, 0.25);
+    background-color: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+    box-shadow: 0 4px 8px rgba(var(--color-primary-rgb), 0.25);
   }
 
   &:active {
-    background-color: #1E293B;
-    border-color: #1E293B;
+    background-color: var(--color-primary-deep);
+    border-color: var(--color-primary-deep);
     box-shadow: none;
   }
 
   &.is-disabled, &.is-disabled:hover, &.is-disabled:focus {
-    background-color: rgba(51, 65, 85, 0.45);
-    border-color: rgba(51, 65, 85, 0.45);
+    background-color: rgba(var(--color-primary-rgb), 0.45);
+    border-color: rgba(var(--color-primary-rgb), 0.45);
     color: #fff;
     box-shadow: none;
   }
 
   &.is-plain {
-    color: $--color-primary;
-    background-color: rgba(51, 65, 85, 0.06);
-    border-color: rgba(51, 65, 85, 0.3);
+    color: var(--color-primary);
+    background-color: rgba(var(--color-primary-rgb), 0.06);
+    border-color: rgba(var(--color-primary-rgb), 0.3);
     box-shadow: none;
 
     &:hover, &:focus {
       color: #fff;
-      background-color: $--color-primary;
-      border-color: $--color-primary;
-      box-shadow: 0 2px 4px rgba(51, 65, 85, 0.18);
+      background-color: var(--color-primary);
+      border-color: var(--color-primary);
+      box-shadow: 0 2px 4px rgba(var(--color-primary-rgb), 0.18);
     }
   }
 }
@@ -115,15 +108,15 @@ $--color-primary-light: rgba(51, 65, 85, 0.08);
   border-color: #CBD5E1;
 
   &:hover, &:focus {
-    color: $--color-primary;
-    border-color: rgba(51, 65, 85, 0.35);
-    background-color: rgba(51, 65, 85, 0.04);
+    color: var(--color-primary);
+    border-color: rgba(var(--color-primary-rgb), 0.35);
+    background-color: rgba(var(--color-primary-rgb), 0.04);
   }
 }
 
 .el-button--text {
   &:hover, &:focus {
-    color: $--color-primary-hover;
+    color: var(--color-primary-hover);
   }
 }
 
@@ -132,64 +125,64 @@ $--color-primary-light: rgba(51, 65, 85, 0.08);
 // ============================================================
 .el-radio__input.is-checked .el-radio__inner,
 .el-checkbox__input.is-checked .el-checkbox__inner {
-  background-color: $--color-primary;
-  border-color: $--color-primary;
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .el-radio__input.is-checked + .el-radio__label,
 .el-checkbox__input.is-checked + .el-checkbox__label {
-  color: $--color-primary;
+  color: var(--color-primary);
 }
 
 .el-radio__inner:hover,
 .el-checkbox__inner:hover {
-  border-color: $--color-primary;
+  border-color: var(--color-primary);
 }
 
 // 单选按钮组
 .el-radio-button__orig-radio:checked + .el-radio-button__inner {
-  background-color: $--color-primary;
-  border-color: $--color-primary;
-  box-shadow: -1px 0 0 0 $--color-primary;
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: -1px 0 0 0 var(--color-primary);
 }
 
 // ============================================================
 // 开关
 // ============================================================
 .el-switch.is-checked .el-switch__core {
-  border-color: $--color-primary;
-  background-color: $--color-primary;
+  border-color: var(--color-primary);
+  background-color: var(--color-primary);
 }
 
 // ============================================================
 // 日期/选择器选中态
 // ============================================================
 .el-date-table td.current:not(.disabled) span {
-  background-color: $--color-primary;
+  background-color: var(--color-primary);
   color: #fff;
 }
 
 .el-date-table td.today span {
-  color: $--color-primary;
+  color: var(--color-primary);
   font-weight: 700;
 }
 
 .el-date-table td.available:hover {
-  color: $--color-primary;
+  color: var(--color-primary);
 }
 
 .el-month-table td.current:not(.disabled) .cell,
 .el-year-table td.current:not(.disabled) .cell {
-  color: $--color-primary;
+  color: var(--color-primary);
 }
 
 // 时间选择器
 .el-time-panel__btn.confirm {
-  color: $--color-primary;
+  color: var(--color-primary);
 }
 
 .el-time-spinner__item.active:not(.disabled) {
-  color: $--color-primary;
+  color: var(--color-primary);
   font-weight: 700;
 }
 
@@ -197,11 +190,11 @@ $--color-primary-light: rgba(51, 65, 85, 0.08);
 // 滑块
 // ============================================================
 .el-slider__bar {
-  background-color: $--color-primary;
+  background-color: var(--color-primary);
 }
 
 .el-slider__button {
-  border-color: $--color-primary;
+  border-color: var(--color-primary);
 }
 
 // ============================================================
@@ -216,22 +209,22 @@ $--color-primary-light: rgba(51, 65, 85, 0.08);
 // ============================================================
 .el-cascader-node.is-active,
 .el-cascader-node.is-selectable.in-checked-path {
-  color: $--color-primary;
+  color: var(--color-primary);
 }
 
 // ============================================================
 // 颜色选择器
 // ============================================================
 .el-color-predefine__color-selector.selected {
-  box-shadow: 0 0 3px 2px $--color-primary;
+  box-shadow: 0 0 3px 2px var(--color-primary);
 }
 
 // ============================================================
 // 链接
 // ============================================================
 .el-link.el-link--primary {
-  color: $--color-primary;
-  &:hover { color: $--color-primary-hover; }
+  color: var(--color-primary);
+  &:hover { color: var(--color-primary-hover); }
 }
 
 // ============================================================

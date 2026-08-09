@@ -130,3 +130,64 @@ $surfaceDim:         $neutral-200;
   outlineVariant: $outlineVariant;
   surfaceDim: $surfaceDim;
 }
+
+// ============================================================
+// CSS 变量主题体系（运行时切换：默认石板蓝 / data-theme=red 红色）
+// 全局样式与各页面统一通过 var(--xxx) 引用，切换 html 的 data-theme 即全局换肤
+// ============================================================
+:root {
+  --color-primary: #334155;
+  --color-primary-deep: #1E293B;
+  --color-primary-hover: #475569;
+  --color-primary-light: #F1F5F9;
+  --color-primary-surface: #F8FAFC;
+  --color-primary-rgb: 51, 65, 85;
+  --color-primary-gradient: linear-gradient(135deg, #1E293B 0%, #334155 100%);
+
+  --color-danger: #B91C1C;
+  --color-danger-hover: #991B1B;
+  --color-danger-rgb: 185, 28, 28;
+  --color-success: #15803D;
+  --color-success-hover: #136B34;
+  --color-success-rgb: 21, 128, 61;
+  --color-warning: #B45309;
+  --color-warning-hover: #92400E;
+  --color-warning-rgb: 180, 83, 9;
+
+  --menu-bg: #FFFFFF;
+  --menu-text: #64748B;
+  --menu-hover: #F1F5F9;
+  --menu-active-bg: #334155;
+  --menu-active-text: #FFFFFF;
+  --sub-menu-bg: #FFFFFF;
+  --sub-menu-hover: #F1F5F9;
+}
+
+// 红色主题：恢复历史主色 #C53030（参考旧提交 468b0a6）
+html[data-theme="red"] {
+  --color-primary: #C53030;
+  --color-primary-deep: #7A1F1F;
+  --color-primary-hover: #A82828;
+  --color-primary-light: #FBF0EF;
+  --color-primary-surface: #FDF8F7;
+  --color-primary-rgb: 197, 48, 48;
+  --color-primary-gradient: linear-gradient(135deg, #7A1F1F 0%, #C53030 100%);
+
+  --color-danger: #991B1B;
+  --color-danger-hover: #7F1616;
+  --color-danger-rgb: 153, 27, 27;
+  --color-success: #15803D;
+  --color-success-hover: #136B34;
+  --color-success-rgb: 21, 128, 61;
+  --color-warning: #B45309;
+  --color-warning-hover: #92400E;
+  --color-warning-rgb: 180, 83, 9;
+
+  --menu-bg: #FFFFFF;
+  --menu-text: #5B403D;
+  --menu-hover: #F6F3F2;
+  --menu-active-bg: #C53030;
+  --menu-active-text: #FFFFFF;
+  --sub-menu-bg: #FFFFFF;
+  --sub-menu-hover: #F6F3F2;
+}

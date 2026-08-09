@@ -111,13 +111,13 @@ export default {
   i { color: #D97706; font-size: 16px; line-height: 22px; flex-shrink: 0; }
 }
 .sf-usage-body { flex: 1; min-width: 0; }
-.sf-usage-title { font-size: 14px; font-weight: 700; color: #475569; line-height: 1.5;
-  b { font-size: 16px; color: #475569; }
+.sf-usage-title { font-size: 14px; font-weight: 700; color: var(--color-primary-hover); line-height: 1.5;
+  b { font-size: 16px; color: var(--color-primary-hover); }
 }
-.sf-usage-names { font-size: 13px; color: #334155; margin-top: 6px; line-height: 1.6; }
-.sf-usage-tag { display: inline-block; background: #DBEAFE; color: #475569; font-size: 11px; font-weight: 600; border-radius: 3px; padding: 1px 6px; margin-right: 6px; vertical-align: 1px; }
+.sf-usage-names { font-size: 13px; color: var(--color-primary); margin-top: 6px; line-height: 1.6; }
+.sf-usage-tag { display: inline-block; background: #DBEAFE; color: var(--color-primary-hover); font-size: 11px; font-weight: 600; border-radius: 3px; padding: 1px 6px; margin-right: 6px; vertical-align: 1px; }
 .sf-usage-desc { font-size: 12px; color: #64748B; margin-top: 6px; line-height: 1.6;
-  b { color: #334155; }
+  b { color: var(--color-primary); }
 }
 /* 弹窗出现时提示条闪烁两次，引起注意 */
 @keyframes sfFlash {
@@ -127,12 +127,12 @@ export default {
 .flash { animation: sfFlash 0.45s ease 2; }
 .sf-group { margin-bottom: 16px; }
 .sf-label { display: block; font-size: 13px; font-weight: 600; color: #414755; margin-bottom: 8px; }
-.req { color: #334155; }
+.req { color: var(--color-primary); }
 .save-mode-row { display: flex; gap: 12px; }
 .mode-card { flex: 1; display: flex; align-items: flex-start; gap: 10px; border: 1px solid #e4e7ed; border-radius: 3px; padding: 14px; cursor: pointer; transition: all 0.2s;
   i { font-size: 20px; color: #909399; margin-top: 2px; }
-  &.active { border-color: #334155; background: #F1F5F9; box-shadow: 0 0 0 1px #334155;
-    i { color: #334155; }
+  &.active { border-color: var(--color-primary); background: var(--color-primary-light); box-shadow: 0 0 0 1px var(--color-primary);
+    i { color: var(--color-primary); }
   }
 }
 .mode-title { font-size: 14px; font-weight: 700; color: #1b1c1c; }

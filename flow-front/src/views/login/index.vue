@@ -179,7 +179,7 @@ export default {
   .el-input__inner {
     padding-left: 40px;
     height: 44px;
-    background: #F1F5F9;
+    background: var(--color-primary-light);
     border: 1.5px solid #E2E8F0;
     border-radius: 3px;
     font-size: 14px;
@@ -192,8 +192,8 @@ export default {
 
     &:focus {
       background: #fff;
-      border-color: #334155;
-      box-shadow: 0 0 0 3px rgba(51, 65, 85, 0.08);
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.08);
     }
   }
 
@@ -215,7 +215,7 @@ export default {
       transition: color 0.2s;
 
       &:hover {
-        color: #334155;
+        color: var(--color-primary);
       }
       &.pwd-visible { opacity: 0.55; }
     }
@@ -227,7 +227,7 @@ export default {
 .login-container {
   min-height: 100vh;
   width: 100%;
-  background: linear-gradient(145deg, #0F172A 0%, #1E293B 20%, #334155 55%, #1E293B 85%, #0F172A 100%);
+  background: linear-gradient(145deg, #0F172A 0%, var(--color-primary-deep) 20%, var(--color-primary) 55%, var(--color-primary-deep) 85%, #0F172A 100%);
   overflow: hidden;
   position: relative;
   display: flex;
@@ -336,7 +336,7 @@ export default {
 
 // ---- 表单 ----
 ::v-deep .el-form-item__label {
-  color: #334155;
+  color: var(--color-primary);
   font-weight: 600;
   font-size: 13px;
   line-height: 1.4;
@@ -362,23 +362,23 @@ export default {
   font-weight: 700;
   letter-spacing: 0.12em;
   border-radius: 3px;
-  background: linear-gradient(135deg, #334155 0%, #1E293B 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-deep) 100%);
   border: none;
-  box-shadow: 0 4px 14px rgba(51, 65, 85, 0.35);
+  box-shadow: 0 4px 14px rgba(var(--color-primary-rgb), 0.35);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(51, 65, 85, 0.45);
+    box-shadow: 0 6px 20px rgba(var(--color-primary-rgb), 0.45);
   }
 
   &:active {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(51, 65, 85, 0.3);
+    box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.3);
   }
 
   &.is-loading {
-    background: linear-gradient(135deg, #334155 0%, #1E293B 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-deep) 100%);
   }
 }
 

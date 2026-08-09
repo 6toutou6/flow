@@ -342,9 +342,9 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #334155;
+$primary: var(--color-primary);
 $border: #CBD5E1;
-.dashboard-container { display: flex; min-height: 100vh; background-color: #F8FAFC;  color: #1b1c1c; }
+.dashboard-container { display: flex; min-height: 100vh; background-color: var(--color-primary-surface);  color: #1b1c1c; }
 .main-content { width: 100%; display: flex; flex-direction: column; min-height: 100vh; }
 .page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; box-sizing: border-box; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; }
@@ -355,10 +355,10 @@ $border: #CBD5E1;
   }
 }
 .page-heading { font-size: 24px; line-height: 32px; font-weight: 600; color: #1b1c1c; }
-.btn-back { display: flex; align-items: center; gap: 4px; padding: 8px 16px; background: #fff; border: 1px solid $border; border-radius: 2px; color: #334155; cursor: pointer; font-size: 13px;
-  &:hover { background: #F1F5F9; }
+.btn-back { display: flex; align-items: center; gap: 4px; padding: 8px 16px; background: #fff; border: 1px solid $border; border-radius: 2px; color: var(--color-primary); cursor: pointer; font-size: 13px;
+  &:hover { background: var(--color-primary-light); }
 }
-.tip-bar { display: flex; align-items: center; gap: 8px; background: #F1F5F9; border: 1px solid $border; color: #475569; font-size: 13px; border-radius: 3px; padding: 10px 14px;
+.tip-bar { display: flex; align-items: center; gap: 8px; background: var(--color-primary-light); border: 1px solid $border; color: var(--color-primary-hover); font-size: 13px; border-radius: 3px; padding: 10px 14px;
   i { color: $primary; }
   .tip-sub { color: #94A3B8; }
 }
@@ -374,7 +374,7 @@ $border: #CBD5E1;
 .filter-input { height: 34px; border: 1px solid $border; border-radius: 4px; padding: 0 10px; font-size: 13px; outline: none;
   &:focus { border-color: $primary; }
 }
-.filter-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(51,65,85,0.08); }
+.filter-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(var(--color-primary-rgb),0.08); }
 .filter-actions-right { display: flex; gap: 8px; margin-left: auto; }
 .bulk-bar { display: flex; justify-content: space-between; align-items: center; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 10px 16px; }
 .bulk-left { display: flex; align-items: center; gap: 12px; }
@@ -393,8 +393,8 @@ $border: #CBD5E1;
   &:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 .member-count { font-size: 12px; color: #757575; }
-.btn-reset { padding: 0 14px; height: 32px; border: 1px solid $border; border-radius: 4px; font-size: 13px; color: #334155; background: #fff; cursor: pointer;
-  &:hover { background: #F1F5F9; }
+.btn-reset { padding: 0 14px; height: 32px; border: 1px solid $border; border-radius: 4px; font-size: 13px; color: var(--color-primary); background: #fff; cursor: pointer;
+  &:hover { background: var(--color-primary-light); }
 }
 .btn-search { padding: 0 14px; height: 32px; border: none; border-radius: 4px; font-size: 13px; font-weight: bold; color: #fff; background: $primary; cursor: pointer;
   &:hover { opacity: 0.9; }
@@ -406,7 +406,7 @@ $border: #CBD5E1;
 }
 .member-list { display: flex; flex-direction: column; gap: 10px; }
 .member-item { display: flex; justify-content: space-between; align-items: center; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 14px 16px; transition: all .2s; cursor: pointer;
-  &:hover { box-shadow: 0 3px 10px rgba(51,65,85,0.12); border-color: $primary; }
+  &:hover { box-shadow: 0 3px 10px rgba(var(--color-primary-rgb),0.12); border-color: $primary; }
 }
 .mi-check { flex-shrink: 0; margin-right: 10px; display: flex; align-items: center; }
 .mi-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
@@ -417,7 +417,7 @@ $border: #CBD5E1;
 .mi-dept { font-size: 12px; color: #757575; margin-top: 2px; }
 .mi-name .status-chip { margin-left: 8px; }
 .status-chip { padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; display: inline-flex; border: 1px solid transparent; }
-.status-running { background: rgba(51,65,85,0.1); border-color: $primary; color: $primary; }
+.status-running { background: rgba(var(--color-primary-rgb),0.1); border-color: $primary; color: $primary; }
 .status-done { background: rgba(21, 128, 61,0.1); border-color: #15803D; color: #15803D; }
 .status-cancel { background: rgba(220,38,38,0.08); border-color: #DC2626; color: #DC2626; }
 .status-empty { background: rgba(144,147,153,0.1); border-color: #909399; color: #909399; }
@@ -432,7 +432,7 @@ $border: #CBD5E1;
 }
 .node-chip { padding: 2px 9px; border-radius: 4px; font-size: 11px; font-weight: 600; flex-shrink: 0; line-height: 1.6; }
 .chip-done { background: #15803D; color: #fff; }
-.chip-current { background: rgba(51,65,85,0.14); color: $primary; border: 1px solid rgba(51,65,85,0.4); }
+.chip-current { background: rgba(var(--color-primary-rgb),0.14); color: $primary; border: 1px solid rgba(var(--color-primary-rgb),0.4); }
 .chip-rejected { background: rgba(180, 83, 9,0.16); color: #B45309; border: 1px solid rgba(180, 83, 9,0.45); }
 .chip-pending { background: #f0f0f0; color: #aaa; }
 .mi-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-left: 12px; }
@@ -441,7 +441,7 @@ $border: #CBD5E1;
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .mi-view { display: inline-flex; align-items: center; gap: 3px; padding: 5px 10px; border: 1px solid $border; background: #fff; color: $primary; border-radius: 2px; font-size: 12px; font-weight: 600; cursor: pointer;
-  &:hover { background: #F1F5F9; border-color: $primary; }
+  &:hover { background: var(--color-primary-light); border-color: $primary; }
 }
 .pagination { display: flex; justify-content: flex-end; align-items: center; padding: 14px 16px; background: #fff; border: 1px solid $border; border-radius: 3px; margin-top: 12px; }
 </style>

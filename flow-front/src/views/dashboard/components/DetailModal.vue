@@ -262,9 +262,9 @@ export default {
 }
 
 .status-pending {
-  background-color: rgba(51, 65, 85, 0.1);
-  border-color: #334155;
-  color: #334155;
+  background-color: rgba(var(--color-primary-rgb), 0.1);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .status-rectifying {
@@ -308,14 +308,14 @@ export default {
 }
 
 .priority-low {
-  background-color: rgba(51, 65, 85, 0.1);
-  border-color: #334155;
-  color: #334155;
+  background-color: rgba(var(--color-primary-rgb), 0.1);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .btn-primary {
   padding: 10px 24px;
-  background-color: #334155;
+  background-color: var(--color-primary);
   color: white;
   border-radius: 3px;
   font-weight: 700;

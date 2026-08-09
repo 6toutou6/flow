@@ -97,13 +97,13 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #334155;
+$primary: var(--color-primary);
 $border: #CBD5E1;
 .reject-hint { font-size: 13px; color: #757575; margin-bottom: 12px; }
 .target-list { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; }
 .target-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid $border; border-radius: 3px; cursor: pointer; transition: all .2s;
-  &:hover { border-color: $primary; background: #F1F5F9; }
-  &.active { border-color: $primary; background: #F1F5F9; box-shadow: 0 0 0 1px $primary; }
+  &:hover { border-color: $primary; background: var(--color-primary-light); }
+  &.active { border-color: $primary; background: var(--color-primary-light); box-shadow: 0 0 0 1px $primary; }
 }
 .target-radio { font-size: 22px; color: $primary; flex-shrink: 0; }
 .target-info { flex: 1; }
@@ -114,7 +114,7 @@ $border: #CBD5E1;
 .node-type-badge { padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: 600; }
 .badge-start { background: rgba(21, 128, 61,0.1); color: #15803D; }
 .badge-mid { background: #f0f3ff; color: #545f72; }
-.badge-end { background: rgba(51,65,85,0.1); color: $primary; }
+.badge-end { background: rgba(var(--color-primary-rgb),0.1); color: $primary; }
 .empty-state { text-align: center; padding: 40px 20px; color: #bbb;
   i { font-size: 36px; display: block; margin-bottom: 8px; }
   p { font-size: 13px; margin: 0; }

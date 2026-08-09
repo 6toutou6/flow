@@ -6,6 +6,18 @@ import ElementUI from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
 import zhCN from 'element-ui/lib/locale/lang/zh-CN' // lang i18n（中文：分页器等组件文案）
 
+// 应用已保存的主题（在渲染前设置，避免主题闪烁）
+;(function applySavedTheme() {
+  try {
+    const saved = localStorage.getItem('flow-theme')
+    if (saved === 'red' || saved === 'slate') {
+      document.documentElement.setAttribute('data-theme', saved)
+    }
+  } catch (e) {
+    // ignore
+  }
+})()
+
 import '@/styles/index.scss' // global css
 
 import App from './App'

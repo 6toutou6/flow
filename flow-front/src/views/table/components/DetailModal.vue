@@ -170,14 +170,14 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: #F8FAFC;
+  background: var(--color-primary-surface);
   border-bottom: 1px solid #CBD5E1;
 }
 
 .detail-modal-title {
   font-size: 18px;
   font-weight: bold;
-  color: #334155;
+  color: var(--color-primary);
   margin: 0;
 }
 
@@ -190,7 +190,7 @@ export default {
   padding: 0;
 
   &:hover {
-    color: #334155;
+    color: var(--color-primary);
   }
 }
 
@@ -201,7 +201,7 @@ export default {
 }
 
 .detail-section {
-  background: #F8FAFC;
+  background: var(--color-primary-surface);
   border: 1px solid #CBD5E1;
   border-radius: 4px;
   padding: 16px;
@@ -240,7 +240,7 @@ export default {
 .detail-label {
   font-size: 13px;
   font-weight: 500;
-  color: #334155;
+  color: var(--color-primary);
 }
 
 .detail-value {
@@ -281,8 +281,8 @@ export default {
 
   &:focus {
     outline: none;
-    border-color: #334155;
-    box-shadow: 0 0 0 2px rgba(51, 65, 85, 0.1);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.1);
   }
 }
 
@@ -302,7 +302,7 @@ export default {
   border-radius: 4px;
 
   i {
-    color: #334155;
+    color: var(--color-primary);
   }
 
   .attachment-name {
@@ -319,7 +319,7 @@ export default {
   .attachment-download {
     background: none;
     border: none;
-    color: #334155;
+    color: var(--color-primary);
     cursor: pointer;
     font-size: 16px;
     padding: 0;
@@ -345,7 +345,7 @@ export default {
   justify-content: flex-end;
   padding: 14px 20px;
   border-top: 1px solid #CBD5E1;
-  background: #F8FAFC;
+  background: var(--color-primary-surface);
 }
 
 .btn-modal-close {
@@ -353,15 +353,15 @@ export default {
   border: 1px solid #CBD5E1;
   border-radius: 4px;
   font-size: 14px;
-  color: #334155;
+  color: var(--color-primary);
   background: white;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: #F1F5F9;
-    border-color: #334155;
-    color: #334155;
+    background: var(--color-primary-light);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
   }
 }
 </style>

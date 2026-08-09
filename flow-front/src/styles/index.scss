@@ -46,7 +46,7 @@ a {
   &:focus,
   &:hover {
     cursor: pointer;
-    color: $color-primary;
+    color: var(--color-primary);
     text-decoration: none;
     transition: color $transition-fast;
   }
@@ -54,7 +54,7 @@ a {
     outline: none;
   }
   &:focus-visible {
-    outline: 2px solid $color-primary;
+    outline: 2px solid var(--color-primary);
     outline-offset: 2px;
     border-radius: $radius-sm;
   }
@@ -64,7 +64,7 @@ div:focus {
   outline: none;
 }
 div:focus-visible {
-  outline: 2px solid $color-primary;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
   border-radius: $radius-sm;
 }
@@ -75,7 +75,7 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid $color-primary;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
   border-radius: $radius-sm;
 }
@@ -109,22 +109,22 @@ textarea:focus-visible,
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba($color-primary, 0.18);
+  background: rgba(var(--color-primary-rgb), 0.18);
   border-radius: 3px;
   &:hover {
-    background: rgba($color-primary, 0.35);
+    background: rgba(var(--color-primary-rgb), 0.35);
   }
 }
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba($color-primary, 0.18) transparent;
+  scrollbar-color: rgba(var(--color-primary-rgb), 0.18) transparent;
 }
 
 // ============================================================
 // 文本选中
 // ============================================================
 ::selection {
-  background: rgba($color-primary, 0.14);
+  background: rgba(var(--color-primary-rgb), 0.14);
   color: inherit;
 }
 
@@ -139,7 +139,7 @@ textarea:focus-visible,
   .el-dialog__header {
     padding: $space-5 $space-6 $space-4;
     border-bottom: 1px solid $border-light;
-    background: $brand-primary-surface;
+    background: var(--color-primary-surface);
 
     .el-dialog__title {
       font-size: $font-size-lg;
@@ -152,7 +152,7 @@ textarea:focus-visible,
       right: $space-5;
       font-size: 18px;
       &:hover .el-dialog__close {
-        color: $color-primary;
+        color: var(--color-primary);
       }
     }
   }
@@ -166,7 +166,7 @@ textarea:focus-visible,
   .el-dialog__footer {
     padding: $space-4 $space-6 $space-5;
     border-top: 1px solid $border-light;
-    background: $brand-primary-surface;
+    background: var(--color-primary-surface);
   }
 }
 
@@ -180,12 +180,12 @@ textarea:focus-visible,
 // ============================================================
 .el-table {
   th.el-table__cell {
-    background-color: $brand-primary-light !important;
+    background-color: var(--color-primary-light) !important;
     color: $text-secondary;
     font-weight: 700;
     font-size: $font-size-sm;
     letter-spacing: 0.02em;
-    border-bottom: 2px solid rgba($color-primary, 0.12);
+    border-bottom: 2px solid rgba(var(--color-primary-rgb), 0.12);
   }
 
   .el-table__cell {
@@ -226,8 +226,8 @@ textarea:focus-visible,
 
   &:focus,
   &.is-focus {
-    border-color: $color-primary;
-    box-shadow: 0 0 0 2px rgba($color-primary, 0.10);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.10);
   }
 
   &::placeholder {
@@ -236,7 +236,7 @@ textarea:focus-visible,
 }
 
 .el-select .el-input.is-focus .el-input__inner {
-  border-color: $color-primary;
+  border-color: var(--color-primary);
 }
 
 // ============================================================
@@ -255,10 +255,10 @@ textarea:focus-visible,
 .el-select-dropdown__item {
   &.hover,
   &:hover {
-    background-color: $brand-primary-light !important;
+    background-color: var(--color-primary-light) !important;
   }
   &.selected {
-    color: $color-primary;
+    color: var(--color-primary);
     font-weight: 600;
   }
 }
@@ -274,27 +274,27 @@ textarea:focus-visible,
     font-weight: 500;
 
     &.active {
-      color: $color-primary;
+      color: var(--color-primary);
     }
     &:hover {
-      color: $color-primary;
+      color: var(--color-primary);
     }
   }
 
   &.is-background {
     .el-pager li:not(.disabled) {
       &.active {
-        background-color: $color-primary;
+        background-color: var(--color-primary);
         color: #fff;
-        &:hover { background-color: $color-primary-hover; color: #fff; }
+        &:hover { background-color: var(--color-primary-hover); color: #fff; }
       }
-      &:hover { color: $color-primary; }
+      &:hover { color: var(--color-primary); }
     }
   }
 
   button {
     border-radius: $radius-sm;
-    &:hover { color: $color-primary; }
+    &:hover { color: var(--color-primary); }
   }
 }
 
@@ -304,15 +304,15 @@ textarea:focus-visible,
 .el-step__head {
   &.is-process,
   &.is-finish {
-    color: $color-primary;
-    border-color: $color-primary;
+    color: var(--color-primary);
+    border-color: var(--color-primary);
   }
 }
 
 .el-step__title {
   &.is-process,
   &.is-finish {
-    color: $color-primary;
+    color: var(--color-primary);
     font-weight: 600;
   }
   &.is-wait {
@@ -331,14 +331,14 @@ textarea:focus-visible,
   font-weight: 500;
 
   &.is-active {
-    color: $color-primary;
+    color: var(--color-primary);
     font-weight: 700;
   }
-  &:hover { color: $color-primary; }
+  &:hover { color: var(--color-primary); }
 }
 
 .el-tabs__active-bar {
-  background-color: $color-primary;
+  background-color: var(--color-primary);
   height: 2px;
 }
 
@@ -356,19 +356,19 @@ textarea:focus-visible,
   &--success {
     background-color: rgba(45, 125, 70, 0.08);
     border-color: rgba(45, 125, 70, 0.25);
-    color: $color-success;
+    color: var(--color-success);
   }
 
   &--warning {
     background-color: rgba(196, 115, 45, 0.08);
     border-color: rgba(196, 115, 45, 0.25);
-    color: $color-warning;
+    color: var(--color-warning);
   }
 
   &--danger {
-    background-color: rgba($color-primary, 0.08);
-    border-color: rgba($color-primary, 0.25);
-    color: $color-primary;
+    background-color: rgba(var(--color-primary-rgb), 0.08);
+    border-color: rgba(var(--color-primary-rgb), 0.25);
+    color: var(--color-primary);
   }
 }
 
@@ -410,17 +410,17 @@ textarea:focus-visible,
 // ============================================================
 .el-breadcrumb__inner a:hover,
 .el-breadcrumb__item:last-child .el-breadcrumb__inner {
-  color: $color-primary;
+  color: var(--color-primary);
 }
 
 // ============================================================
 // 加载动画
 // ============================================================
 .el-loading-spinner {
-  .el-loading-text { color: $color-primary; }
-  .path { stroke: $color-primary; }
+  .el-loading-text { color: var(--color-primary); }
+  .path { stroke: var(--color-primary); }
   .circular {
-    .path { stroke: $color-primary; }
+    .path { stroke: var(--color-primary); }
   }
 }
 
@@ -428,7 +428,7 @@ textarea:focus-visible,
 // 进度条
 // ============================================================
 .el-progress-bar__inner {
-  background-color: $color-primary;
+  background-color: var(--color-primary);
 }
 
 // ============================================================
@@ -442,7 +442,7 @@ textarea:focus-visible,
 // 徽章
 // ============================================================
 .el-badge__content--danger {
-  background-color: $color-primary;
+  background-color: var(--color-primary);
 }
 
 // ============================================================

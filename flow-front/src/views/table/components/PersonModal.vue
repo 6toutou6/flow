@@ -284,7 +284,7 @@ export default {
   .modal-title {
     font-size: 18px;
     font-weight: bold;
-    color: #334155;
+    color: var(--color-primary);
     margin: 0;
   }
 
@@ -306,12 +306,12 @@ export default {
     border-radius: 50%;
     cursor: pointer;
     font-size: 16px;
-    color: #334155;
+    color: var(--color-primary);
     transition: all 0.2s;
 
     &:hover {
-      background: #F1F5F9;
-      color: #334155;
+      background: var(--color-primary-light);
+      color: var(--color-primary);
     }
   }
 }
@@ -347,12 +347,12 @@ export default {
   margin-bottom: -1px;
 
   &:hover {
-    color: #334155;
+    color: var(--color-primary);
   }
 
   &.active {
-    color: #334155;
-    border-bottom-color: #334155;
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
   }
 }
 
@@ -368,7 +368,7 @@ export default {
   font-size: 13px;
   font-weight: bold;
   letter-spacing: 0.05em;
-  color: #334155;
+  color: var(--color-primary);
   margin: 0;
   text-transform: uppercase;
 }
@@ -376,12 +376,12 @@ export default {
 .round-count {
   font-size: 12px;
   font-weight: normal;
-  color: #334155;
+  color: var(--color-primary);
   margin-left: 8px;
 }
 
 .rounds-table {
-  border: 1px solid rgba(51, 65, 85, 0.1);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.1);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -391,10 +391,10 @@ export default {
   grid-template-columns: 1fr 1.2fr 1.2fr 0.8fr 1.5fr 0.8fr;
   gap: 8px;
   padding: 10px 12px;
-  background: #F1F5F9;
+  background: var(--color-primary-light);
   font-size: 12px;
   font-weight: bold;
-  color: #334155;
+  color: var(--color-primary);
 }
 
 .rounds-table-row {
@@ -402,22 +402,22 @@ export default {
   grid-template-columns: 1fr 1.2fr 1.2fr 0.8fr 1.5fr 0.8fr;
   gap: 8px;
   padding: 10px 12px;
-  border-top: 1px solid rgba(51, 65, 85, 0.08);
+  border-top: 1px solid rgba(var(--color-primary-rgb), 0.08);
   font-size: 13px;
   color: #1b1c1c;
   align-items: center;
   transition: background 0.2s;
 
   &:hover {
-    background: #F8FAFC;
+    background: var(--color-primary-surface);
   }
 }
 
 .round-badge {
   display: inline-block;
   padding: 2px 8px;
-  background: rgba(51, 65, 85, 0.1);
-  color: #334155;
+  background: rgba(var(--color-primary-rgb), 0.1);
+  color: var(--color-primary);
   border-radius: 4px;
   font-size: 12px;
   font-weight: bold;
@@ -425,7 +425,7 @@ export default {
 
 .col-time, .col-deadline {
   font-size: 13px;
-  color: #334155;
+  color: var(--color-primary);
 }
 
 .col-people {
@@ -434,7 +434,7 @@ export default {
 
   i {
     margin-right: 4px;
-    color: #334155;
+    color: var(--color-primary);
   }
 }
 
@@ -458,7 +458,7 @@ export default {
   transition: width 0.3s;
 
   &.rate-completed { background: #15803D; }
-  &.rate-progress { background: #334155; }
+  &.rate-progress { background: var(--color-primary); }
   &.rate-pending { background: #e0e0e0; }
 }
 
@@ -481,8 +481,8 @@ export default {
   }
 
   &.round-status-progress {
-    background: #F8FAFC;
-    color: #334155;
+    background: var(--color-primary-surface);
+    color: var(--color-primary);
     border: 1px solid #CBD5E1;
   }
 
@@ -499,9 +499,9 @@ export default {
   gap: 12px;
   margin-bottom: 16px;
   padding: 16px;
-  background: #F8FAFC;
+  background: var(--color-primary-surface);
   border-radius: 3px;
-  border: 1px solid rgba(51, 65, 85, 0.08);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.08);
 }
 
 .summary-item {
@@ -524,7 +524,7 @@ export default {
 
   &.summary-green { color: #15803D; }
   &.summary-orange { color: #EA580C; }
-  &.summary-red { color: #334155; }
+  &.summary-red { color: var(--color-primary); }
 }
 
 .person-tip {
@@ -532,8 +532,8 @@ export default {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #334155;
-  background: rgba(51, 65, 85, 0.05);
+  color: var(--color-primary);
+  background: rgba(var(--color-primary-rgb), 0.05);
   padding: 8px 12px;
   border-radius: 2px;
   margin-bottom: 16px;
@@ -556,7 +556,7 @@ export default {
   transition: box-shadow 0.2s;
 
   &:hover {
-    box-shadow: 0 2px 8px rgba(51, 65, 85, 0.08);
+    box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.08);
   }
 }
 
@@ -572,13 +572,13 @@ export default {
   transition: all 0.2s;
 
   &.expanded {
-    border-color: #334155;
+    border-color: var(--color-primary);
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
   }
 
   &:hover {
-    border-color: #334155;
+    border-color: var(--color-primary);
   }
 }
 
@@ -586,13 +586,13 @@ export default {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(51, 65, 85, 0.1);
+  background: rgba(var(--color-primary-rgb), 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
   font-weight: bold;
-  color: #334155;
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
@@ -614,8 +614,8 @@ export default {
 
 .person-role-tag {
   padding: 2px 6px;
-  background: rgba(51, 65, 85, 0.08);
-  color: #334155;
+  background: rgba(var(--color-primary-rgb), 0.08);
+  color: var(--color-primary);
   border-radius: 4px;
   font-size: 11px;
   font-weight: bold;
@@ -643,8 +643,8 @@ export default {
 
 /* 人员各期次整改情况 */
 .person-rounds-detail {
-  background: #F8FAFC;
-  border: 1px solid #334155;
+  background: var(--color-primary-surface);
+  border: 1px solid var(--color-primary);
   border-top: none;
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
@@ -657,7 +657,7 @@ export default {
   gap: 6px;
   font-size: 13px;
   font-weight: bold;
-  color: #334155;
+  color: var(--color-primary);
   margin-bottom: 12px;
 
   i {
@@ -666,7 +666,7 @@ export default {
 }
 
 .detail-table {
-  border: 1px solid rgba(51, 65, 85, 0.1);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.1);
   border-radius: 2px;
   overflow: hidden;
   background: white;
@@ -677,10 +677,10 @@ export default {
   grid-template-columns: 0.7fr 1fr 1fr 0.9fr 1.8fr 1.2fr 0.8fr;
   gap: 8px;
   padding: 8px 12px;
-  background: #F1F5F9;
+  background: var(--color-primary-light);
   font-size: 12px;
   font-weight: bold;
-  color: #334155;
+  color: var(--color-primary);
 }
 
 .detail-table-row {
@@ -688,18 +688,18 @@ export default {
   grid-template-columns: 0.7fr 1fr 1fr 0.9fr 1.8fr 1.2fr 0.8fr;
   gap: 8px;
   padding: 8px 12px;
-  border-top: 1px solid rgba(51, 65, 85, 0.08);
+  border-top: 1px solid rgba(var(--color-primary-rgb), 0.08);
   font-size: 12px;
   color: #1b1c1c;
   align-items: center;
   transition: background 0.2s;
 
   &:hover {
-    background: #F8FAFC;
+    background: var(--color-primary-surface);
   }
 
   &.selected {
-    background: #334155;
+    background: var(--color-primary);
     color: white;
 
     .d-publish,
@@ -720,7 +720,7 @@ export default {
 
     .btn-detail {
       background: white;
-      color: #334155;
+      color: var(--color-primary);
       border-color: white;
 
       &:hover {
@@ -747,7 +747,7 @@ export default {
 }
 
 .d-publish, .d-deadline {
-  color: #334155;
+  color: var(--color-primary);
 }
 
 .d-remark {
@@ -770,14 +770,14 @@ export default {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #334155;
+  color: var(--color-primary);
   text-decoration: none;
   font-size: 11px;
   transition: color 0.2s;
 
   &:hover {
     text-decoration: underline;
-    color: #1E293B;
+    color: var(--color-primary-deep);
   }
 
   i {
@@ -809,11 +809,11 @@ export default {
 
 .btn-detail {
   padding: 4px 10px;
-  background: rgba(51, 65, 85, 0.05);
+  background: rgba(var(--color-primary-rgb), 0.05);
   border: 1px solid #CBD5E1;
   border-radius: 4px;
   font-size: 12px;
-  color: #334155;
+  color: var(--color-primary);
   cursor: pointer;
   transition: all 0.2s;
   display: inline-flex;
@@ -821,8 +821,8 @@ export default {
   gap: 4px;
 
   &:hover {
-    background: rgba(51, 65, 85, 0.1);
-    border-color: #334155;
+    background: rgba(var(--color-primary-rgb), 0.1);
+    border-color: var(--color-primary);
   }
 
   i {
@@ -874,15 +874,15 @@ export default {
   border: 1px solid #CBD5E1;
   border-radius: 4px;
   font-size: 14px;
-  color: #334155;
+  color: var(--color-primary);
   background: white;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: #F1F5F9;
-    color: #334155;
-    border-color: #334155;
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
   }
 }
 </style>

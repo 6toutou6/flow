@@ -110,7 +110,7 @@
                   <el-switch
                     :value="row.status === 1"
                     :disabled="isSampleLocked(row)"
-                    active-color="#334155"
+                    active-color="var(--color-primary)"
                     inactive-color="#dcdfe6"
                     @change="handleToggleStatus(row)"
                   />
@@ -316,8 +316,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #334155;
-.dashboard-container { display: flex; min-height: 100vh; background-color: #F8FAFC;  color: #1b1c1c; }
+$primary: var(--color-primary);
+.dashboard-container { display: flex; min-height: 100vh; background-color: var(--color-primary-surface);  color: #1b1c1c; }
 .main-content { width: 100%; display: flex; flex-direction: column; min-height: 100vh; }
 .page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; }
@@ -334,7 +334,7 @@ $primary: #334155;
 .stat-icon { width: 48px; height: 48px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; flex-shrink: 0;
   &.icon-total { background: $primary; }
   &.icon-active { background: #15803D; }
-  &.icon-rate { background: #475569; }
+  &.icon-rate { background: var(--color-primary-hover); }
 }
 .stat-body { flex: 1; }
 .stat-label { font-size: 13px; color: #757575; margin-bottom: 4px; }
@@ -348,15 +348,15 @@ $primary: #334155;
 .filter-item { display: flex; flex-direction: column; gap: 4px; }
 .filter-label { font-size: 13px; color: #757575; }
 .filter-select, .filter-input { height: 36px; border: 1px solid #CBD5E1; border-radius: 2px; padding: 0 8px; font-size: 13px; outline: none; transition: all 0.2s;
-  &:focus { border-color: $primary; box-shadow: 0 0 0 1px rgba(51, 65, 85, 0.2); }
+  &:focus { border-color: $primary; box-shadow: 0 0 0 1px rgba(var(--color-primary-rgb), 0.2); }
 }
-.filter-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(51, 65, 85, 0.08); }
+.filter-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(var(--color-primary-rgb), 0.08); }
 .filter-actions-left, .filter-actions-right { display: flex; gap: 8px; }
 .btn-primary { display: flex; align-items: center; padding: 10px 24px; background: $primary; color: #fff; border-radius: 3px; font-weight: 600; font-size: 13px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); transition: all 0.2s; cursor: pointer; border: none;
   &:hover { opacity: 0.9; }
 }
-.btn-reset { padding: 0 16px; height: 36px; border: 1px solid #CBD5E1; border-radius: 2px; font-size: 13px; color: #334155; background: #fff; cursor: pointer;
-  &:hover { background: #F1F5F9; }
+.btn-reset { padding: 0 16px; height: 36px; border: 1px solid #CBD5E1; border-radius: 2px; font-size: 13px; color: var(--color-primary); background: #fff; cursor: pointer;
+  &:hover { background: var(--color-primary-light); }
 }
 .btn-search { padding: 0 16px; height: 36px; border: none; border-radius: 2px; font-size: 13px; font-weight: bold; color: #fff; background: $primary; cursor: pointer; display: flex; align-items: center; gap: 4px;
   &:hover { opacity: 0.9; }
@@ -372,15 +372,15 @@ $primary: #334155;
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .spinning { animation: spin 1s linear infinite; }
 .data-table { width: 100%; text-align: left; border-collapse: collapse;
-  th { padding: 12px 16px; font-weight: 700; color: #414755; background: #F1F5F9; border-bottom: 1px solid #CBD5E1; }
+  th { padding: 12px 16px; font-weight: 700; color: #414755; background: var(--color-primary-light); border-bottom: 1px solid #CBD5E1; }
   td { padding: 12px 16px; border-bottom: 1px solid #CBD5E1; }
-  .hover-row:hover { background: #F1F5F9; }
+  .hover-row:hover { background: var(--color-primary-light); }
 }
 .font-bold { font-weight: 700; }
 .text-center { text-align: center; }
 .text-right { text-align: right; }
 .text-error { color: #DC2626; }
-.version-tag { display: inline-block; padding: 2px 8px; background: rgba(51, 65, 85, 0.1); color: $primary; border-radius: 2px; font-size: 12px; font-weight: 600; }
+.version-tag { display: inline-block; padding: 2px 8px; background: rgba(var(--color-primary-rgb), 0.1); color: $primary; border-radius: 2px; font-size: 12px; font-weight: 600; }
 .sample-tag { display: inline-block; padding: 2px 8px; background: rgba(180, 83, 9, 0.14); color: #B45309; border-radius: 2px; font-size: 12px; font-weight: 600; margin-left: 6px; }
 .star-on { color: #D97706; }
 .action-link { color: $primary; background: none; border: none; cursor: pointer; font-size: 14px; margin-right: 8px;

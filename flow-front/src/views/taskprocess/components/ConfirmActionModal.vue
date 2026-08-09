@@ -162,11 +162,11 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #334155;
+$primary: var(--color-primary);
 
 .modal-banner { display: flex; gap: 14px; align-items: center; padding: 16px; border-radius: 3px; margin-bottom: 16px;
   &.banner-reject { background: rgba(180, 83, 9,0.1); border: 1px solid rgba(180, 83, 9,0.3); }
-  &.banner-pass { background: rgba(51,65,85,0.07); border: 1px solid rgba(51,65,85,0.22); }
+  &.banner-pass { background: rgba(var(--color-primary-rgb),0.07); border: 1px solid rgba(var(--color-primary-rgb),0.22); }
 }
 .banner-icon { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #fff; flex-shrink: 0;
   .banner-reject & { background: #B45309; }
@@ -178,7 +178,7 @@ $primary: #334155;
 
 .confirm-card { border-radius: 3px; padding: 12px 16px; margin-bottom: 12px;
   &.card-reject { background: #F0F4FF; border: 1px dashed rgba(180, 83, 9,0.45); }
-  &.card-pass { background: #F1F5F9; border: 1px dashed rgba(51,65,85,0.4); }
+  &.card-pass { background: var(--color-primary-light); border: 1px dashed rgba(var(--color-primary-rgb),0.4); }
 }
 .card-item { display: flex; gap: 9px; align-items: flex-start; padding: 5px 0; line-height: 1.6;
   & + .card-item { border-top: 1px dashed rgba(0,0,0,0.06); }
@@ -199,7 +199,7 @@ $primary: #334155;
 
 // 下一节点处理人选择区（通过且非结束节点）
 .handler-area { margin-top: 16px; padding-top: 16px; border-top: 1px solid #f0f0f0; }
-.handler-tip { display: flex; align-items: flex-start; gap: 6px; background: #F1F5F9; border: 1px dashed rgba(51,65,85,0.4); border-radius: 2px; padding: 8px 10px; font-size: 12px; color: #475569; line-height: 1.6; margin-bottom: 10px;
+.handler-tip { display: flex; align-items: flex-start; gap: 6px; background: var(--color-primary-light); border: 1px dashed rgba(var(--color-primary-rgb),0.4); border-radius: 2px; padding: 8px 10px; font-size: 12px; color: var(--color-primary-hover); line-height: 1.6; margin-bottom: 10px;
   i { color: $primary; margin-top: 2px; flex-shrink: 0; }
 }
 .handler-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
@@ -210,8 +210,8 @@ $primary: #334155;
 .hc-remove { cursor: pointer; color: #bbb; font-size: 13px;
   &:hover { color: $primary; }
 }
-.btn-pick { width: 100%; height: 34px; border: 1px dashed rgba(51,65,85,0.4); border-radius: 2px; background: #F1F5F9; color: $primary; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 4px;
-  &:hover { border-color: $primary; background: rgba(51,65,85,0.08); }
+.btn-pick { width: 100%; height: 34px; border: 1px dashed rgba(var(--color-primary-rgb),0.4); border-radius: 2px; background: var(--color-primary-light); color: $primary; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 4px;
+  &:hover { border-color: $primary; background: rgba(var(--color-primary-rgb),0.08); }
 }
 .dialog-footer { text-align: right; }
 </style>

@@ -40,7 +40,7 @@
 
   .active {
     font-weight: 600;
-    color: $color-primary;
+    color: var(--color-primary);
   }
 }
 
@@ -71,13 +71,13 @@
 
 @mixin btn-primary {
   @include btn-base;
-  background: $color-primary;
+  background: var(--color-primary);
   color: #fff;
-  border-color: $color-primary;
+  border-color: var(--color-primary);
 
   &:hover {
-    background: $color-primary-hover;
-    border-color: $color-primary-hover;
+    background: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
   }
 
   &:active {
@@ -98,49 +98,49 @@
 
 @mixin btn-danger {
   @include btn-base;
-  background: $color-danger;
+  background: var(--color-danger);
   color: #fff;
-  border-color: $color-danger;
+  border-color: var(--color-danger);
 
   &:hover {
-    background: darken($color-danger, 8%);
-    border-color: darken($color-danger, 8%);
+    background: var(--color-danger-hover);
+    border-color: var(--color-danger-hover);
   }
 }
 
 @mixin btn-success {
   @include btn-base;
-  background: $color-success;
+  background: var(--color-success);
   color: #fff;
-  border-color: $color-success;
+  border-color: var(--color-success);
 
   &:hover {
-    background: darken($color-success, 6%);
-    border-color: darken($color-success, 6%);
+    background: var(--color-success-hover);
+    border-color: var(--color-success-hover);
   }
 }
 
 @mixin btn-warning {
   @include btn-base;
-  background: $color-warning;
+  background: var(--color-warning);
   color: #fff;
-  border-color: $color-warning;
+  border-color: var(--color-warning);
 
   &:hover {
-    background: darken($color-warning, 6%);
-    border-color: darken($color-warning, 6%);
+    background: var(--color-warning-hover);
+    border-color: var(--color-warning-hover);
   }
 }
 
 // Search/Reset quick-action buttons
 @mixin btn-search {
   @include btn-base;
-  background: $color-primary;
+  background: var(--color-primary);
   color: #fff;
   border: none;
 
   &:hover {
-    background: $color-primary-hover;
+    background: var(--color-primary-hover);
   }
 }
 
@@ -190,8 +190,8 @@
   }
 
   &.active {
-    background: $color-primary;
-    border-color: $color-primary;
+    background: var(--color-primary);
+    border-color: var(--color-primary);
 
     .stat-icon {
       background: rgba(255, 255, 255, 0.2) !important;
@@ -284,8 +284,8 @@
   width: 100%;
 
   &:focus {
-    border-color: $color-primary;
-    box-shadow: 0 0 0 1px rgba($color-primary, 0.2);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 1px rgba(var(--color-primary-rgb), 0.2);
   }
 }
 
@@ -307,14 +307,14 @@
   transition: all $transition-fast;
 
   &:hover {
-    border-color: $color-primary;
-    color: $color-primary;
+    border-color: var(--color-primary);
+    color: var(--color-primary);
   }
 
   &.is-active {
-    background: $color-primary;
+    background: var(--color-primary);
     color: #fff;
-    border-color: $color-primary;
+    border-color: var(--color-primary);
   }
 }
 
@@ -465,7 +465,7 @@
   display: block;
 
   .required {
-    color: $color-danger;
+    color: var(--color-danger);
   }
 }
 
@@ -480,8 +480,8 @@
   box-sizing: border-box;
 
   &:focus {
-    border-color: $color-primary;
-    box-shadow: 0 0 0 2px rgba($color-primary, 0.15);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.15);
   }
 
   &.disabled,
@@ -511,14 +511,14 @@
 
 @mixin chip-pending {
   @include status-chip;
-  background: rgba($color-warning, 0.1);
-  color: $color-warning;
+  background: rgba(var(--color-warning-rgb), 0.1);
+  color: var(--color-warning);
 }
 
 @mixin chip-active {
   @include status-chip;
-  background: rgba($color-success, 0.1);
-  color: $color-success;
+  background: rgba(var(--color-success-rgb), 0.1);
+  color: var(--color-success);
 }
 
 @mixin chip-closed {
@@ -529,8 +529,8 @@
 
 @mixin chip-urgent {
   @include status-chip;
-  background: rgba($color-danger, 0.1);
-  color: $color-danger;
+  background: rgba(var(--color-danger-rgb), 0.1);
+  color: var(--color-danger);
 }
 
 // ============================================================
@@ -547,7 +547,7 @@
   }
 
   &:hover {
-    color: $color-primary;
+    color: var(--color-primary);
   }
 }
 

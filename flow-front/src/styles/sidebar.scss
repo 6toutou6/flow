@@ -15,7 +15,7 @@
   .sidebar-container {
     transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     width: $sideBarWidth !important;
-    background-color: $menuBg;
+    background-color: var(--menu-bg);
     height: 100%;
     position: fixed;
     font-size: 0px;
@@ -24,7 +24,7 @@
     left: 0;
     z-index: 1001;
     overflow: hidden;
-    border-right: 1px solid rgba(51, 65, 85, 0.08);
+    border-right: 1px solid rgba(var(--color-primary-rgb), 0.08);
 
     // 重置 element-ui
     .horizontal-collapse-transition {
@@ -77,27 +77,32 @@
     }
 
     // 菜单项 hover — 柔和暖色背景
+    .el-menu-item,
+    .el-submenu__title {
+      color: var(--menu-text);
+    }
+
     .submenu-title-noDropdown,
     .el-submenu__title {
       &:hover {
-        background-color: $menuHover !important;
+        background-color: var(--menu-hover) !important;
       }
     }
 
     // 父级菜单选中态
     .el-submenu.is-active > .el-submenu__title,
     & .nest-menu .el-submenu.is-active > .el-submenu__title {
-      background-color: $menuActiveBg !important;
-      color: $menuActiveText !important;
+      background-color: var(--menu-active-bg) !important;
+      color: var(--menu-active-text) !important;
       font-weight: 600;
     }
 
     // 子菜单项
     & .nest-menu .el-submenu>.el-submenu__title,
     & .el-submenu .el-menu-item {
-      background-color: $subMenuBg;
+      background-color: var(--sub-menu-bg);
       &:hover {
-        background-color: $subMenuHover !important;
+        background-color: var(--sub-menu-hover) !important;
       }
     }
 
@@ -105,8 +110,8 @@
     .el-menu-item.is-active,
     & .el-submenu .el-menu-item.is-active,
     & .nest-menu .el-submenu .el-menu-item.is-active {
-      background-color: $menuActiveBg !important;
-      color: $menuActiveText !important;
+      background-color: var(--menu-active-bg) !important;
+      color: var(--menu-active-text) !important;
       font-weight: 600;
     }
   }
@@ -197,7 +202,7 @@
   .nest-menu .el-submenu>.el-submenu__title,
   .el-menu-item {
     &:hover {
-      background-color: $menuHover !important;
+      background-color: var(--menu-hover) !important;
     }
   }
 
@@ -210,7 +215,7 @@
     &::-webkit-scrollbar-track-piece { background: transparent; }
     &::-webkit-scrollbar { width: 5px; }
     &::-webkit-scrollbar-thumb {
-      background: rgba(51, 65, 85, 0.2);
+      background: rgba(var(--color-primary-rgb), 0.2);
       border-radius: 3px;
     }
   }

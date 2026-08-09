@@ -575,9 +575,9 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #334155;
+$primary: var(--color-primary);
 $border: #CBD5E1;
-.dashboard-container { display: flex; min-height: 100vh; background: #F8FAFC;  color: #1b1c1c; }
+.dashboard-container { display: flex; min-height: 100vh; background: var(--color-primary-surface);  color: #1b1c1c; }
 .main-content { width: 100%; display: flex; flex-direction: column; min-height: 100vh; }
 .page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; }
@@ -586,8 +586,8 @@ $border: #CBD5E1;
 }
 .page-heading { font-size: 24px; line-height: 32px; font-weight: 600; color: #1b1c1c; }
 .header-actions { display: flex; gap: 8px; align-items: center; }
-.btn-refresh { display: flex; align-items: center; gap: 4px; padding: 8px 16px; background: #fff; border: 1px solid $border; border-radius: 2px; color: #334155; cursor: pointer; font-size: 13px;
-  &:hover { background: #F1F5F9; }
+.btn-refresh { display: flex; align-items: center; gap: 4px; padding: 8px 16px; background: #fff; border: 1px solid $border; border-radius: 2px; color: var(--color-primary); cursor: pointer; font-size: 13px;
+  &:hover { background: var(--color-primary-light); }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
@@ -599,7 +599,7 @@ $border: #CBD5E1;
 .stat-card { display: flex; align-items: center; gap: 14px; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 16px 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
 .stat-icon { width: 44px; height: 44px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #fff; flex-shrink: 0;
   &.icon-task { background: $primary; }
-  &.icon-period { background: #475569; }
+  &.icon-period { background: var(--color-primary-hover); }
   &.icon-running { background: #B45309; }
   &.icon-person { background: #2B6CB0; }
   &.icon-submit { background: #15803D; }
@@ -623,7 +623,7 @@ $border: #CBD5E1;
 
 // 趋势控制区：粒度切换 + 时间范围
 .trend-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.trend-tabs { display: flex; background: #F1F5F9; border: 1px solid $border; border-radius: 3px; padding: 2px;
+.trend-tabs { display: flex; background: var(--color-primary-light); border: 1px solid $border; border-radius: 3px; padding: 2px;
   .trend-tab { padding: 5px 14px; font-size: 12px; color: #64748B; cursor: pointer; border-radius: 2px; user-select: none; transition: all .2s;
     &:hover { color: $primary; }
     &.active { background: $primary; color: #fff; font-weight: 600; }
@@ -643,9 +643,9 @@ $border: #CBD5E1;
 .bar-chart { display: flex; align-items: flex-end; gap: 3px; height: 220px; padding: 8px 4px 0; border-bottom: 1px solid #E2E8F0; overflow-x: auto; }
 .bar-col { flex: 1; min-width: 18px; display: flex; flex-direction: column; align-items: center; height: 100%; }
 .bar-track { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
-.bar-fill { width: 60%; max-width: 22px; min-height: 2px; background: rgba(51,65,85,0.35); border-radius: 3px 3px 0 0; transition: height .4s;
+.bar-fill { width: 60%; max-width: 22px; min-height: 2px; background: rgba(var(--color-primary-rgb),0.35); border-radius: 3px 3px 0 0; transition: height .4s;
   &:hover { background: $primary; }
-  &.hot { background: $primary; box-shadow: 0 0 6px rgba(51,65,85,0.5); }
+  &.hot { background: $primary; box-shadow: 0 0 6px rgba(var(--color-primary-rgb),0.5); }
 }
 .bar-val { font-size: 10px; color: $primary; font-weight: 700; height: 14px; line-height: 14px; }
 .bar-date { font-size: 9px; color: #bbb; height: 16px; line-height: 16px; transform: scale(0.92); white-space: nowrap; }
@@ -683,6 +683,6 @@ $border: #CBD5E1;
 .rank-value { width: 62px; text-align: right; font-weight: 700; color: #1b1c1c; flex-shrink: 0; }
 .rank-unit { font-size: 10px; color: #aaa; font-weight: 400; }
 .rank-toggle { text-align: center; padding: 4px 0; margin-top: 2px; font-size: 12px; color: $primary; cursor: pointer; user-select: none; border-top: 1px dashed #E2E8F0;
-  &:hover { color: #475569; }
+  &:hover { color: var(--color-primary-hover); }
 }
 </style>

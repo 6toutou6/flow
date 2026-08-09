@@ -261,7 +261,7 @@ export default {
   .modal-title {
     font-size: 18px;
     font-weight: bold;
-    color: #334155;
+    color: var(--color-primary);
     margin: 0;
     display: flex;
     align-items: center;
@@ -290,12 +290,12 @@ export default {
     border-radius: 50%;
     cursor: pointer;
     font-size: 16px;
-    color: #334155;
+    color: var(--color-primary);
     transition: all 0.2s;
 
     &:hover {
-      background: #F1F5F9;
-      color: #334155;
+      background: var(--color-primary-light);
+      color: var(--color-primary);
     }
   }
 }
@@ -308,8 +308,8 @@ export default {
 
 /* 期次信息卡片 */
 .round-info-card {
-  background: #F8FAFC;
-  border: 1px solid rgba(51, 65, 85, 0.1);
+  background: var(--color-primary-surface);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.1);
   border-radius: 3px;
   padding: 16px;
   margin-bottom: 16px;
@@ -363,14 +363,14 @@ export default {
 
   &.summary-green { color: #15803D; }
   &.summary-orange { color: #EA580C; }
-  &.summary-red { color: #334155; }
+  &.summary-red { color: var(--color-primary); }
 }
 
 .round-badge {
   display: inline-block;
   padding: 3px 10px;
-  background: rgba(51, 65, 85, 0.1);
-  color: #334155;
+  background: rgba(var(--color-primary-rgb), 0.1);
+  color: var(--color-primary);
   border-radius: 4px;
   font-size: 13px;
   font-weight: bold;
@@ -391,8 +391,8 @@ export default {
   }
 
   &.round-status-progress {
-    background: #F8FAFC;
-    color: #334155;
+    background: var(--color-primary-surface);
+    color: var(--color-primary);
     border: 1px solid #CBD5E1;
   }
 
@@ -408,8 +408,8 @@ export default {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #334155;
-  background: rgba(51, 65, 85, 0.05);
+  color: var(--color-primary);
+  background: rgba(var(--color-primary-rgb), 0.05);
   padding: 8px 12px;
   border-radius: 2px;
   margin-bottom: 16px;
@@ -421,7 +421,7 @@ export default {
 
 /* 人员整改详情表 */
 .record-table {
-  border: 1px solid rgba(51, 65, 85, 0.1);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.1);
   border-radius: 2px;
   overflow: hidden;
   background: white;
@@ -432,10 +432,10 @@ export default {
   grid-template-columns: 1fr 1fr 0.8fr 0.9fr 1.1fr 1.4fr 1.2fr 0.8fr;
   gap: 8px;
   padding: 10px 12px;
-  background: #F1F5F9;
+  background: var(--color-primary-light);
   font-size: 12px;
   font-weight: bold;
-  color: #334155;
+  color: var(--color-primary);
 }
 
 .record-table-row {
@@ -443,14 +443,14 @@ export default {
   grid-template-columns: 1fr 1fr 0.8fr 0.9fr 1.1fr 1.4fr 1.2fr 0.8fr;
   gap: 8px;
   padding: 10px 12px;
-  border-top: 1px solid rgba(51, 65, 85, 0.08);
+  border-top: 1px solid rgba(var(--color-primary-rgb), 0.08);
   font-size: 13px;
   color: #1b1c1c;
   align-items: center;
   transition: background 0.2s;
 
   &:hover {
-    background: #F8FAFC;
+    background: var(--color-primary-surface);
   }
 }
 
@@ -478,13 +478,13 @@ export default {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: rgba(51, 65, 85, 0.1);
+  background: rgba(var(--color-primary-rgb), 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
   font-weight: bold;
-  color: #334155;
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
@@ -496,14 +496,14 @@ export default {
 
 .col-dept {
   font-size: 13px;
-  color: #334155;
+  color: var(--color-primary);
 }
 
 .role-tag {
   display: inline-block;
   padding: 2px 6px;
-  background: rgba(51, 65, 85, 0.08);
-  color: #334155;
+  background: rgba(var(--color-primary-rgb), 0.08);
+  color: var(--color-primary);
   border-radius: 4px;
   font-size: 11px;
   font-weight: bold;
@@ -535,14 +535,14 @@ export default {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #334155;
+  color: var(--color-primary);
   text-decoration: none;
   font-size: 11px;
   transition: color 0.2s;
 
   &:hover {
     text-decoration: underline;
-    color: #1E293B;
+    color: var(--color-primary-deep);
   }
 
   i {
@@ -574,11 +574,11 @@ export default {
 
 .btn-detail {
   padding: 4px 10px;
-  background: rgba(51, 65, 85, 0.05);
+  background: rgba(var(--color-primary-rgb), 0.05);
   border: 1px solid #CBD5E1;
   border-radius: 4px;
   font-size: 12px;
-  color: #334155;
+  color: var(--color-primary);
   cursor: pointer;
   transition: all 0.2s;
   display: inline-flex;
@@ -586,8 +586,8 @@ export default {
   gap: 4px;
 
   &:hover {
-    background: rgba(51, 65, 85, 0.1);
-    border-color: #334155;
+    background: rgba(var(--color-primary-rgb), 0.1);
+    border-color: var(--color-primary);
   }
 
   i {
@@ -634,15 +634,15 @@ export default {
   border: 1px solid #CBD5E1;
   border-radius: 4px;
   font-size: 14px;
-  color: #334155;
+  color: var(--color-primary);
   background: white;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: #F1F5F9;
-    color: #334155;
-    border-color: #334155;
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
   }
 }
 </style>

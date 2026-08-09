@@ -8,7 +8,11 @@
     :root {
       --primary: #334155;
       --primary-dark: #1e293b;
-      --accent: #c53030;
+      --accent: #334155;
+      --accent-2: #475569;
+      --accent-light: #f1f5f9;
+      --accent-deep: #1e293b;
+      --accent-rgb: 51, 65, 85;
       --surface: #f1f5f9;
       --card: #ffffff;
       --border: #e2e8f0;
@@ -22,6 +26,14 @@
       --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
       --shadow-md: 0 6px 16px rgba(0,0,0,0.09);
       --shadow-lg: 0 12px 32px rgba(0,0,0,0.14);
+    }
+    /* 红色主题（与系统「中国红」同步） */
+    html[data-theme="red"] {
+      --accent: #c53030;
+      --accent-2: #e06464;
+      --accent-light: #fbf0ef;
+      --accent-deep: #7a1f1f;
+      --accent-rgb: 197, 48, 48;
     }
     *, *::before, *::after { box-sizing: border-box; }
     html { scroll-behavior: smooth; box-sizing: border-box; }
@@ -54,7 +66,7 @@
       display: flex; align-items: center; gap: 12px;
     }
     .brand-logo { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; flex-shrink: 0; background: #f1f5f9; }
-    .brand-icon { display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--accent), #e06464); color: #fff; font-size: 20px; font-weight: 800; }
+    .brand-icon { display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font-size: 20px; font-weight: 800; }
     .brand-title { font-size: 14px; font-weight: 700; color: var(--primary-dark); line-height: 1.35; }
     .brand-subtitle { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
     .toc-title {
@@ -91,7 +103,7 @@
     /* ├─ Cover ─── */
     .cover {
       position: relative; overflow: hidden;
-      background: linear-gradient(135deg, #1e293b 0%, #334155 55%, #c53030 130%);
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 60%, var(--accent) 140%);
       border-radius: var(--radius-lg); padding: 60px 48px;
       text-align: center; margin-bottom: 40px;
       box-shadow: var(--shadow-md);
@@ -172,17 +184,17 @@
     }
     .qs-card::before {
       content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
-      background: linear-gradient(90deg, var(--accent), #ef6a6a);
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
       opacity: 0; transition: opacity 0.25s;
     }
-    .qs-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); border-color: rgba(197,48,48,0.35); }
+    .qs-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); border-color: rgba(var(--accent-rgb), 0.35); }
     .qs-card:hover::before { opacity: 1; }
     .qs-no {
       width: 36px; height: 36px; margin: 0 auto 12px;
-      background: linear-gradient(135deg, var(--accent), #e06464);
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
       color: #fff; border-radius: 50%; font-size: 15px; font-weight: 800;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 10px rgba(197,48,48,0.3);
+      box-shadow: 0 4px 10px rgba(var(--accent-rgb), 0.3);
     }
     .qs-name { font-size: 14px; font-weight: 700; color: var(--primary-dark); margin-bottom: 6px; }
     .qs-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
@@ -308,7 +320,7 @@
     .badge-primary { background: rgba(51,65,85,0.1); color: var(--primary); border: 1px solid var(--primary); }
     .badge-success { background: rgba(22,163,74,0.1); color: var(--success); border: 1px solid var(--success); }
     .badge-warning { background: rgba(217,119,6,0.1); color: var(--warning); border: 1px solid var(--warning); }
-    .badge-danger  { background: rgba(197,48,48,0.1); color: var(--accent); border: 1px solid var(--accent); }
+    .badge-danger  { background: rgba(var(--accent-rgb), 0.1); color: var(--accent); border: 1px solid var(--accent); }
 
     /* ├─ Menu tree ─── */
     .menu-tree {
@@ -1040,6 +1052,17 @@
   <button class="back-top" id="backTop" title="返回顶部">↑</button>
 
   <script>
+    // 主题：读取 URL ?theme=red/slate（由系统导航栏切换后通过 iframe 参数同步）
+    (function applyTheme() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const theme = params.get('theme');
+        if (theme === 'red' || theme === 'slate') {
+          document.documentElement.setAttribute('data-theme', theme);
+        }
+      } catch (e) { /* ignore */ }
+    })();
+
     // 目录高亮
     const sections = document.querySelectorAll('section[id], h3[id], h4[id]');
     const tocLinks = document.querySelectorAll('.toc a');

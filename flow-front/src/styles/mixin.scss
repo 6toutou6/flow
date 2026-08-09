@@ -16,7 +16,7 @@
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(51, 65, 85, 0.25);
+    background: rgba(var(--color-primary-rgb), 0.25);
     border-radius: 2px;
   }
 }

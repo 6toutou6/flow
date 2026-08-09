@@ -4,7 +4,7 @@
       <div class="logo-section">
         <div class="logo-mark">
           <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-            <rect width="28" height="28" rx="7" fill="#334155"/>
+            <rect width="28" height="28" rx="7" fill="var(--color-primary)"/>
             <path d="M7 14L12 19L21 9" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
@@ -19,10 +19,7 @@
       <el-menu
         :default-active="activeMenu"
         :collapse="isCollapse"
-        :background-color="variables.menuBg"
-        :text-color="variables.menuText"
         :unique-opened="false"
-        :active-text-color="variables.menuActiveText"
         :collapse-transition="false"
         mode="vertical"
       >
@@ -45,7 +42,6 @@
 <script>
 import { mapGetters } from 'vuex'
 import SidebarItem from './SidebarItem'
-import variables from '@/styles/variables.scss'
 
 export default {
   components: { SidebarItem },
@@ -59,9 +55,6 @@ export default {
       const { meta, path } = route
       if (meta.activeMenu) return meta.activeMenu
       return path
-    },
-    variables() {
-      return variables
     },
     isCollapse() {
       return !this.sidebar.opened
@@ -85,7 +78,7 @@ export default {
   left: 0;
   top: 0;
   background-color: #fff;
-  border-right: 1px solid rgba(51, 65, 85, 0.08);
+  border-right: 1px solid rgba(var(--color-primary-rgb), 0.08);
   display: flex;
   flex-direction: column;
   z-index: 50;
@@ -150,21 +143,21 @@ export default {
   line-height: 44px !important;
   margin: 3px 8px !important;
   border-radius: 3px !important;
-  color: #334155 !important;
+  color: var(--color-primary) !important;
   font-size: 14px;
   transition: all 0.18s ease;
 }
 
 ::v-deep .el-menu-item:hover,
 ::v-deep .el-submenu__title:hover {
-  background-color: #F1F5F9 !important;
+  background-color: var(--color-primary-light) !important;
 }
 
 ::v-deep .el-menu-item.is-active {
-  background: linear-gradient(135deg, #334155 0%, #1E293B 100%) !important;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-deep) 100%) !important;
   color: #ffffff !important;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(51, 65, 85, 0.25);
+  box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.25);
 }
 
 // 子菜单项
@@ -181,7 +174,7 @@ export default {
 }
 
 ::v-deep .el-submenu.is-active > .el-submenu__title {
-  color: #334155 !important;
+  color: var(--color-primary) !important;
   font-weight: 600;
 }
 
@@ -193,12 +186,12 @@ export default {
 // ---- 底部 ----
 .sidebar-footer {
   padding: 12px 16px 16px;
-  border-top: 1px solid rgba(51, 65, 85, 0.08);
+  border-top: 1px solid rgba(var(--color-primary-rgb), 0.08);
 }
 
 .btn-new-task {
   width: 100%;
-  background: linear-gradient(135deg, #334155 0%, #1E293B 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-deep) 100%);
   color: #fff;
   padding: 10px 16px;
   border-radius: 3px;
@@ -211,18 +204,18 @@ export default {
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  box-shadow: 0 2px 8px rgba(51, 65, 85, 0.25);
+  box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.25);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background: linear-gradient(135deg, #475569 0%, #1E293B 100%);
-    box-shadow: 0 4px 14px rgba(51, 65, 85, 0.35);
+    background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary-deep) 100%);
+    box-shadow: 0 4px 14px rgba(var(--color-primary-rgb), 0.35);
     transform: translateY(-1px);
   }
 
   &:active {
     transform: translateY(0) scale(0.98);
-    box-shadow: 0 1px 4px rgba(51, 65, 85, 0.2);
+    box-shadow: 0 1px 4px rgba(var(--color-primary-rgb), 0.2);
   }
 
   i {

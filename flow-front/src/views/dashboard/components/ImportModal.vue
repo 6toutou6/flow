@@ -210,7 +210,7 @@ export default {
   background-color: #faf9f9;
 
   &:hover {
-    border-color: #334155;
+    border-color: var(--color-primary);
     background-color: #fff5f5;
   }
 
@@ -227,7 +227,7 @@ export default {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background-color: #334155;
+  background-color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -269,23 +269,23 @@ export default {
   gap: 8px;
   padding: 10px 20px;
   background-color: #faf9f9;
-  color: #334155;
+  color: var(--color-primary);
   border-radius: 3px;
   font-weight: 600;
-  border: 1px solid #334155;
+  border: 1px solid var(--color-primary);
   cursor: pointer;
   transition: all 0.2s;
   font-size: 14px;
   width: fit-content;
 
   &:hover {
-    background-color: rgba(51, 65, 85, 0.1);
+    background-color: rgba(var(--color-primary-rgb), 0.1);
   }
 }
 
 .btn-primary {
   padding: 10px 24px;
-  background-color: #334155;
+  background-color: var(--color-primary);
   color: white;
   border-radius: 3px;
   font-weight: 700;

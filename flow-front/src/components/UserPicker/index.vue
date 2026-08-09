@@ -97,7 +97,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #334155;
+$primary: var(--color-primary);
 .picker-filter { display: flex; gap: 8px; margin-bottom: 12px; }
 .filter-input { height: 32px; border: 1px solid #dcdfe6; border-radius: 4px; padding: 0 8px; font-size: 13px; outline: none; flex: 1;
   &:focus { border-color: $primary; }

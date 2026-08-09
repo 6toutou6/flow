@@ -46,7 +46,7 @@ export default {
   width: 100%;
   height: 50px;
   line-height: 50px;
-  background: linear-gradient(135deg, #1E293B 0%, #334155 100%);
+  background: var(--color-primary-gradient);
   text-align: center;
   overflow: hidden;
 

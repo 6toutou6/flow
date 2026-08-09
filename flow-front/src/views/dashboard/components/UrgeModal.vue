@@ -138,7 +138,7 @@ export default {
 
   .el-icon-bell {
     font-size: 36px;
-    color: #334155;
+    color: var(--color-primary);
   }
 }
 
@@ -158,7 +158,7 @@ export default {
 }
 
 .dept-name {
-  color: #334155;
+  color: var(--color-primary);
   font-weight: 600;
 }
 
@@ -188,7 +188,7 @@ export default {
 
 .btn-primary {
   padding: 10px 24px;
-  background-color: #334155;
+  background-color: var(--color-primary);
   color: white;
   border-radius: 3px;
   font-weight: 700;

@@ -282,7 +282,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #334155;
+$primary: var(--color-primary);
 $border: #CBD5E1;
 .attach-field { display: flex; flex-direction: column; gap: 10px; }
 .af-upload { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 2px; }
@@ -291,12 +291,12 @@ $border: #CBD5E1;
   &:hover, &:focus { color: #fff; background: $primary; border-color: $primary; }
 }
 .af-up-btn { background: $primary; border-color: $primary;
-  &:hover, &:focus { background: darken($primary, 6%) !important; border-color: darken($primary, 6%) !important; }
+  &:hover, &:focus { background: var(--color-primary-hover) !important; border-color: var(--color-primary-hover) !important; }
 }
 .af-thumb { width: 44px; height: 44px; border-radius: 3px; object-fit: cover; border: 1px solid #E2E8F0; background: #fafafa; flex-shrink: 0; }
 // 只读展示：更轻量的卡片
 .attach-field.is-readonly .af-row { background: #FAFAFB; border-color: #e8eaef;
-  &:hover { border-color: $primary; background: #F8FAFC; box-shadow: none; }
+  &:hover { border-color: $primary; background: var(--color-primary-surface); box-shadow: none; }
 }
 .attach-field.is-readonly .af-icon { color: #9aa0ac; }
 .attach-field.is-readonly .af-meta { color: #b0b4bd; }
@@ -311,8 +311,8 @@ $border: #CBD5E1;
 }
 
 .af-list { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; padding-right: 2px; }
-.af-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #F8FAFC; border: 1px solid $border; border-radius: 3px; padding: 8px 12px; transition: all .2s;
-  &:hover { border-color: $primary; background: #F1F5F9; box-shadow: 0 2px 6px rgba(51,65,85,0.08); }
+.af-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--color-primary-surface); border: 1px solid $border; border-radius: 3px; padding: 8px 12px; transition: all .2s;
+  &:hover { border-color: $primary; background: var(--color-primary-light); box-shadow: 0 2px 6px rgba(var(--color-primary-rgb),0.08); }
 }
 .af-row-pending { background: #fff; border-color: #CBD5E1;
   &:hover { border-color: #60A5FA; background: #F1F4FF; box-shadow: 0 2px 6px rgba(180, 83, 9,0.08); }
@@ -328,11 +328,11 @@ $border: #CBD5E1;
 }
 .af-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .af-btn { display: inline-flex; align-items: center; gap: 3px; padding: 4px 9px; border: none; background: transparent; color: $primary; font-size: 12px; cursor: pointer; border-radius: 2px;
-  &:hover { background: rgba(51,65,85,0.08); }
+  &:hover { background: rgba(var(--color-primary-rgb),0.08); }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .af-icon-btn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border: none; background: transparent; color: $primary; font-size: 15px; cursor: pointer; border-radius: 2px; transition: all .2s;
-  &:hover { background: rgba(51,65,85,0.08); transform: translateY(-1px); }
+  &:hover { background: rgba(var(--color-primary-rgb),0.08); transform: translateY(-1px); }
   &:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 .af-del { color: #DC2626;
@@ -343,7 +343,7 @@ $border: #CBD5E1;
   > i { font-size: 56px; color: $primary; }
 }
 .af-preview-name { font-size: 15px; font-weight: 700; color: #1b1c1c; word-break: break-all; text-align: center; }
-.af-preview-meta { width: 100%; display: flex; flex-direction: column; gap: 6px; background: #F1F5F9; border: 1px dashed $border; border-radius: 3px; padding: 12px 14px; font-size: 13px; color: #334155;
+.af-preview-meta { width: 100%; display: flex; flex-direction: column; gap: 6px; background: var(--color-primary-light); border: 1px dashed $border; border-radius: 3px; padding: 12px 14px; font-size: 13px; color: var(--color-primary);
   div { word-break: break-all; }
 }
 </style>
