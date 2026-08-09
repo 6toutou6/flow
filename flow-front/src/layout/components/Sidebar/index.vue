@@ -2,10 +2,19 @@
   <aside class="sidebar-container">
     <div class="sidebar-header">
       <div class="logo-section">
-        <h1 class="sidebar-title">问题整改管理系统</h1>
-        <p class="sidebar-subtitle">政府/企业管理版</p>
+        <div class="logo-mark">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <rect width="28" height="28" rx="7" fill="#C53030"/>
+            <path d="M7 14L12 19L21 9" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <h1 class="sidebar-title">流程管理系统</h1>
+          <p class="sidebar-subtitle">线性顺序流转工作流平台</p>
+        </div>
       </div>
     </div>
+
     <el-scrollbar wrap-class="scrollbar-wrapper">
       <el-menu
         :default-active="activeMenu"
@@ -20,16 +29,15 @@
         <sidebar-item v-for="route in routes" :key="route.path" :item="route" :base-path="route.path" />
       </el-menu>
     </el-scrollbar>
+
     <div class="sidebar-footer">
-      <button class="btn-primary" @click="handleAddIssue">
-        <i class="el-icon el-icon-plus"></i>
-        <span>发布新问题</span>
+      <button class="btn-new-task" @click="handleAddIssue">
+        <i class="el-icon-plus" />
+        <span>新建任务</span>
       </button>
-      <div class="divider"></div>
-      <a href="#" class="logout-link" @click.prevent="handleLogout">
-        <i class="el-icon el-icon-switch-button"></i>
-        <span>退出登录</span>
-      </a>
+      <div class="footer-meta">
+        <span class="meta-version">v2.0</span>
+      </div>
     </div>
   </aside>
 </template>
@@ -42,18 +50,14 @@ import variables from '@/styles/variables.scss'
 export default {
   components: { SidebarItem },
   computed: {
-    ...mapGetters([
-      'sidebar'
-    ]),
+    ...mapGetters(['sidebar']),
     routes() {
       return this.$router.options.routes
     },
     activeMenu() {
       const route = this.$route
       const { meta, path } = route
-      if (meta.activeMenu) {
-        return meta.activeMenu
-      }
+      if (meta.activeMenu) return meta.activeMenu
       return path
     },
     variables() {
@@ -66,13 +70,6 @@ export default {
   methods: {
     handleAddIssue() {
       this.$router.push('/task-process/index')
-    },
-    handleLogout() {
-      this.$store.dispatch('user/logout').then(() => {
-        this.$router.push('/login')
-      }).catch(() => {
-        this.$router.push('/login')
-      })
     }
   }
 }
@@ -85,37 +82,56 @@ export default {
   position: fixed;
   left: 0;
   top: 0;
-  background-color: #ffffff;
-  border-right: 1px solid #e4beba;
+  background-color: #fff;
+  border-right: 1px solid rgba(197, 48, 48, 0.08);
   display: flex;
   flex-direction: column;
   z-index: 50;
 }
 
+// ---- 头部 Logo ----
 .sidebar-header {
-  padding: 24px 16px;
-  border-bottom: 1px solid #e4beba;
+  padding: 20px 16px 16px;
 }
 
 .logo-section {
   display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-mark {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-text {
+  display: flex;
   flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
 }
 
 .sidebar-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #a20513;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1E1A19;
   margin: 0;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 .sidebar-subtitle {
-  font-size: 13px;
-  color: #5b403d;
-  margin: 4px 0 0;
+  font-size: 11px;
+  color: #9A8F8C;
+  margin: 0;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
 }
 
+// ---- 滚动区 ----
 .el-scrollbar {
   flex: 1;
   overflow: hidden;
@@ -125,20 +141,65 @@ export default {
   overflow-y: auto;
 }
 
-.sidebar-footer {
-  padding: 16px;
-  border-top: 1px solid #e4beba;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+// ---- 菜单项样式 ----
+::v-deep .el-menu-item,
+::v-deep .el-submenu__title {
+  height: 44px !important;
+  line-height: 44px !important;
+  margin: 3px 8px !important;
+  border-radius: 8px !important;
+  color: #5C514E !important;
+  font-size: 14px;
+  transition: all 0.18s ease;
 }
 
-.btn-primary {
+::v-deep .el-menu-item:hover,
+::v-deep .el-submenu__title:hover {
+  background-color: #F7F4F3 !important;
+}
+
+::v-deep .el-menu-item.is-active {
+  background: linear-gradient(135deg, #C53030 0%, #A20513 100%) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(197, 48, 48, 0.25);
+}
+
+// 子菜单项
+::v-deep .el-submenu .el-menu-item {
+  height: 38px !important;
+  line-height: 38px !important;
+  margin: 2px 12px 2px 36px !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+}
+
+::v-deep .el-submenu .el-menu {
+  padding: 2px 0 !important;
+}
+
+::v-deep .el-submenu.is-active > .el-submenu__title {
+  color: #C53030 !important;
+  font-weight: 600;
+}
+
+// 展开箭头颜色
+::v-deep .el-submenu__icon-arrow {
+  color: #9A8F8C;
+}
+
+// ---- 底部 ----
+.sidebar-footer {
+  padding: 12px 16px 16px;
+  border-top: 1px solid rgba(197, 48, 48, 0.08);
+}
+
+.btn-new-task {
   width: 100%;
-  background-color: #c62828;
-  color: #ffffff;
-  padding: 8px 16px;
-  border-radius: 8px;
+  background: linear-gradient(135deg, #C53030 0%, #A20513 100%);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 10px;
   border: none;
   display: flex;
   align-items: center;
@@ -146,81 +207,42 @@ export default {
   gap: 8px;
   cursor: pointer;
   font-size: 14px;
-  font-weight: bold;
-  transition: all 0.2s;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 8px rgba(197, 48, 48, 0.25);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background-color: #a20513;
+    background: linear-gradient(135deg, #B52828 0%, #8A0410 100%);
+    box-shadow: 0 4px 14px rgba(197, 48, 48, 0.35);
+    transform: translateY(-1px);
   }
 
   &:active {
-    transform: scale(0.98);
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 1px 4px rgba(197, 48, 48, 0.2);
+  }
+
+  i {
+    font-size: 16px;
+    font-weight: 700;
   }
 }
 
-.divider {
-  height: 1px;
-  background-color: rgba(228, 190, 186, 0.3);
-  margin: 8px 0;
-}
-
-.logout-link {
+.footer-meta {
+  margin-top: 10px;
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  color: #5b403d;
-  text-decoration: none;
-  font-size: 14px;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: #e5e2e1;
-    color: #a20513;
-  }
 }
 
-.el-menu {
-  border-right: none;
+.meta-version {
+  font-size: 11px;
+  color: #BEB4B2;
+  letter-spacing: 0.05em;
 }
 
-::v-deep .el-menu-item,
-::v-deep .el-submenu__title {
-  height: 44px !important;
-  line-height: 44px !important;
-  margin: 4px 8px !important;
-  border-radius: 8px !important;
-  color: #5b403d !important;
-}
-
-::v-deep .el-menu-item:hover,
-::v-deep .el-submenu__title:hover {
-  background-color: #f6f3f2 !important;
-}
-
-::v-deep .el-menu-item.is-active {
-  background-color: #a20513 !important;
-  color: #ffffff !important;
-  font-weight: bold;
-}
-
-// 子菜单项：圆角、边距、缩进
-::v-deep .el-submenu .el-menu-item {
-  height: 40px !important;
-  line-height: 40px !important;
-  margin: 2px 12px 2px 32px !important;
-  border-radius: 6px !important;
-  font-size: 13px !important;
-}
-
-// 子菜单展开容器内边距
-::v-deep .el-submenu .el-menu {
-  padding: 4px 0 !important;
-}
-
-::v-deep .el-submenu.is-active > .el-submenu__title {
-  color: #a20513 !important;
+// ---- el-menu 基础 ----
+::v-deep .el-menu {
+  border-right: none !important;
 }
 </style>

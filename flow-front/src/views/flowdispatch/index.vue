@@ -222,6 +222,7 @@
                         <td>{{ p.endTime || '—' }}</td>
                         <td>{{ p.dispatchTime }}</td>
                         <td class="text-right">
+                          <button class="action-link" @click="openEndTimeDialog(t, p)"><i class="el-icon-time" /> 改截止</button>
                           <button class="action-link" @click="openPeriodUsers(t, p)"><i class="el-icon-user" /> 查看人员</button>
                           <button class="action-link text-error" @click="onDeletePeriod(t, p)"><i class="el-icon-delete" /> 删除</button>
                         </td>
@@ -273,11 +274,39 @@
       @close="genVisible = false"
       @edit-config="onEditConfig"
     />
+
+    <!-- 修改期次截止时间弹窗 -->
+    <el-dialog title="修改期次截止时间" :visible.sync="endTimeVisible" width="440px" :close-on-click-modal="false">
+      <div v-if="endTimeTarget" class="et-info">
+        <div class="et-row"><span class="et-label">任务</span>{{ endTimeTarget._taskName || '—' }}</div>
+        <div class="et-row"><span class="et-label">期次</span>{{ endTimeTarget.periodName || endTimeTarget.taskName || '第' + (endTimeTarget.periodNo || '—') + '期' }}</div>
+        <div class="et-row"><span class="et-label">开始时间</span>{{ endTimeTarget.startTime || '—' }}</div>
+        <div class="et-row"><span class="et-label">当前截止</span>{{ endTimeTarget.endTime || '—' }}</div>
+      </div>
+      <el-form label-width="70px" style="margin-top: 14px;">
+        <el-form-item label="截止时间">
+          <el-date-picker
+            v-model="endTimeValue"
+            type="datetime"
+            placeholder="请选择新的截止时间"
+            format="yyyy-MM-dd HH:mm:ss"
+            value-format="yyyy-MM-dd HH:mm:ss"
+            :picker-options="endTimePickerOptions"
+            style="width: 100%"
+          />
+        </el-form-item>
+      </el-form>
+      <div class="et-tip"><i class="el-icon-info" /> 保存后将同步更新该期次下所有成员任务的截止时间。</div>
+      <span slot="footer">
+        <el-button @click="endTimeVisible = false">取消</el-button>
+        <el-button type="danger" :loading="endTimeSaving" @click="confirmEndTime">保存</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { getDispatchTaskList, getDispatchStats, toggleDispatchPlanStatus, toggleDispatchSample, deleteDispatchPlan, getTaskMembers, getPreviewPeriod, checkDueDispatches, autoDispatchDuePeriods } from '@/api/flowDispatch'
+import { getDispatchTaskList, getDispatchStats, toggleDispatchPlanStatus, toggleDispatchSample, deleteDispatchPlan, getTaskMembers, getPreviewPeriod, checkDueDispatches, autoDispatchDuePeriods, updatePeriodEndTime } from '@/api/flowDispatch'
 import { getTaskList, deleteTaskGroup } from '@/api/task'
 import { getTemplateList } from '@/api/template'
 import GeneratePeriodModal from './components/GeneratePeriodModal.vue'
@@ -309,12 +338,24 @@ export default {
       // 到期待下发的期次
       dueList: [],
       dueLoading: false,
-      dispatching: false
+      dispatching: false,
+      // 修改期次截止时间弹窗
+      endTimeVisible: false,
+      endTimeTarget: null,
+      endTimeValue: '',
+      endTimeSaving: false
     }
   },
   computed: {
     isSuperAdmin() {
       return !!(this.$store.state.user.userInfo && this.$store.state.user.userInfo.superAdmin)
+    },
+    // 截止时间选择器：不能早于期次开始时间
+    endTimePickerOptions() {
+      const start = this.endTimeTarget && this.endTimeTarget.startTime ? new Date(this.endTimeTarget.startTime) : null
+      return {
+        disabledDate: t => start ? t.getTime() < start.getTime() - 86400000 : false
+      }
     }
   },
   created() {
@@ -632,6 +673,39 @@ export default {
         }
       })
     },
+    /** 打开修改期次截止时间弹窗 */
+    openEndTimeDialog(t, p) {
+      this.endTimeTarget = {
+        dispatchId: p.dispatchId,
+        periodName: p.periodName,
+        periodNo: p.periodNo,
+        taskName: p.taskName,
+        startTime: p.startTime,
+        endTime: p.endTime,
+        _taskId: t.id,
+        _taskName: t.taskName
+      }
+      this.endTimeValue = p.endTime || ''
+      this.endTimeVisible = true
+    },
+    /** 保存新的期次截止时间 */
+    async confirmEndTime() {
+      if (!this.endTimeValue) {
+        this.$message.warning('请选择新的截止时间')
+        return
+      }
+      this.endTimeSaving = true
+      try {
+        await updatePeriodEndTime(this.endTimeTarget.dispatchId, this.endTimeValue)
+        this.$message.success('截止时间已更新，该期次下所有成员任务同步更新')
+        this.endTimeVisible = false
+        await this.loadTaskDetail(this.endTimeTarget._taskId)
+      } catch (e) {
+        this.$message.error((e && e.message) || '更新失败')
+      } finally {
+        this.endTimeSaving = false
+      }
+    },
     async onDeletePeriod(t, p) {
       const cnt = p.memberCount || 0
       if (cnt > 0) {
@@ -836,6 +910,14 @@ $border: #e4beba;
 }
 .text-error { color: #ba1a1a; }
 .star-on { color: #E6A23C; }
+// 修改期次截止时间弹窗
+.et-info { display: flex; flex-direction: column; gap: 6px; background: #FAFAFA; border: 1px solid #f0e3e1; border-radius: 8px; padding: 10px 14px; font-size: 13px; }
+.et-row { display: flex; gap: 8px; color: #1b1c1c;
+  .et-label { width: 64px; color: #909399; flex-shrink: 0; }
+}
+.et-tip { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8a4b46; background: #FFF5F5; border: 1px dashed rgba(197,48,48,0.35); border-radius: 6px; padding: 8px 10px;
+  i { color: $primary; }
+}
 .period-section { background: #fff; border: 1px solid $border; border-radius: 10px; padding: 14px 16px; }
 .sec-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: #1b1c1c; margin-bottom: 12px;
   i { color: $primary; }

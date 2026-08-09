@@ -1,14 +1,19 @@
+// ============================================================
+// Flow 流程管理系统 - 侧边栏样式
+// 设计方向: 白底红章，温润克制
+// ============================================================
+
 #app {
 
   .main-container {
     min-height: 100%;
-    transition: margin-left .28s;
+    transition: margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     margin-left: $sideBarWidth;
     position: relative;
   }
 
   .sidebar-container {
-    transition: width 0.28s;
+    transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     width: $sideBarWidth !important;
     background-color: $menuBg;
     height: 100%;
@@ -19,8 +24,9 @@
     left: 0;
     z-index: 1001;
     overflow: hidden;
+    border-right: 1px solid rgba(197, 48, 48, 0.08);
 
-    // reset element-ui css
+    // 重置 element-ui
     .horizontal-collapse-transition {
       transition: 0s width ease-in-out, 0s padding-left ease-in-out, 0s padding-right ease-in-out;
     }
@@ -54,12 +60,14 @@
     }
 
     .svg-icon {
-      margin-right: 16px;
+      margin-right: 14px;
+      font-size: 18px;
     }
 
     .sub-el-icon {
-      margin-right: 12px;
+      margin-right: 10px;
       margin-left: -2px;
+      font-size: 16px;
     }
 
     .el-menu {
@@ -68,7 +76,7 @@
       width: 100% !important;
     }
 
-    // menu hover
+    // 菜单项 hover — 柔和暖色背景
     .submenu-title-noDropdown,
     .el-submenu__title {
       &:hover {
@@ -76,34 +84,34 @@
       }
     }
 
-    // 选中子菜单时，父级菜单也红底白字
+    // 父级菜单选中态
     .el-submenu.is-active > .el-submenu__title,
     & .nest-menu .el-submenu.is-active > .el-submenu__title {
       background-color: $menuActiveBg !important;
       color: $menuActiveText !important;
-      font-weight: bold;
+      font-weight: 600;
     }
 
-    // 子菜单项基础样式（去掉 min-width，去掉 !important 避免覆盖选中态）
+    // 子菜单项
     & .nest-menu .el-submenu>.el-submenu__title,
     & .el-submenu .el-menu-item {
       background-color: $subMenuBg;
-
       &:hover {
         background-color: $subMenuHover !important;
       }
     }
 
-    // 选中态：红底白字（放最后，最高优先级）
+    // 选中态 — 红底白字
     .el-menu-item.is-active,
     & .el-submenu .el-menu-item.is-active,
     & .nest-menu .el-submenu .el-menu-item.is-active {
       background-color: $menuActiveBg !important;
       color: $menuActiveText !important;
-      font-weight: bold;
+      font-weight: 600;
     }
   }
 
+  // ---- 折叠态 ----
   .hideSidebar {
     .sidebar-container {
       width: 54px !important;
@@ -119,34 +127,18 @@
 
       .el-tooltip {
         padding: 0 !important;
-
-        .svg-icon {
-          margin-left: 20px;
-        }
-
-        .sub-el-icon {
-          margin-left: 19px;
-        }
+        .svg-icon { margin-left: 20px; }
+        .sub-el-icon { margin-left: 19px; }
       }
     }
 
     .el-submenu {
       overflow: hidden;
-
       &>.el-submenu__title {
         padding: 0 !important;
-
-        .svg-icon {
-          margin-left: 20px;
-        }
-
-        .sub-el-icon {
-          margin-left: 19px;
-        }
-
-        .el-submenu__icon-arrow {
-          display: none;
-        }
+        .svg-icon { margin-left: 20px; }
+        .sub-el-icon { margin-left: 19px; }
+        .el-submenu__icon-arrow { display: none; }
       }
     }
 
@@ -169,17 +161,15 @@
     min-width: $sideBarWidth !important;
   }
 
-  // mobile responsive
+  // ---- 移动端 ----
   .mobile {
     .main-container {
       margin-left: 0px;
     }
-
     .sidebar-container {
       transition: transform .28s;
       width: $sideBarWidth !important;
     }
-
     &.hideSidebar {
       .sidebar-container {
         pointer-events: none;
@@ -190,7 +180,6 @@
   }
 
   .withoutAnimation {
-
     .main-container,
     .sidebar-container {
       transition: none;
@@ -198,42 +187,31 @@
   }
 }
 
-// when menu collapsed
+// ---- 弹出菜单（折叠态 hover 展开） ----
 .el-menu--vertical {
   &>.el-menu {
-    .svg-icon {
-      margin-right: 16px;
-    }
-    .sub-el-icon {
-      margin-right: 12px;
-      margin-left: -2px;
-    }
+    .svg-icon { margin-right: 14px; }
+    .sub-el-icon { margin-right: 10px; margin-left: -2px; }
   }
 
   .nest-menu .el-submenu>.el-submenu__title,
   .el-menu-item {
     &:hover {
-      // you can use $subMenuHover
       background-color: $menuHover !important;
     }
   }
 
-  // the scroll bar appears when the subMenu is too long
   >.el-menu--popup {
     max-height: 100vh;
     overflow-y: auto;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(30, 26, 25, 0.12) !important;
 
-    &::-webkit-scrollbar-track-piece {
-      background: #d3dce6;
-    }
-
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
-
+    &::-webkit-scrollbar-track-piece { background: #F7F4F3; }
+    &::-webkit-scrollbar { width: 5px; }
     &::-webkit-scrollbar-thumb {
-      background: #99a9bf;
-      border-radius: 20px;
+      background: rgba(197, 48, 48, 0.2);
+      border-radius: 3px;
     }
   }
 }

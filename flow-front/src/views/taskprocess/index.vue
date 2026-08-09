@@ -122,6 +122,7 @@
                         <td>{{ per.startTime ? per.startTime + ' ~ ' + (per.endTime || '—') : '—' }}</td>
                         <td class="text-center">
                           <span class="status-badge" :class="periodStatusClass(per)">{{ periodStatusText(per) }}</span>
+                          <span v-if="periodOverdue(per)" class="overdue-tag"><i class="el-icon-alarm-clock" /> 已超期</span>
                         </td>
                         <td>
                           <!-- 完整流程节点链（chip 样式，同期次人员查看） -->
@@ -231,6 +232,12 @@ export default {
     /** 节点状态→chip 样式：1已完成 / 2进行中(当前) / 0未开始 */
     nodeChipClass(s) {
       return { 1: 'chip-done', 2: 'chip-current', 0: 'chip-pending' }[s] || 'chip-pending'
+    },
+    /** 期次是否已超期（当前时间超过截止时间，且仍有待处理节点）；超期仅作标识，仍可正常处理 */
+    periodOverdue(per) {
+      if (!per.endTime || !this.periodPending(per)) return false
+      const end = new Date(String(per.endTime).replace(/-/g, '/'))
+      return !isNaN(end.getTime()) && new Date() > end
     },
     isTaskOpen(id) { return this.openTaskIds.indexOf(id) >= 0 },
     toggleTask(g) {
@@ -452,6 +459,8 @@ $border: #e4beba;
   &.chip-current { background: rgba(197,48,48,0.14); color: $primary; border: 1px solid rgba(197,48,48,0.4); }
   &.chip-pending { background: #f0f0f0; color: #aaa; }
 }
+// 已超期标识（软性标记：仍可提交，仅提示）
+.overdue-tag { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; color: #fff; background: #E6A23C; }
 
 // 分页（同任务管理）
 .pagination { display: flex; justify-content: flex-end; align-items: center; padding: 14px 16px; background: #fff; border: 1px solid $border; border-radius: 10px; margin-top: 12px; }

@@ -59,7 +59,7 @@ export default {
     position: relative;
     height: 100%;
     width: 100%;
-    background-color: #fcf9f8;
+    background-color: #FCFAF9;
     &.mobile.openSidebar{
       position: fixed;
       top: 0;
@@ -96,7 +96,7 @@ export default {
     margin-left: #{$sideBarWidth};
     transition: margin-left 0.28s;
     min-height: 100vh;
-    padding-top: 64px;
+    padding-top: 56px;
   }
 
   .hideSidebar .main-container {

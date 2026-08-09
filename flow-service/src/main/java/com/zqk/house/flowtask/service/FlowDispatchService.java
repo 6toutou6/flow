@@ -359,6 +359,25 @@ public class FlowDispatchService {
         return flowDispatchMapper.updateById(d) > 0;
     }
 
+    /**
+     * 修改期次截止时间：同步更新该期次下所有成员任务的截止时间，保证各处展示一致。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void updatePeriodEndTime(Long dispatchId, Date endTime) {
+        FlowTaskDispatch d = flowTaskDispatchMapper.selectById(dispatchId);
+        if (d == null) throw new RuntimeException("期次不存在");
+        if (endTime == null) throw new RuntimeException("请选择截止时间");
+        if (d.getStartTime() != null && endTime.before(d.getStartTime())) {
+            throw new RuntimeException("截止时间不能早于期次开始时间");
+        }
+        d.setEndTime(endTime);
+        flowTaskDispatchMapper.updateById(d);
+        FlowTask upd = new FlowTask();
+        upd.setEndTime(endTime);
+        upd.setUpdateTime(new Date());
+        flowTaskMapper.update(upd, new LambdaQueryWrapper<FlowTask>().eq(FlowTask::getDispatchId, dispatchId));
+    }
+
     /** 删除任务：仅当任务下无任何期次时允许（同时删除下发配置） */
     @Transactional(rollbackFor = Exception.class)
     public boolean delete(Long id) {

@@ -23,6 +23,18 @@
               <span class="info-label">任务说明</span>
               <span class="info-value">{{ taskDesc }}</span>
             </div>
+            <div class="info-item">
+              <span class="info-label">截止时间</span>
+              <span class="info-value">
+                {{ taskEndTime || '—' }}
+                <span v-if="isTaskOverdue" class="pd-overdue"><i class="el-icon-alarm-clock" /> 已超期</span>
+              </span>
+            </div>
+          </div>
+          <!-- 超期提示（软性标记：仅提示，仍可正常处理） -->
+          <div v-if="isTaskOverdue" class="pd-overdue-bar">
+            <i class="el-icon-warning-outline" />
+            <span>该任务已超过期次截止时间，<b>仍可正常处理</b>，提交后节点将标注「超期处理」。</span>
           </div>
           <!-- 任务基础信息（模板级字段，创建人下发时赋值，处理人可见） -->
           <template v-if="templateFieldRows.length > 0">
@@ -43,9 +55,17 @@
           </template>
         </div>
 
-        <!-- 完整流程链（横向展示：已通过绿 / 处理中红 / 退回黄 / 未到灰，点击已处理节点展开详情） -->
+        <!-- 完整流程链（横向：chip 展示全部节点，点击展开单个节点详情；竖向：卡片展示全部节点，可同时展开多个） -->
         <div v-if="flowChain.length > 0" class="chain-section">
-          <div class="section-title">流程链 <span class="chain-hint">横向展示全流程，点击已处理/已退回节点可查看填写内容</span></div>
+          <div class="section-title">
+            流程链
+            <span class="chain-hint">横向点击已处理/已退回节点查看填写内容；竖向可同时展开多个节点</span>
+            <span class="orient-toggle">
+              <span class="orient-btn" :class="{ active: chainOrient === 'horizontal' }" :title="'横向：每次展开一个节点详情'" @click="chainOrient = 'horizontal'"><i class="el-icon-s-fold" /> 横向</span>
+              <span class="orient-btn" :class="{ active: chainOrient === 'vertical' }" :title="'竖向：可同时展开全部节点详情'" @click="chainOrient = 'vertical'"><i class="el-icon-s-unfold" /> 竖向</span>
+            </span>
+          </div>
+          <template v-if="chainOrient === 'horizontal'">
           <div class="chain-track-h">
             <template v-for="(item, idx) in flowChain">
               <div
@@ -71,6 +91,7 @@
               <template v-if="expandedItem.taskNode && expandedItem.taskNode.submitStatus === 1">
                 <span class="sd-meta"><i class="el-icon-user" /> {{ expandedItem.taskNode.handlerName || '—' }}</span>
                 <span class="sd-meta"><i class="el-icon-time" /> {{ expandedItem.taskNode.handleTime || '—' }}</span>
+                <span v-if="nodeOverdue(expandedItem.taskNode.handleTime)" class="pd-overdue"><i class="el-icon-alarm-clock" /> 超期处理</span>
                 <span v-if="expandedItem.taskNode.action === 1 && expandedItem.taskNode.rejectReason" class="meta-reason" :title="expandedItem.taskNode.rejectReason">原因：{{ expandedItem.taskNode.rejectReason }}</span>
                 <span v-if="expandedItem.taskNode.action === 0 && expandedItem.taskNode.passComment" class="meta-pass" :title="expandedItem.taskNode.passComment">意见：{{ expandedItem.taskNode.passComment }}</span>
               </template>
@@ -122,6 +143,84 @@
                 <span class="fr-label">{{ bd.fieldLabel }}</span>
                 <AttachField v-if="bd.fieldType === 'file' || bd.fieldType === 'image'" :value="bd.fieldValue" :field-type="bd.fieldType" readonly class="fr-value" />
                 <span v-else class="fr-value">{{ bd.fieldValue || '—' }}</span>
+              </div>
+            </div>
+          </div>
+          </template>
+
+          <!-- 竖向模式：全部节点卡片，可同时展开多个节点详情 -->
+          <div v-else class="chain-track-v">
+            <div
+              v-for="(item, idx) in flowChain"
+              :key="'v' + idx"
+              class="chain-step"
+              :class="['st-' + item.status, { clickable: item.status === 'done' || item.status === 'rejected', expanded: vExpandedNodeIds.includes(item.nodeId) }]"
+              @click="toggleNodeFormV(item)"
+            >
+              <div class="step-head">
+                <span class="step-no">{{ idx + 1 }}</span>
+                <span class="step-name">{{ item.nodeName }}</span>
+                <span class="step-badge" :class="'badge-' + item.status">{{ statusLabel(item.status) }}</span>
+                <span v-if="item.status === 'current'" class="cur-stage-tag">当前</span>
+              </div>
+              <div class="step-meta">
+                <template v-if="item.taskNode && item.taskNode.submitStatus === 1">
+                  <span><i class="el-icon-user" /> {{ item.taskNode.handlerName || '—' }}</span>
+                  <span><i class="el-icon-time" /> {{ item.taskNode.handleTime || '—' }}</span>
+                  <span v-if="nodeOverdue(item.taskNode.handleTime)" class="pd-overdue"><i class="el-icon-alarm-clock" /> 超期处理</span>
+                </template>
+                <template v-else-if="item.taskNode && item.taskNode.submitStatus === 0">
+                  <span><i class="el-icon-user" /> {{ item.pendingNames || item.taskNode.handlerName || '待处理' }}</span>
+                  <span v-if="item.taskNode.rejectReason" class="meta-reason"><i class="el-icon-warning-outline" /> 退回建议：{{ item.taskNode.rejectReason }}</span>
+                </template>
+              </div>
+              <!-- 竖向展开的节点详情（同时可展开多个） -->
+              <div v-if="vExpandedNodeIds.includes(item.nodeId)" class="step-expanded" @click.stop>
+                <!-- 该节点填写说明（设计器配置，可展开/收回） -->
+                <div v-if="hasGuide(item)" class="guide-fold" :class="{ open: !isGuideFolded(item.nodeId) }">
+                  <div class="guide-fold-head" @click="toggleGuideFold(item.nodeId)">
+                    <i class="el-icon-info guide-fold-flag" />
+                    <span class="guide-fold-title">填写说明</span>
+                    <span v-if="isGuideFolded(item.nodeId)" class="guide-fold-preview">点击展开查看本节点填写要求与参考文件</span>
+                    <span v-else class="guide-fold-preview">点击收回</span>
+                    <i :class="isGuideFolded(item.nodeId) ? 'el-icon-arrow-down' : 'el-icon-arrow-up'" class="guide-fold-arrow" />
+                  </div>
+                  <div v-show="!isGuideFolded(item.nodeId)" class="guide-fold-body">
+                    <div v-if="item.guideText" class="guide-text">{{ item.guideText }}</div>
+                    <div v-if="guideFileNames(item).length > 0" class="guide-files">
+                      <div class="guide-files-title"><i class="el-icon-paperclip" /> 说明文件<span class="chain-hint">可预览 / 下载</span></div>
+                      <AttachField readonly :value="item.guideFiles" />
+                    </div>
+                  </div>
+                </div>
+                <template v-if="item.status === 'rejected'">
+                  <div class="form-empty">该节点已退回，无需显示表单</div>
+                </template>
+                <template v-else>
+                  <div v-if="item.taskNode && item.taskNode.formDataList && item.taskNode.formDataList.length > 0">
+                    <div class="sd-sub-title">表单数据（最近一次提交）</div>
+                    <div v-for="(fd, fi) in item.taskNode.formDataList" :key="fi" class="form-row">
+                      <span class="fr-label">{{ fd.fieldLabel }}</span>
+                      <AttachField v-if="fd.fieldType === 'file' || fd.fieldType === 'image'" :value="fd.fieldValue" :field-type="fd.fieldType" readonly class="fr-value" />
+                      <span v-else class="fr-value">{{ fd.fieldValue || '—' }}</span>
+                    </div>
+                  </div>
+                  <div v-else class="form-empty">该节点未填写表单数据</div>
+                </template>
+                <!-- 该节点处理人填写的任务基础字段（fieldRole=2） -->
+                <div v-if="item.taskNode && item.taskNode.baseDataList && item.taskNode.baseDataList.length > 0" class="bd-block">
+                  <div class="bd-title">
+                    <i class="el-icon-collection" /> 任务基础信息
+                    <el-tooltip :content="`在「${item.nodeName}」节点由处理人填写`" placement="top">
+                      <span class="role-hint-icon role-handler"><i class="el-icon-user" /></span>
+                    </el-tooltip>
+                  </div>
+                  <div v-for="(bd, bi) in item.taskNode.baseDataList" :key="bi" class="form-row">
+                    <span class="fr-label">{{ bd.fieldLabel }}</span>
+                    <AttachField v-if="bd.fieldType === 'file' || bd.fieldType === 'image'" :value="bd.fieldValue" :field-type="bd.fieldType" readonly class="fr-value" />
+                    <span v-else class="fr-value">{{ bd.fieldValue || '—' }}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -277,7 +376,7 @@
                 <span class="tl-badge">{{ h.action === 1 ? '退回' : '通过' }}</span>
                 <span class="tl-user"><i class="el-icon-user" /> {{ h.handlerName || '—' }}</span>
               </div>
-              <div class="tl-time"><i class="el-icon-time" /> {{ h.handleTime || '—' }}</div>
+              <div class="tl-time"><i class="el-icon-time" /> {{ h.handleTime || '—' }} <span v-if="nodeOverdue(h.handleTime)" class="pd-overdue"><i class="el-icon-alarm-clock" /> 超期处理</span></div>
               <div v-if="h.action === 0 && h.passComment" class="tl-comment">通过意见：{{ h.passComment }}</div>
               <div v-if="h.action === 1 && h.rejectReason" class="tl-reason">退回原因：{{ h.rejectReason }}</div>
             </div>
@@ -365,6 +464,10 @@ export default {
       /** 流程链已处理节点中「填写说明」被收起的节点 id 集合（默认全部展开） */
       foldedGuideNodeIds: [],
       expandedNodeId: null,
+      /** 流程链展示方向：默认横向（单节点详情），可切换竖向（可同时展开多个） */
+      chainOrient: 'horizontal',
+      /** 竖向模式：已展开的节点 id 集合（可同时展开多个） */
+      vExpandedNodeIds: [],
       isRejecting: false,
       // 子弹窗
       rejectTargetVisible: false,
@@ -414,6 +517,18 @@ export default {
       const d = this.detail && this.detail.task ? this.detail.task.taskDesc : null
       if (d) return d
       return (this.todo && this.todo.taskDesc) || ''
+    },
+    /** 任务截止时间（超期软性标记判断依据；detail.task 优先，兼容待办项带截止时间） */
+    taskEndTime() {
+      const d = this.detail && this.detail.task ? this.detail.task.endTime : null
+      if (d) return d
+      return (this.todo && this.todo.endTime) || ''
+    },
+    /** 当前任务是否已超过截止时间（仅软性标识，不影响正常处理） */
+    isTaskOverdue() {
+      if (!this.taskEndTime) return false
+      const end = new Date(String(this.taskEndTime).replace(/-/g, '/'))
+      return !isNaN(end.getTime()) && new Date() > end
     },
     /** 是否回填了上次表单数据（退回重填场景） */
     isRefill() {
@@ -565,6 +680,13 @@ export default {
       return tn + ':' + ((f && (f.fieldKey || f.id)) || 'f')
     },
     statusLabel(s) { return { done: '已通过', current: '处理中', rejected: '已退回', pending: '未到' }[s] || '未到' },
+    /** 节点处理时间是否超过任务截止时间（超期处理软性标记：仅标注，不影响流程） */
+    nodeOverdue(timeStr) {
+      if (!timeStr || !this.taskEndTime) return false
+      const t = new Date(String(timeStr).replace(/-/g, '/'))
+      const end = new Date(String(this.taskEndTime).replace(/-/g, '/'))
+      return !isNaN(t.getTime()) && !isNaN(end.getTime()) && t > end
+    },
     parseEnum(str) {
       try { return JSON.parse(str) || [] } catch (e) { return [] }
     },
@@ -643,6 +765,7 @@ export default {
       this.guideExpanded = true
       this.foldedGuideNodeIds = []
       this.expandedNodeId = null
+      this.vExpandedNodeIds = []
       this.isRejecting = false
       this.pendingRejectToNodeId = null
       this.pendingRejectReason = null
@@ -650,6 +773,13 @@ export default {
     toggleNodeForm(item) {
       if (item.status !== 'done' && item.status !== 'rejected') return
       this.expandedNodeId = this.expandedNodeId === item.nodeId ? null : item.nodeId
+    },
+    /** 竖向模式：切换节点详情展开（可同时展开多个） */
+    toggleNodeFormV(item) {
+      if (item.status !== 'done' && item.status !== 'rejected') return
+      const idx = this.vExpandedNodeIds.indexOf(item.nodeId)
+      if (idx >= 0) this.vExpandedNodeIds.splice(idx, 1)
+      else this.vExpandedNodeIds.push(item.nodeId)
     },
     /** 表单必填校验（通过和退回共用） */
     validateForm() {
@@ -809,6 +939,12 @@ $border: #e4beba;
 }
 .info-label { font-size: 12px; color: #999; }
 .info-value { font-size: 14px; color: #1b1c1c; font-weight: 500; word-break: break-all; line-height: 1.5; white-space: pre-wrap; }
+// 超期软性标记：仅提示，不影响正常处理
+.pd-overdue { display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; color: #fff; background: #E6A23C; vertical-align: 1px; white-space: nowrap; }
+.pd-overdue-bar { display: flex; align-items: center; gap: 6px; margin-top: 12px; padding: 8px 12px; background: #FDF6EC; border: 1px dashed #E6A23C; border-radius: 8px; font-size: 13px; color: #8a6d3b; line-height: 1.5;
+  i { color: #E6A23C; font-size: 15px; }
+  b { color: #E6A23C; font-weight: 700; }
+}
 .tpl-header { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: $primary; margin: 18px 0 10px; padding-top: 14px; border-top: 1px dashed $border; }
 .tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 32px; }
 .tpl-item { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -847,16 +983,48 @@ $border: #e4beba;
 .badge-current { background: rgba(197,48,48,0.12); color: $primary; }
 .badge-rejected { background: rgba(183,121,31,0.15); color: #b7791f; }
 .badge-pending { background: #e8e8e8; color: #999; }
-.meta-reason { color: #b7791f; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.meta-pass { color: #266d00; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meta-reason { color: #b7791f; background: rgba(183,121,31,0.1); border-radius: 4px; padding: 2px 8px; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; }
+.meta-pass { color: #266d00; background: rgba(38,109,0,0.08); border-radius: 4px; padding: 2px 8px; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; }
 // 展开的节点详情
 .step-detail { margin-top: 12px; padding: 14px 16px; background: #fff; border: 1px dashed $border; border-radius: 8px;
-  .sd-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .sd-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
   .sd-no { width: 22px; height: 22px; border-radius: 50%; background: #266d00; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
   .sd-name { font-size: 14px; font-weight: 700; color: #1b1c1c; }
-  .sd-meta { font-size: 12px; color: #757575; display: inline-flex; align-items: center; gap: 3px; i { margin-right: 2px; } }
+  .sd-meta { font-size: 12px; color: #555; background: #f4f4f6; border-radius: 4px; padding: 2px 8px; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+    i { color: #aaa; }
+  }
   .sd-sub-title { font-size: 12px; font-weight: 700; color: #414755; margin: 6px 0 4px; }
 }
+// 横/竖切换按钮（对齐流程详情）
+.orient-toggle { display: inline-flex; align-items: center; gap: 2px; margin-left: auto; background: #f5f5f5; border: 1px solid #e8e8e8; border-radius: 6px; padding: 2px; }
+.orient-btn { display: inline-flex; align-items: center; gap: 3px; padding: 3px 10px; border-radius: 5px; font-size: 11px; color: #757575; cursor: pointer; transition: all .2s; user-select: none;
+  &:hover { color: $primary; }
+  &.active { background: $primary; color: #fff; font-weight: 600; }
+}
+// 竖向模式：全部节点卡片，可同时展开多个详情
+.chain-track-v { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.chain-step { border: 1px solid #ebeef5; border-radius: 8px; padding: 12px 14px; background: #fff; transition: all .2s;
+  &.st-done { border-color: rgba(38,109,0,0.3); background: rgba(38,109,0,0.03); }
+  &.st-current { background: #FFF5F5; }
+  &.st-pending { opacity: 0.55; background: #f7f7f7; }
+  &:hover { border-color: $primary; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  &.clickable { cursor: pointer; }
+  &.expanded { border-color: $primary; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+}
+.step-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.step-no { width: 22px; height: 22px; border-radius: 50%; background: #e4beba; color: #5b403d; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.st-current .step-no { background: $primary; color: #fff; }
+.st-done .step-no { background: #266d00; color: #fff; }
+.step-name { font-size: 14px; font-weight: 600; color: #1b1c1c; flex: 1; }
+.step-meta { display: flex; align-items: center; gap: 14px; margin-top: 6px; padding-left: 32px; font-size: 12px; color: #757575; flex-wrap: wrap;
+  i { margin-right: 3px; }
+}
+.step-expanded { margin-top: 12px; padding: 12px; background: #fff; border-radius: 8px; border: 1px solid rgba(197,48,48,0.25); overflow: hidden;
+  .sd-head { margin-bottom: 10px; padding: 8px 10px; border-radius: 6px; background: #FBF6F5; border: 1px solid #F1E7E5; }
+}
+.st-done .step-expanded .sd-no { background: #266d00; }
+.st-rejected .step-expanded .sd-no { background: #b7791f; }
+.st-current .step-expanded .sd-no { background: $primary; }
 .bd-block { margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e4beba; }
 .bd-title { font-size: 13px; font-weight: 700; color: #b7791f; margin-bottom: 2px; display: flex; align-items: center; gap: 4px; }
 .role-hint-icon { width: 18px; height: 18px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: help; font-size: 12px;

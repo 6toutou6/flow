@@ -178,3 +178,12 @@ export function addPeriodMembers(dispatchId, userIds) {
     data: { userIds }
   })
 }
+
+// 修改期次截止时间（同步更新该期次下所有成员任务的截止时间）
+export function updatePeriodEndTime(dispatchId, endTime) {
+  return request({
+    url: `/flow-dispatch/period/${dispatchId}/end-time`,
+    method: 'put',
+    data: { endTime }
+  })
+}

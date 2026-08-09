@@ -33,14 +33,14 @@
         </span>
       </div>
 
-      <!-- 横向模式：节点 chip 轨道 + 点击展开详情 -->
+      <!-- 横向模式：全部节点 chip 轨道，点击已处理节点展开单个节点详情（同时只展开一个） -->
       <template v-if="chainOrientation === 'horizontal'">
         <div class="chain-track-h">
           <template v-for="(item, idx) in flowChain">
             <div
               :key="idx"
               class="chain-chip"
-              :class="['chip-' + item.status, { clickable: item.status === 'done', expanded: expandedNodeIds.includes(item.nodeId), mine: item.isMine }]"
+              :class="['chip-' + item.status, { clickable: item.status === 'done', expanded: hExpandedNodeId === item.nodeId, mine: item.isMine }]"
               :title="`${idx + 1}. ${item.nodeName}（${statusLabel(item.status)}）`"
               @click="toggleNodeForm(item)"
             >
@@ -52,39 +52,40 @@
             <span v-if="idx < flowChain.length - 1" :key="'arr-' + idx" class="chain-arrow"><i class="el-icon-right" /></span>
           </template>
         </div>
-        <!-- 横向模式下展开的节点详情（支持多节点同时展开） -->
-        <div v-for="item in expandedChainItems" :key="'d-' + item.nodeId" class="step-detail" @click.stop>
+        <!-- 横向模式下选中节点的详情（点击已处理节点展开，同时只展开一个） -->
+        <div v-if="hExpandedItem" class="step-detail" @click.stop>
           <div class="sd-head">
-            <span class="sd-no">{{ chainIndex(item) + 1 }}</span>
-            <span class="sd-name">{{ item.nodeName }}</span>
-            <span class="step-badge" :class="'badge-' + item.status">{{ statusLabel(item.status) }}</span>
-            <span v-if="item.status === 'current'" class="cur-stage-tag">当前阶段</span>
-            <span v-if="item.latestDone" class="sd-meta"><i class="el-icon-user" /> {{ item.latestDone.handlerName || '—' }}</span>
-            <span v-if="item.latestDone" class="sd-meta"><i class="el-icon-time" /> {{ item.latestDone.handleTime || '—' }}</span>
-            <span v-if="item.rejectReason" class="meta-reason" :title="item.rejectReason"><i class="el-icon-warning-outline" /> 退回建议：{{ item.rejectReason }}</span>
+            <span class="sd-no">{{ hExpandedIndex + 1 }}</span>
+            <span class="sd-name">{{ hExpandedItem.nodeName }}</span>
+            <span class="step-badge" :class="'badge-' + hExpandedItem.status">{{ statusLabel(hExpandedItem.status) }}</span>
+            <span v-if="hExpandedItem.status === 'current'" class="cur-stage-tag">当前阶段</span>
+            <span v-if="hExpandedItem.latestDone" class="sd-meta"><i class="el-icon-user" /> {{ hExpandedItem.latestDone.handlerName || '—' }}</span>
+            <span v-if="hExpandedItem.latestDone" class="sd-meta"><i class="el-icon-time" /> {{ hExpandedItem.latestDone.handleTime || '—' }}</span>
+            <span v-if="hExpandedItem.latestDone && nodeOverdue(hExpandedItem.latestDone.handleTime)" class="sd-overdue"><i class="el-icon-alarm-clock" /> 超期处理</span>
+            <span v-if="hExpandedItem.rejectReason" class="meta-reason" :title="hExpandedItem.rejectReason"><i class="el-icon-warning-outline" /> 退回建议：{{ hExpandedItem.rejectReason }}</span>
           </div>
           <div class="step-expanded">
             <div class="expanded-left">
               <!-- 该节点填写说明（设计器配置，可展开/收回） -->
-              <div v-if="hasGuide(item)" class="guide-fold" :class="{ open: !isGuideFolded(item.nodeId) }">
-                <div class="guide-fold-head" @click="toggleGuideFold(item.nodeId)">
+              <div v-if="hasGuide(hExpandedItem)" class="guide-fold" :class="{ open: !isGuideFolded(hExpandedItem.nodeId) }">
+                <div class="guide-fold-head" @click="toggleGuideFold(hExpandedItem.nodeId)">
                   <i class="el-icon-info guide-fold-flag" />
                   <span class="guide-fold-title">填写说明</span>
-                  <span v-if="isGuideFolded(item.nodeId)" class="guide-fold-preview">点击展开查看本节点填写要求与参考文件</span>
+                  <span v-if="isGuideFolded(hExpandedItem.nodeId)" class="guide-fold-preview">点击展开查看本节点填写要求与参考文件</span>
                   <span v-else class="guide-fold-preview">点击收回</span>
-                  <i :class="isGuideFolded(item.nodeId) ? 'el-icon-arrow-down' : 'el-icon-arrow-up'" class="guide-fold-arrow" />
+                  <i :class="isGuideFolded(hExpandedItem.nodeId) ? 'el-icon-arrow-down' : 'el-icon-arrow-up'" class="guide-fold-arrow" />
                 </div>
-                <div v-show="!isGuideFolded(item.nodeId)" class="guide-fold-body">
-                  <div v-if="item.guideText" class="guide-text">{{ item.guideText }}</div>
-                  <div v-if="guideFileNames(item).length > 0" class="guide-files">
+                <div v-show="!isGuideFolded(hExpandedItem.nodeId)" class="guide-fold-body">
+                  <div v-if="hExpandedItem.guideText" class="guide-text">{{ hExpandedItem.guideText }}</div>
+                  <div v-if="guideFileNames(hExpandedItem).length > 0" class="guide-files">
                     <div class="guide-files-title"><i class="el-icon-paperclip" /> 说明文件<span class="chain-hint">可预览 / 下载</span></div>
-                    <AttachField readonly :value="item.guideFiles" />
+                    <AttachField readonly :value="hExpandedItem.guideFiles" />
                   </div>
                 </div>
               </div>
               <div class="expanded-sub-title">表单数据（最近一次提交）</div>
-              <div v-if="item.latestDone && item.latestDone.formDataList && item.latestDone.formDataList.length > 0" class="form-rows">
-                <div v-for="(fd, fi) in item.latestDone.formDataList" :key="fi" class="form-row">
+              <div v-if="hExpandedItem.latestDone && hExpandedItem.latestDone.formDataList && hExpandedItem.latestDone.formDataList.length > 0" class="form-rows">
+                <div v-for="(fd, fi) in hExpandedItem.latestDone.formDataList" :key="fi" class="form-row">
                   <span class="fr-label">{{ fd.fieldLabel }}</span>
                   <AttachField v-if="fd.fieldType === 'file' || fd.fieldType === 'image'" :value="fd.fieldValue" :field-type="fd.fieldType" readonly class="fr-value" />
                   <span v-else class="fr-value">{{ fd.fieldValue || '—' }}</span>
@@ -92,14 +93,14 @@
               </div>
               <div v-else class="form-empty">该节点未填写表单数据</div>
               <!-- 该节点处理人填写的任务基础字段（fieldRole=2） -->
-              <div v-if="item.latestDone && item.latestDone.baseDataList && item.latestDone.baseDataList.length > 0" class="bd-block">
+              <div v-if="hExpandedItem.latestDone && hExpandedItem.latestDone.baseDataList && hExpandedItem.latestDone.baseDataList.length > 0" class="bd-block">
                 <div class="expanded-sub-title bd-sub-title">
                   任务基础信息
-                  <el-tooltip :content="`在「${item.nodeName}」节点由处理人填写`" placement="top">
+                  <el-tooltip :content="`在「${hExpandedItem.nodeName}」节点由处理人填写`" placement="top">
                     <span class="role-hint-icon role-handler"><i class="el-icon-user" /></span>
                   </el-tooltip>
                 </div>
-                <div v-for="(bd, bi) in item.latestDone.baseDataList" :key="bi" class="form-row">
+                <div v-for="(bd, bi) in hExpandedItem.latestDone.baseDataList" :key="bi" class="form-row">
                   <span class="fr-label">{{ bd.fieldLabel }}</span>
                   <AttachField v-if="bd.fieldType === 'file' || bd.fieldType === 'image'" :value="bd.fieldValue" :field-type="bd.fieldType" readonly class="fr-value" />
                   <span v-else class="fr-value">{{ bd.fieldValue || '—' }}</span>
@@ -108,12 +109,13 @@
             </div>
             <div class="expanded-right">
               <div class="expanded-sub-title">操作记录</div>
-              <div v-if="item.actionHistory.length > 0" class="action-list">
-                <div v-for="(act, ai) in item.actionHistory" :key="ai" class="action-item" :class="act.action === 1 ? 'act-reject' : 'act-pass'">
+              <div v-if="hExpandedItem.actionHistory.length > 0" class="action-list">
+                <div v-for="(act, ai) in hExpandedItem.actionHistory" :key="ai" class="action-item" :class="act.action === 1 ? 'act-reject' : 'act-pass'">
                   <div class="action-head">
                     <span class="action-badge">{{ act.action === 1 ? '退回' : '通过' }}</span>
                     <span class="action-user"><i class="el-icon-user" /> {{ act.handlerName || '—' }}</span>
                     <span class="action-time"><i class="el-icon-time" /> {{ act.handleTime || '—' }}</span>
+                    <span v-if="nodeOverdue(act.handleTime)" class="sd-overdue"><i class="el-icon-alarm-clock" /> 超期处理</span>
                   </div>
                   <div v-if="act.action === 0 && act.passComment" class="action-comment">意见：{{ act.passComment }}</div>
                   <div v-if="act.action === 1 && act.rejectReason" class="action-reason">原因：{{ act.rejectReason }}</div>
@@ -146,6 +148,7 @@
             <template v-if="item.latestDone">
               <span><i class="el-icon-user" /> {{ item.latestDone.handlerName || '—' }}</span>
               <span><i class="el-icon-time" /> {{ item.latestDone.handleTime || '—' }}</span>
+              <span v-if="nodeOverdue(item.latestDone.handleTime)" class="sd-overdue"><i class="el-icon-alarm-clock" /> 超期处理</span>
             </template>
             <template v-else-if="item.hasPending">
               <span><i class="el-icon-user" /> {{ item.pendingHandlerNames || '待处理' }}</span>
@@ -204,6 +207,7 @@
                     <span class="action-badge">{{ act.action === 1 ? '退回' : '通过' }}</span>
                     <span class="action-user"><i class="el-icon-user" /> {{ act.handlerName || '—' }}</span>
                     <span class="action-time"><i class="el-icon-time" /> {{ act.handleTime || '—' }}</span>
+                    <span v-if="nodeOverdue(act.handleTime)" class="sd-overdue"><i class="el-icon-alarm-clock" /> 超期处理</span>
                   </div>
                   <div v-if="act.action === 0 && act.passComment" class="action-comment">意见：{{ act.passComment }}</div>
                   <div v-if="act.action === 1 && act.rejectReason" class="action-reason">原因：{{ act.rejectReason }}</div>
@@ -237,7 +241,7 @@
               <span class="tl-badge">{{ h.action === 1 ? '退回' : '通过' }}</span>
               <span class="tl-user"><i class="el-icon-user" /> {{ h.handlerName || '—' }}</span>
             </div>
-            <div class="tl-time"><i class="el-icon-time" /> {{ h.handleTime || '—' }}</div>
+            <div class="tl-time"><i class="el-icon-time" /> {{ h.handleTime || '—' }} <span v-if="nodeOverdue(h.handleTime)" class="sd-overdue"><i class="el-icon-alarm-clock" /> 超期处理</span></div>
             <div v-if="h.action === 0 && h.passComment" class="tl-comment">通过意见：{{ h.passComment }}</div>
             <div v-if="h.action === 1 && h.rejectReason" class="tl-reason">退回原因：{{ h.rejectReason }}</div>
           </div>
@@ -275,9 +279,12 @@ export default {
     return {
       /** 流程链展示方向：默认横向，用户可切换为竖向 */
       chainOrientation: 'horizontal',
+      /** 竖向模式：已展开的节点 id 集合（竖向可同时展开多个节点详情） */
       expandedNodeIds: [],
       /** 已处理节点中「填写说明」被收起的节点 id 集合（默认全部展开） */
-      foldedGuideNodeIds: []
+      foldedGuideNodeIds: [],
+      /** 横向模式：当前展开详情的节点 id（横向同时只展开一个，点击其他已处理节点会切换） */
+      hExpandedNodeId: null
     }
   },
   computed: {
@@ -386,9 +393,19 @@ export default {
     taskFinished() {
       return this.taskDetail && this.taskDetail.task && this.taskDetail.task.status === 2
     },
-    /** 横向模式：当前已展开的节点（支持多节点同时展开） */
-    expandedChainItems() {
-      return this.flowChain.filter(item => this.expandedNodeIds.includes(item.nodeId))
+    /** 横向模式：当前展开详情的节点（同时只展开一个） */
+    hExpandedItem() {
+      if (!this.hExpandedNodeId) return null
+      return this.flowChain.find(i => i.nodeId === this.hExpandedNodeId) || null
+    },
+    /** 横向模式：当前展开节点在流程链中的序号 */
+    hExpandedIndex() {
+      const idx = this.flowChain.findIndex(i => i.nodeId === this.hExpandedNodeId)
+      return idx >= 0 ? idx : 0
+    },
+    /** 任务截止时间（超期标记判断依据） */
+    taskEndTime() {
+      return (this.taskDetail && this.taskDetail.task && this.taskDetail.task.endTime) || ''
     },
     /** 完整操作历史：任务的全部操作节点（不区分提交人员，每条显示提交人员），按时间正序 */
     allHistory() {
@@ -404,23 +421,28 @@ export default {
     taskDetail() {
       this.expandedNodeIds = []
       this.foldedGuideNodeIds = []
+      this.hExpandedNodeId = null
     }
   },
   methods: {
     statusLabel(s) { return { done: '已通过', current: '处理中', rejected: '已退回', pending: '未到' }[s] || '未到' },
-    /** 节点在流程链中的序号（1 起） */
-    chainIndex(item) {
-      const idx = this.flowChain.indexOf(item)
-      return idx >= 0 ? idx : 0
-    },
+    /** 切换节点详情展开：横向同时只展开一个；竖向可同时展开多个 */
     toggleNodeForm(item) {
       if (item.status !== 'done') return
-      const idx = this.expandedNodeIds.indexOf(item.nodeId)
-      if (idx >= 0) {
-        this.expandedNodeIds.splice(idx, 1)
+      if (this.chainOrientation === 'horizontal') {
+        this.hExpandedNodeId = this.hExpandedNodeId === item.nodeId ? null : item.nodeId
       } else {
-        this.expandedNodeIds.push(item.nodeId)
+        const idx = this.expandedNodeIds.indexOf(item.nodeId)
+        if (idx >= 0) this.expandedNodeIds.splice(idx, 1)
+        else this.expandedNodeIds.push(item.nodeId)
       }
+    },
+    /** 节点处理时间是否超过任务截止时间（超期处理软性标记：仍提交，仅标注） */
+    nodeOverdue(timeStr) {
+      if (!timeStr || !this.taskEndTime) return false
+      const t = new Date(String(timeStr).replace(/-/g, '/'))
+      const end = new Date(String(this.taskEndTime).replace(/-/g, '/'))
+      return !isNaN(t.getTime()) && !isNaN(end.getTime()) && t > end
     },
     /** 节点是否有填写说明（文字或文件） */
     hasGuide(node) {
@@ -481,7 +503,7 @@ $border: #e4beba;
   &:hover { color: $primary; }
   &.active { background: $primary; color: #fff; font-weight: 600; box-shadow: 0 2px 6px rgba(197,48,48,0.3); }
 }
-// 横向模式：节点 chip 轨道
+// 横向模式：节点 chip 轨道（全部节点，可换行）
 .chain-track-h { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 0; padding: 6px 0 14px; }
 .chain-chip { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px 8px 8px; border-radius: 20px; border: 1px solid #e4beba; background: #fff; font-size: 13px; cursor: default; transition: all .2s; white-space: nowrap;
   &.chip-done { border-color: rgba(38,109,0,0.4); background: rgba(38,109,0,0.05);
@@ -508,6 +530,7 @@ $border: #e4beba;
   .sd-name { font-size: 14px; font-weight: 700; color: #1b1c1c; }
   .sd-meta { font-size: 12px; color: #757575; display: inline-flex; align-items: center; gap: 3px; i { margin-right: 1px; } }
   .meta-reason { font-size: 12px; color: #b7791f; font-weight: 600; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; }
+  .sd-overdue { padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; color: #fff; background: #E6A23C; display: inline-flex; align-items: center; gap: 3px; }
   .step-expanded { border: none; margin: 0; padding: 14px; }
 }
 .chain-track { display: flex; flex-direction: column; gap: 10px; }

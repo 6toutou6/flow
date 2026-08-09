@@ -257,6 +257,20 @@ public class FlowDispatchController {
         }
     }
 
+    /**
+     * 修改期次截止时间：同步更新该期次下所有成员任务的截止时间。
+     * body: { endTime: "yyyy-MM-dd HH:mm:ss" }
+     */
+    @PutMapping("/period/{id}/end-time")
+    public Result<Void> updatePeriodEndTime(@PathVariable Long id, @RequestBody(required = false) Map<String, Object> body) {
+        try {
+            flowDispatchService.updatePeriodEndTime(id, parseDate(body == null ? null : body.get("endTime")));
+            return Result.success("截止时间已更新");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
     /** 解析前端传来的日期时间字符串（yyyy-MM-dd HH:mm:ss），非字符串/空值返回 null */
     private Date parseDate(Object value) {
         if (!(value instanceof String)) return null;

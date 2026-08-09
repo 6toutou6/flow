@@ -6,23 +6,35 @@
 
     <div class="right-menu">
       <div class="user-info">
-        <span class="user-item"><i class="el-icon-user" /> {{ realName || username }}</span>
-        <span class="user-item"><i class="el-icon-postcard" /> {{ empNo }}</span>
-        <span class="user-item"><i class="el-icon-office-building" /> {{ deptName }}<template v-if="deptId">({{ deptId }})</template></span>
+        <span class="user-item">
+          <i class="el-icon-user" />
+          <span class="user-label">{{ realName || username }}</span>
+        </span>
+        <span class="user-divider">|</span>
+        <span class="user-item">
+          <i class="el-icon-postcard" />
+          <span class="user-label">{{ empNo }}</span>
+        </span>
+        <span class="user-divider">|</span>
+        <span class="user-item">
+          <i class="el-icon-office-building" />
+          <span class="user-label">{{ deptName }}</span>
+        </span>
       </div>
-      <el-dropdown class="avatar-container" trigger="click">
+
+      <el-dropdown class="avatar-container" trigger="click" @command="handleCommand">
         <div class="avatar-wrapper">
-          <img :src="avatar+'?imageView2/1/w/80/h/80'" class="user-avatar">
-          <i class="el-icon-caret-bottom" />
+          <div class="avatar-placeholder">
+            {{ (realName || username || '?').charAt(0).toUpperCase() }}
+          </div>
+          <i class="el-icon-arrow-down" />
         </div>
         <el-dropdown-menu slot="dropdown" class="user-dropdown">
-          <router-link to="/">
-            <el-dropdown-item>
-              Home
-            </el-dropdown-item>
-          </router-link>
-          <el-dropdown-item divided @click.native="logout">
-            <span style="display:block;">Log Out</span>
+          <el-dropdown-item command="home">
+            <i class="el-icon-s-home" /> 首页
+          </el-dropdown-item>
+          <el-dropdown-item command="logout" divided>
+            <i class="el-icon-switch-button" /> 退出登录
           </el-dropdown-item>
         </el-dropdown-menu>
       </el-dropdown>
@@ -36,24 +48,23 @@ import Breadcrumb from '@/components/Breadcrumb'
 import Hamburger from '@/components/Hamburger'
 
 export default {
-  components: {
-    Breadcrumb,
-    Hamburger
-  },
+  components: { Breadcrumb, Hamburger },
   computed: {
     ...mapGetters([
-      'sidebar',
-      'avatar',
-      'username',
-      'empNo',
-      'realName',
-      'deptId',
-      'deptName'
+      'sidebar', 'avatar', 'username',
+      'empNo', 'realName', 'deptId', 'deptName'
     ])
   },
   methods: {
     toggleSideBar() {
       this.$store.dispatch('app/toggleSideBar')
+    },
+    handleCommand(command) {
+      if (command === 'logout') {
+        this.logout()
+      } else if (command === 'home') {
+        this.$router.push('/')
+      }
     },
     async logout() {
       await this.$store.dispatch('user/logout')
@@ -65,96 +76,145 @@ export default {
 
 <style lang="scss" scoped>
 .navbar {
-  height: 50px;
+  height: 56px;
   overflow: hidden;
   position: relative;
   background: #fff;
-  box-shadow: 0 1px 4px rgba(0,21,41,.08);
+  box-shadow: 0 1px 0 rgba(197, 48, 48, 0.06), 0 2px 8px rgba(30, 26, 25, 0.04);
+  display: flex;
+  align-items: center;
 
   .hamburger-container {
-    line-height: 46px;
-    height: 100%;
+    height: 56px;
+    line-height: 56px;
     float: left;
     cursor: pointer;
-    transition: background .3s;
-    -webkit-tap-highlight-color:transparent;
+    padding: 0 12px;
+    transition: background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
 
     &:hover {
-      background: rgba(0, 0, 0, .025)
+      background: rgba(197, 48, 48, 0.04);
     }
   }
 
   .breadcrumb-container {
     float: left;
+    margin-left: 4px;
   }
 
   .right-menu {
-    float: right;
-    height: 100%;
-    line-height: 50px;
+    margin-left: auto;
+    height: 56px;
+    display: flex;
+    align-items: center;
 
     &:focus {
       outline: none;
     }
 
-    .right-menu-item {
-      display: inline-block;
-      padding: 0 8px;
-      height: 100%;
-      font-size: 18px;
-      color: #5a5e66;
-      vertical-align: text-bottom;
-
-      &.hover-effect {
-        cursor: pointer;
-        transition: background .3s;
-
-        &:hover {
-          background: rgba(0, 0, 0, .025)
-        }
-      }
-    }
-
     .user-info {
-      float: right;
+      display: flex;
+      align-items: center;
+      gap: 4px;
       height: 100%;
-      line-height: 50px;
-      margin-right: 20px;
-      font-size: 14px;
-      color: #5a5e66;
+      line-height: 56px;
+      margin-right: 16px;
+      font-size: 13px;
+      color: #5C514E;
 
       .user-item {
-        margin-left: 18px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 0 4px;
 
         i {
-          margin-right: 4px;
           color: #C53030;
+          font-size: 14px;
         }
+
+        .user-label {
+          max-width: 120px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+
+      .user-divider {
+        color: #DCD5D3;
+        font-size: 12px;
       }
     }
 
     .avatar-container {
-      margin-right: 30px;
+      margin-right: 24px;
 
       .avatar-wrapper {
-        margin-top: 5px;
-        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 8px;
+        transition: background 0.2s;
 
-        .user-avatar {
-          cursor: pointer;
-          width: 40px;
-          height: 40px;
-          border-radius: 10px;
+        &:hover {
+          background: rgba(197, 48, 48, 0.05);
         }
 
-        .el-icon-caret-bottom {
-          cursor: pointer;
-          position: absolute;
-          right: -20px;
-          top: 25px;
-          font-size: 12px;
+        .avatar-placeholder {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          background: linear-gradient(135deg, #C53030 0%, #A20513 100%);
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 16px;
+          font-weight: 700;
+          letter-spacing: 0.02em;
+          box-shadow: 0 2px 6px rgba(197, 48, 48, 0.3);
+        }
+
+        .el-icon-arrow-down {
+          font-size: 11px;
+          color: #9A8F8C;
+          transition: transform 0.2s;
+        }
+
+        &:hover .el-icon-arrow-down {
+          color: #C53030;
         }
       }
+    }
+  }
+}
+
+// 下拉菜单样式（非 scoped，影响弹出层）
+.user-dropdown {
+  border-radius: 10px;
+  border: 1px solid rgba(197, 48, 48, 0.08);
+  box-shadow: 0 8px 24px rgba(30, 26, 25, 0.12);
+
+  .el-dropdown-menu__item {
+    padding: 10px 18px;
+    font-size: 14px;
+    color: #5C514E;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    i { font-size: 15px; color: #9A8F8C; }
+
+    &:hover {
+      background-color: #FDF4F3;
+      color: #C53030;
+      i { color: #C53030; }
     }
   }
 }

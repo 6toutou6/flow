@@ -1,16 +1,5 @@
 module.exports = {
-
-  title: 'Vue Admin Template',
-
-  /**
-   * @type {boolean} true | false
-   * @description Whether fix the header
-   */
+  title: '流程管理系统',
   fixedHeader: false,
-
-  /**
-   * @type {boolean} true | false
-   * @description Whether show the logo in sidebar
-   */
   sidebarLogo: false
 }

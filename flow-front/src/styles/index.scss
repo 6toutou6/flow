@@ -4,16 +4,26 @@
 @import './element-ui.scss';
 @import './sidebar.scss';
 
+// ============================================================
+// Flow 流程管理系统 - 全局基础样式
+// 设计方向: "Refined Authority"
+// ============================================================
+
 body {
   height: 100%;
   -moz-osx-font-smoothing: grayscale;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  font-family: Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif;
+  font-family: $font-family-base;
+  font-size: $font-size-base;
+  line-height: $line-height-base;
+  color: $text-primary;
+  background-color: $surface-page;
 }
 
 label {
-  font-weight: 700;
+  font-weight: 600;
+  color: $text-secondary;
 }
 
 html {
@@ -31,17 +41,18 @@ html {
   box-sizing: inherit;
 }
 
-a:focus,
-a:active {
-  outline: none;
-}
-
-a,
-a:focus,
-a:hover {
-  cursor: pointer;
-  color: inherit;
-  text-decoration: none;
+a {
+  &,
+  &:focus,
+  &:hover {
+    cursor: pointer;
+    color: $color-primary;
+    text-decoration: none;
+    transition: color $transition-fast;
+  }
+  &:focus {
+    outline: none;
+  }
 }
 
 div:focus {
@@ -59,69 +70,372 @@ div:focus {
   }
 }
 
-// main-container global css
+// ============================================================
+// 内容区域
+// ============================================================
 .app-container {
-  padding: 20px;
+  padding: $space-6;
 }
 
-// ===== 品牌红主题全局优化 =====
-$brand: #C53030;
-
-// 滚动条美化
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(197, 48, 48, 0.25); border-radius: 4px;
-  &:hover { background: rgba(197, 48, 48, 0.45); }
+// ============================================================
+// 滚动条 — 精致半透明品牌色
+// ============================================================
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-* { scrollbar-width: thin; scrollbar-color: rgba(197, 48, 48, 0.3) transparent; }
-
-// 文本选中
-::selection { background: rgba(197, 48, 48, 0.18); }
-
-// 全局背景统一
-body { background-color: #F5F7FA; }
-
-// 弹窗美化
-.el-dialog {
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 10px 44px rgba(0, 0, 0, 0.16) !important;
-  .el-dialog__header {
-    padding: 16px 24px 14px;
-    border-bottom: 1px solid #f0e3e1;
-    .el-dialog__title { font-size: 16px; font-weight: 700; color: #1b1c1c; }
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba($color-primary, 0.18);
+  border-radius: 3px;
+  &:hover {
+    background: rgba($color-primary, 0.35);
   }
-  .el-dialog__body { padding: 20px 24px; }
-  .el-dialog__footer { padding: 12px 24px 16px; border-top: 1px solid #f0e3e1; }
 }
-.el-message-box { border-radius: 12px; }
-
-// 表格表头
-.el-table th.el-table__cell {
-  background-color: #FDF4F3 !important;
-  color: #414755;
-  font-weight: 700;
-}
-.el-table--border, .el-table--group {
-  border-color: #f0e3e1;
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba($color-primary, 0.18) transparent;
 }
 
-// 下拉/气泡圆角
+// ============================================================
+// 文本选中
+// ============================================================
+::selection {
+  background: rgba($color-primary, 0.14);
+  color: inherit;
+}
+
+// ============================================================
+// 弹窗 — 柔和阴影 + 大圆角
+// ============================================================
+.el-dialog {
+  border-radius: $radius-xl !important;
+  overflow: hidden;
+  box-shadow: $shadow-xl !important;
+
+  .el-dialog__header {
+    padding: $space-5 $space-6 $space-4;
+    border-bottom: 1px solid $border-light;
+    background: $neutral-50;
+
+    .el-dialog__title {
+      font-size: $font-size-lg;
+      font-weight: 700;
+      color: $text-primary;
+      letter-spacing: -0.01em;
+    }
+    .el-dialog__headerbtn {
+      top: $space-5;
+      right: $space-5;
+      font-size: 18px;
+      &:hover .el-dialog__close {
+        color: $color-primary;
+      }
+    }
+  }
+
+  .el-dialog__body {
+    padding: $space-6;
+    color: $text-secondary;
+    line-height: $line-height-relaxed;
+  }
+
+  .el-dialog__footer {
+    padding: $space-4 $space-6 $space-5;
+    border-top: 1px solid $border-light;
+    background: $neutral-50;
+  }
+}
+
+.el-message-box {
+  border-radius: $radius-xl;
+  box-shadow: $shadow-xl;
+}
+
+// ============================================================
+// 表格 — 清爽表头 + 柔和边框
+// ============================================================
+.el-table {
+  th.el-table__cell {
+    background-color: $brand-red-light !important;
+    color: $text-secondary;
+    font-weight: 700;
+    font-size: $font-size-sm;
+    letter-spacing: 0.02em;
+    border-bottom: 2px solid rgba($color-primary, 0.12);
+  }
+
+  .el-table__cell {
+    padding: $space-3 $space-2;
+  }
+
+  &--border,
+  &--group {
+    border-color: $border-light;
+  }
+
+  &--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+    background-color: $neutral-100;
+  }
+
+  .el-table__body tr:hover > td.el-table__cell {
+    background-color: $brand-red-surface !important;
+  }
+
+  &::before {
+    background-color: $border-light;
+  }
+}
+
+// ============================================================
+// 表单控件 — 统一圆角 + 柔和边框
+// ============================================================
+.el-input__inner,
+.el-textarea__inner {
+  border-radius: $radius-md;
+  border-color: $border-default;
+  transition: border-color $transition-fast, box-shadow $transition-fast;
+  color: $text-primary;
+
+  &:hover {
+    border-color: $neutral-400;
+  }
+
+  &:focus,
+  &.is-focus {
+    border-color: $color-primary;
+    box-shadow: 0 0 0 2px rgba($color-primary, 0.10);
+  }
+
+  &::placeholder {
+    color: $text-disabled;
+  }
+}
+
+.el-select .el-input.is-focus .el-input__inner {
+  border-color: $color-primary;
+}
+
+// ============================================================
+// 下拉菜单 — 圆角 + 柔和阴影
+// ============================================================
 .el-select-dropdown,
 .el-dropdown-menu,
-.el-popper {
-  border-radius: 8px;
+.el-cascader-menu,
+.el-date-picker,
+.el-picker-panel {
+  border-radius: $radius-lg !important;
+  border: 1px solid $border-light;
+  box-shadow: $shadow-lg;
 }
 
-// 消息/通知圆角
-.el-message { border-radius: 10px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12) !important; }
-.el-notification { border-radius: 10px; }
-
-// 弹出菜单项 hover 统一
-.el-select-dropdown__item.hover,
-.el-select-dropdown__item:hover {
-  background-color: #FFF5F5;
+.el-select-dropdown__item {
+  &.hover,
+  &:hover {
+    background-color: $brand-red-light !important;
+  }
+  &.selected {
+    color: $color-primary;
+    font-weight: 600;
+  }
 }
 
-// el-button 圆角微调
-.el-button { border-radius: 6px; }
+// ============================================================
+// 分页器
+// ============================================================
+.el-pagination {
+  margin-top: $space-4;
+
+  .el-pager li {
+    border-radius: $radius-sm;
+    font-weight: 500;
+
+    &.active {
+      color: $color-primary;
+    }
+    &:hover {
+      color: $color-primary;
+    }
+  }
+
+  &.is-background {
+    .el-pager li:not(.disabled) {
+      &.active {
+        background-color: $color-primary;
+        color: #fff;
+        &:hover { background-color: $color-primary-hover; color: #fff; }
+      }
+      &:hover { color: $color-primary; }
+    }
+  }
+
+  button {
+    border-radius: $radius-sm;
+    &:hover { color: $color-primary; }
+  }
+}
+
+// ============================================================
+// 步骤条
+// ============================================================
+.el-step__head {
+  &.is-process,
+  &.is-finish {
+    color: $color-primary;
+    border-color: $color-primary;
+  }
+}
+
+.el-step__title {
+  &.is-process,
+  &.is-finish {
+    color: $color-primary;
+    font-weight: 600;
+  }
+  &.is-wait {
+    color: $text-tertiary;
+  }
+}
+
+.el-step__line {
+  background-color: $border-default;
+}
+
+// ============================================================
+// 标签页
+// ============================================================
+.el-tabs__item {
+  font-weight: 500;
+
+  &.is-active {
+    color: $color-primary;
+    font-weight: 700;
+  }
+  &:hover { color: $color-primary; }
+}
+
+.el-tabs__active-bar {
+  background-color: $color-primary;
+  height: 2px;
+}
+
+.el-tabs__nav-wrap::after {
+  background-color: $border-light;
+  height: 1px;
+}
+
+// ============================================================
+// 标签
+// ============================================================
+.el-tag {
+  border-radius: $radius-sm;
+
+  &--success {
+    background-color: rgba(45, 125, 70, 0.08);
+    border-color: rgba(45, 125, 70, 0.25);
+    color: $color-success;
+  }
+
+  &--warning {
+    background-color: rgba(196, 115, 45, 0.08);
+    border-color: rgba(196, 115, 45, 0.25);
+    color: $color-warning;
+  }
+
+  &--danger {
+    background-color: rgba($color-primary, 0.08);
+    border-color: rgba($color-primary, 0.25);
+    color: $color-primary;
+  }
+}
+
+// ============================================================
+// 卡片
+// ============================================================
+.el-card {
+  border-radius: $radius-lg;
+  border-color: $border-light;
+  box-shadow: $shadow-sm;
+
+  .el-card__header {
+    border-bottom-color: $border-light;
+    padding: $space-4 $space-5;
+    font-weight: 700;
+    color: $text-primary;
+  }
+}
+
+// ============================================================
+// 消息/通知
+// ============================================================
+.el-message {
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+  border: none;
+  min-width: 320px;
+  padding: $space-3 $space-5;
+}
+
+.el-notification {
+  border-radius: $radius-lg;
+  box-shadow: $shadow-xl;
+  border: 1px solid $border-light;
+}
+
+// ============================================================
+// 面包屑
+// ============================================================
+.el-breadcrumb__inner a:hover,
+.el-breadcrumb__item:last-child .el-breadcrumb__inner {
+  color: $color-primary;
+}
+
+// ============================================================
+// 加载动画
+// ============================================================
+.el-loading-spinner {
+  .el-loading-text { color: $color-primary; }
+  .path { stroke: $color-primary; }
+  .circular {
+    .path { stroke: $color-primary; }
+  }
+}
+
+// ============================================================
+// 进度条
+// ============================================================
+.el-progress-bar__inner {
+  background-color: $color-primary;
+}
+
+// ============================================================
+// 骨架屏
+// ============================================================
+.el-skeleton__item {
+  border-radius: $radius-sm;
+}
+
+// ============================================================
+// 徽章
+// ============================================================
+.el-badge__content--danger {
+  background-color: $color-primary;
+}
+
+// ============================================================
+// 抽屉
+// ============================================================
+.el-drawer {
+  .el-drawer__header {
+    padding: $space-5 $space-6;
+    border-bottom: 1px solid $border-light;
+    margin-bottom: 0;
+    font-weight: 700;
+    color: $text-primary;
+  }
+  .el-drawer__body {
+    padding: $space-6;
+  }
+}

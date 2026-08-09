@@ -1,54 +1,93 @@
 <template>
   <div class="login-container">
-    <el-form ref="loginForm" :model="loginForm" :rules="loginRules" class="login-form" auto-complete="on" label-position="left">
+    <!-- 背景装饰 -->
+    <div class="bg-decoration">
+      <div class="bg-circle bg-circle-1" />
+      <div class="bg-circle bg-circle-2" />
+      <div class="bg-pattern" />
+    </div>
 
-      <div class="title-container">
-        <h3 class="title">Login Form</h3>
+    <!-- 品牌区域 -->
+    <div class="brand-area">
+      <div class="brand-mark">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <rect width="48" height="48" rx="12" fill="white" fill-opacity="0.18"/>
+          <path d="M16 24L22 30L32 18" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h1 class="brand-name">流程管理系统</h1>
+      <p class="brand-desc">线性顺序流转工作流平台 · 高效协同 · 精准管控</p>
+    </div>
+
+    <!-- 登录卡片 -->
+    <el-form
+      ref="loginForm"
+      :model="loginForm"
+      :rules="loginRules"
+      class="login-card"
+      auto-complete="on"
+      label-position="top"
+      @keyup.enter.native="handleLogin"
+    >
+      <div class="card-header">
+        <h2 class="card-title">账号登录</h2>
+        <p class="card-desc">请输入您的账号信息登录系统</p>
       </div>
 
-      <el-form-item prop="username">
-        <span class="svg-container">
-          <svg-icon icon-class="user" />
-        </span>
+      <el-form-item prop="username" label="用户名">
         <el-input
           ref="username"
           v-model="loginForm.username"
-          placeholder="Username"
+          placeholder="请输入用户名"
           name="username"
           type="text"
           tabindex="1"
           auto-complete="on"
+          prefix-icon="el-icon-user"
+          size="medium"
         />
       </el-form-item>
 
-      <el-form-item prop="password">
-        <span class="svg-container">
-          <svg-icon icon-class="password" />
-        </span>
+      <el-form-item prop="password" label="密码">
         <el-input
           :key="passwordType"
           ref="password"
           v-model="loginForm.password"
           :type="passwordType"
-          placeholder="Password"
+          placeholder="请输入密码"
           name="password"
           tabindex="2"
           auto-complete="on"
-          @keyup.enter.native="handleLogin"
-        />
-        <span class="show-pwd" @click="showPwd">
-          <svg-icon :icon-class="passwordType === 'password' ? 'eye' : 'eye-open'" />
-        </span>
+          prefix-icon="el-icon-lock"
+          size="medium"
+        >
+          <i
+            slot="suffix"
+            :class="passwordType === 'password' ? 'el-icon-view' : 'el-icon-loading'"
+            class="pwd-toggle"
+            @click="showPwd"
+          />
+        </el-input>
       </el-form-item>
 
-      <el-button :loading="loading" type="primary" style="width:100%;margin-bottom:30px;" @click.native.prevent="handleLogin">Login</el-button>
+      <el-button
+        :loading="loading"
+        type="primary"
+        class="login-btn"
+        @click.native.prevent="handleLogin"
+      >
+        {{ loading ? '登录中...' : '登 录' }}
+      </el-button>
 
-      <div class="tips">
-        <span style="margin-right:20px;">username: zhangsan</span>
-        <span> password: 123456</span>
+      <div class="card-footer">
+        <span class="footer-hint">测试账号：zhangsan / 123456</span>
       </div>
-
     </el-form>
+
+    <!-- 底部版权 -->
+    <div class="login-footer">
+      <span>&copy; 2026 Flow 流程管理系统</span>
+    </div>
   </div>
 </template>
 
@@ -60,14 +99,14 @@ export default {
   data() {
     const validateUsername = (rule, value, callback) => {
       if (!validUsername(value)) {
-        callback(new Error('Please enter the correct user name'))
+        callback(new Error('请输入正确的用户名'))
       } else {
         callback()
       }
     }
     const validatePassword = (rule, value, callback) => {
       if (value.length < 6) {
-        callback(new Error('The password can not be less than 6 digits'))
+        callback(new Error('密码不能少于6位'))
       } else {
         callback()
       }
@@ -115,9 +154,6 @@ export default {
           }).catch(() => {
             this.loading = false
           })
-        } else {
-          console.log('error submit!!')
-          return false
         }
       })
     }
@@ -126,118 +162,248 @@ export default {
 </script>
 
 <style lang="scss">
-/* 修复input 背景不协调 和光标变色 */
-/* Detail see https://github.com/PanJiaChen/vue-element-admin/pull/927 */
-
-$bg:#fff;
-$light_gray:#1b1c1c;
-$cursor: #C53030;
-
-@supports (-webkit-mask: none) and (not (cater-color: $cursor)) {
-  .login-container .el-input input {
-    color: $cursor;
-  }
-}
-
-/* reset element-ui css */
+// 修复登录页 Element UI 样式
 .login-container {
-  .el-input {
-    display: inline-block;
-    height: 47px;
-    width: 85%;
+  .el-input__prefix {
+    left: 14px;
+    display: flex;
+    align-items: center;
 
-    input {
-      background: transparent;
-      border: 0px;
-      -webkit-appearance: none;
-      border-radius: 0px;
-      padding: 12px 5px 12px 15px;
-      color: $light_gray;
-      height: 47px;
-      caret-color: $cursor;
-
-      &:-webkit-autofill {
-        box-shadow: 0 0 0px 1000px $bg inset !important;
-        -webkit-text-fill-color: $light_gray !important;
-      }
+    .el-input__icon {
+      color: #9A8F8C;
+      font-size: 16px;
+      transition: color 0.2s;
     }
   }
 
-  .el-form-item {
-    border: 1px solid rgba(197, 48, 48, 0.25);
-    background: #fff;
-    border-radius: 8px;
-    color: #454545;
-    margin-bottom: 20px;
+  .el-input__inner {
+    padding-left: 40px;
+    height: 44px;
+    background: #F7F4F3;
+    border: 1.5px solid #EDE8E7;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #1E1A19;
+    transition: all 0.2s;
+
+    &::placeholder {
+      color: #BEB4B2;
+    }
+
+    &:focus {
+      background: #fff;
+      border-color: #C53030;
+      box-shadow: 0 0 0 3px rgba(197, 48, 48, 0.08);
+    }
+  }
+
+  .el-form-item.is-error .el-input__inner {
+    border-color: #C53030;
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba(197, 48, 48, 0.12);
+    }
+  }
+
+  .el-input__suffix {
+    right: 10px;
+
+    .pwd-toggle {
+      cursor: pointer;
+      color: #9A8F8C;
+      font-size: 18px;
+      transition: color 0.2s;
+
+      &:hover {
+        color: #C53030;
+      }
+    }
   }
 }
 </style>
 
 <style lang="scss" scoped>
-$bg:#a01c1c;
-$dark_gray:#C53030;
-$light_gray:#1b1c1c;
-
 .login-container {
-  min-height: 100%;
+  min-height: 100vh;
   width: 100%;
-  background: linear-gradient(135deg, #7f1313 0%, #C53030 52%, #d95c57 100%);
+  background: linear-gradient(145deg, #6B1010 0%, #A01C1C 15%, #C53030 45%, #B52828 75%, #7A1515 100%);
   overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
 
-  .login-form {
-    position: relative;
-    width: 440px;
-    max-width: 100%;
-    padding: 44px 44px 30px;
-    margin: 0 auto;
-    margin-top: 11vh;
-    background: #fff;
-    border-radius: 18px;
-    box-shadow: 0 16px 60px rgba(0, 0, 0, 0.3);
-    overflow: hidden;
+// ---- 背景装饰 ----
+.bg-decoration {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bg-circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+
+  &-1 {
+    width: 600px;
+    height: 600px;
+    top: -200px;
+    right: -150px;
   }
 
-  .tips {
-    font-size: 14px;
-    color: #8a4b46;
-    margin-bottom: 10px;
+  &-2 {
+    width: 400px;
+    height: 400px;
+    bottom: -100px;
+    left: -80px;
+  }
+}
 
-    span {
-      &:first-of-type {
-        margin-right: 16px;
-      }
-    }
+.bg-pattern {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 80%, rgba(255,255,255,0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255,255,255,0.04) 0%, transparent 50%);
+}
+
+// ---- 品牌区域 ----
+.brand-area {
+  text-align: center;
+  margin-bottom: 32px;
+  z-index: 1;
+}
+
+.brand-mark {
+  margin-bottom: 16px;
+  display: inline-block;
+}
+
+.brand-name {
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  letter-spacing: 0.04em;
+}
+
+.brand-desc {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 8px 0 0;
+  letter-spacing: 0.05em;
+}
+
+// ---- 登录卡片 ----
+.login-card {
+  width: 400px;
+  max-width: 100%;
+  padding: 36px 40px 28px;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.08),
+    0 8px 24px rgba(0, 0, 0, 0.12),
+    0 24px 64px rgba(0, 0, 0, 0.16);
+  z-index: 1;
+  position: relative;
+}
+
+.card-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.card-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1E1A19;
+  margin: 0;
+  letter-spacing: 0.03em;
+}
+
+.card-desc {
+  font-size: 13px;
+  color: #9A8F8C;
+  margin: 6px 0 0;
+}
+
+// ---- 表单 ----
+::v-deep .el-form-item__label {
+  color: #5C514E;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.4;
+  padding-bottom: 6px;
+}
+
+::v-deep .el-form-item {
+  margin-bottom: 18px;
+}
+
+::v-deep .el-form-item__error {
+  font-size: 12px;
+  padding-top: 3px;
+  color: #C53030;
+}
+
+// ---- 登录按钮 ----
+.login-btn {
+  width: 100%;
+  height: 44px;
+  margin-top: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #C53030 0%, #A20513 100%);
+  border: none;
+  box-shadow: 0 4px 14px rgba(197, 48, 48, 0.35);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(197, 48, 48, 0.45);
   }
 
-  .svg-container {
-    padding: 6px 5px 6px 15px;
-    color: $dark_gray;
-    vertical-align: middle;
-    width: 30px;
-    display: inline-block;
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(197, 48, 48, 0.3);
   }
 
-  .title-container {
-    position: relative;
-
-    .title {
-      font-size: 24px;
-      color: $light_gray;
-      margin: 0px auto 36px auto;
-      text-align: center;
-      font-weight: 700;
-      letter-spacing: 1px;
-    }
+  &.is-loading {
+    background: linear-gradient(135deg, #C53030 0%, #A20513 100%);
   }
+}
 
-  .show-pwd {
-    position: absolute;
-    right: 10px;
-    top: 7px;
-    font-size: 16px;
-    color: $dark_gray;
-    cursor: pointer;
-    user-select: none;
+// ---- 底部提示 ----
+.card-footer {
+  text-align: center;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #EDE8E7;
+}
+
+.footer-hint {
+  font-size: 12px;
+  color: #BEB4B2;
+  letter-spacing: 0.02em;
+}
+
+// ---- 底部版权 ----
+.login-footer {
+  margin-top: 24px;
+  z-index: 1;
+
+  span {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.04em;
   }
 }
 </style>
