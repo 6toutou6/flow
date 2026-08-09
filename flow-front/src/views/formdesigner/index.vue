@@ -534,7 +534,7 @@ export default {
         confirmButtonText: '删除',
         cancelButtonText: '取消',
         type: 'warning',
-        confirmButtonClass: 'el-button--danger'
+        confirmButtonClass: 'el-button--primary'
       }).then(() => {
         this.removeNode(idx)
       }).catch(() => {})

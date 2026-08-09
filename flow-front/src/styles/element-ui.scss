@@ -121,6 +121,39 @@
 }
 
 // ============================================================
+// MessageBox 确认按钮 — 强制主题色（初始渲染即生效）
+// $confirm 弹窗的确认按钮由 Element 动态挂载，初始渲染时主题覆盖
+// 样式存在层叠时序问题（点击后才变主题色），这里提升特异性 +
+// !important 强制初始即主题色，覆盖所有 $confirm 弹窗
+// ============================================================
+.el-message-box__btns .el-button--primary {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 4px rgba(var(--color-primary-rgb), 0.18);
+
+  &:hover {
+    background-color: var(--color-primary-hover) !important;
+    border-color: var(--color-primary-hover) !important;
+    color: #fff !important;
+  }
+
+  // Element MessageBox 打开后会自动聚焦确认按钮（$refs.confirm.$el.focus()），
+  // 若 :focus 用加深色，点击弹窗其他区域时按钮会"加深"；这里让 focus 保持主题色
+  &:focus {
+    background-color: var(--color-primary) !important;
+    border-color: var(--color-primary) !important;
+    color: #fff !important;
+  }
+
+  &:active {
+    background-color: var(--color-primary-deep) !important;
+    border-color: var(--color-primary-deep) !important;
+    color: #fff !important;
+  }
+}
+
+// ============================================================
 // 单选/多选
 // ============================================================
 .el-radio__input.is-checked .el-radio__inner,

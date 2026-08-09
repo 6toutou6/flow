@@ -378,6 +378,28 @@ public class FlowDispatchService {
         flowTaskMapper.update(upd, new LambdaQueryWrapper<FlowTask>().eq(FlowTask::getDispatchId, dispatchId));
     }
 
+    /** 期次详情（含计算出的催办时间 = 截止时间 - 提前催办天数），期次人员页展示用 */
+    public Map<String, Object> getPeriodInfo(Long dispatchId) {
+        FlowTaskDispatch d = flowTaskDispatchMapper.selectById(dispatchId);
+        if (d == null) throw new RuntimeException("期次不存在");
+        FlowDispatchConfig cfg = getConfig(d.getTaskId());
+        Integer urgeDays = cfg == null ? null : cfg.getUrgeDays();
+        Date urgeTime = null;
+        if (d.getEndTime() != null && urgeDays != null && urgeDays > 0) {
+            urgeTime = addDays(d.getEndTime(), -urgeDays);
+        }
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", d.getId());
+        map.put("taskId", d.getTaskId());
+        map.put("periodName", d.getPeriodName());
+        map.put("taskName", d.getTaskName());
+        map.put("startTime", d.getStartTime());
+        map.put("endTime", d.getEndTime());
+        map.put("urgeDays", urgeDays);
+        map.put("urgeTime", urgeTime);
+        return map;
+    }
+
     /** 删除任务：仅当任务下无任何期次时允许（同时删除下发配置） */
     @Transactional(rollbackFor = Exception.class)
     public boolean delete(Long id) {

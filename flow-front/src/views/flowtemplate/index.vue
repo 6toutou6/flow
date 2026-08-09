@@ -302,7 +302,7 @@ export default {
     },
     async handleDelete(row) {
       try {
-        await this.$confirm(`确认删除模板「${row.templateName}」？删除后无法恢复。`, '删除模板', { type: 'warning', confirmButtonText: '删除', confirmButtonClass: 'el-button--danger' })
+        await this.$confirm(`确认删除模板「${row.templateName}」？删除后无法恢复。`, '删除模板', { type: 'warning', confirmButtonText: '删除', confirmButtonClass: 'el-button--primary' })
         await deleteTemplate(row.id)
         this.$message.success('删除成功')
         this.fetchData()

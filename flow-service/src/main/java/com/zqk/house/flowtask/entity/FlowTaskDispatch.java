@@ -25,8 +25,6 @@ public class FlowTaskDispatch {
     private Long templateId;
     /** 锁定模板版本 */
     private Integer templateVersion;
-    /** 旧下发计划ID（flow_dispatch.id，已废弃，改为 task_id 关联） */
-    private Long dispatchPlanId;
     /** 期次序号（同一任务下递增） */
     private Integer periodNo;
     /** 期次名称（如 2026-08） */

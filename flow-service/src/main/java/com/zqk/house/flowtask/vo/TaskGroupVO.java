@@ -40,6 +40,9 @@ public class TaskGroupVO {
     private Date startTime;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date endTime;
+    /** 催办时间 = 截止时间 - 提前催办天数（由 flow_dispatch_config.urge_days 计算） */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private Date urgeTime;
 
     /** 聚合状态：1进行中 2已完成 3已作废（任一成员进行中→1；全作废→3；否则→2） */
     private Integer status;

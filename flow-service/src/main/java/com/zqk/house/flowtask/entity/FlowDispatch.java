@@ -27,8 +27,6 @@ public class FlowDispatch {
     /** 任务名称（如：巡查问题整改） */
     private String taskName;
     private String taskDesc;
-    /** 周期类型 week/month/quarter（旧字段，停用） */
-    private String periodType;
     /** 周期类型 1每周 2每月 3每季度 4单次下发（下发配置已独立成表 flow_dispatch_config，此字段由查询/回填填充） */
     @TableField(exist = false)
     private Integer cycleType;

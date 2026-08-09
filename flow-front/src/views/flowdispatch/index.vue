@@ -197,6 +197,7 @@
                         <th class="text-center">进度</th>
                         <th>开始时间</th>
                         <th>截止时间</th>
+                        <th>催办时间</th>
                         <th>下发时间</th>
                         <th class="text-right">操作</th>
                       </tr>
@@ -220,6 +221,10 @@
                         </td>
                         <td>{{ p.startTime || '—' }}</td>
                         <td>{{ p.endTime || '—' }}</td>
+                        <td>
+                          <span v-if="p.urgeTime" class="urge-time">{{ p.urgeTime }}</span>
+                          <span v-else class="text-muted">—</span>
+                        </td>
                         <td>{{ p.dispatchTime }}</td>
                         <td class="text-right">
                           <button class="action-link" @click="openEndTimeDialog(t, p)"><i class="el-icon-time" /> 改截止</button>
@@ -299,7 +304,7 @@
       <div class="et-tip"><i class="el-icon-info" /> 保存后将同步更新该期次下所有成员任务的截止时间。</div>
       <span slot="footer">
         <el-button @click="endTimeVisible = false">取消</el-button>
-        <el-button type="danger" :loading="endTimeSaving" @click="confirmEndTime">保存</el-button>
+        <el-button type="primary" :loading="endTimeSaving" @click="confirmEndTime">保存</el-button>
       </span>
     </el-dialog>
   </div>
@@ -717,7 +722,7 @@ export default {
           confirmButtonText: '删除',
           cancelButtonText: '取消',
           type: 'warning',
-          confirmButtonClass: 'el-button--danger'
+          confirmButtonClass: 'el-button--primary'
         })
       } catch (e) {
         return
@@ -742,7 +747,7 @@ export default {
           confirmButtonText: toDisable ? '停用' : '启用',
           cancelButtonText: '取消',
           type: 'warning',
-          confirmButtonClass: 'el-button--danger'
+          confirmButtonClass: 'el-button--primary'
         }
       ).then(() => {
         toggleDispatchPlanStatus(t.id).then(res => {

@@ -27,7 +27,7 @@ public class FlowTaskLog {
     private Long taskNodeId;
     /** 模板节点ID */
     private Long nodeId;
-    /** 日志类型 1流转通知 2催办 */
+    /** 日志类型 1流转通知 2催办 3待办提醒 */
     private Integer logType;
     /** 日志内容 */
     private String content;

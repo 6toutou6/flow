@@ -20,6 +20,8 @@
           <i class="el-icon-tickets" />
           <template v-if="taskName">任务：{{ taskName }}</template>
           <template v-if="periodName"> · 期次：{{ periodName }}</template>
+          <template v-if="periodInfo && periodInfo.endTime"> · 截止：{{ periodInfo.endTime }}</template>
+          <template v-if="periodInfo && periodInfo.urgeTime"> · 催办：{{ periodInfo.urgeTime }}</template>
           <template v-if="!periodName && !taskName">期次人员查看</template>
           <span class="tip-sub">· 点击人员卡片可查看其流程</span>
         </section>
@@ -149,7 +151,7 @@
 
 <script>
 import { getTaskMembers, urgeTask, urgeTaskBatch, deleteTaskBatch } from '@/api/task'
-import { addPeriodMembers } from '@/api/flowDispatch'
+import { addPeriodMembers, getPeriodInfo } from '@/api/flowDispatch'
 import UserPicker from '@/components/UserPicker/index.vue'
 
 export default {
@@ -161,6 +163,7 @@ export default {
       dispatchId: null,
       periodName: '',
       taskName: '',
+      periodInfo: null,
       members: [],
       total: 0,
       page: 1,
@@ -190,8 +193,18 @@ export default {
     this.periodName = this.$route.query.periodName || ''
     this.taskName = this.$route.query.taskName || ''
     this.fetchMembers()
+    this.fetchPeriodInfo()
   },
   methods: {
+    async fetchPeriodInfo() {
+      if (!this.dispatchId) return
+      try {
+        const res = await getPeriodInfo(this.dispatchId)
+        this.periodInfo = res.data || null
+      } catch (e) {
+        console.error(e)
+      }
+    },
     toggleSelect(taskId, checked) {
       if (checked) {
         if (!this.selected.includes(taskId)) this.selected.push(taskId)
@@ -234,7 +247,7 @@ export default {
           confirmButtonText: '发送催办',
           cancelButtonText: '取消',
           type: 'warning',
-          confirmButtonClass: 'el-button--danger'
+          confirmButtonClass: 'el-button--primary'
         })
         const res = await urgeTaskBatch(this.selected)
         const count = res.data != null ? res.data : this.selected.length
@@ -251,7 +264,7 @@ export default {
           confirmButtonText: '删除',
           cancelButtonText: '取消',
           type: 'warning',
-          confirmButtonClass: 'el-button--danger'
+          confirmButtonClass: 'el-button--primary'
         })
         const res = await deleteTaskBatch(this.selected)
         const count = res.data != null ? res.data : this.selected.length
@@ -320,7 +333,7 @@ export default {
         confirmButtonText: '发送催办',
         cancelButtonText: '取消',
         type: 'warning',
-        confirmButtonClass: 'el-button--danger'
+        confirmButtonClass: 'el-button--primary'
       }).then(async () => {
         this.urgingId = m.taskId
         try {

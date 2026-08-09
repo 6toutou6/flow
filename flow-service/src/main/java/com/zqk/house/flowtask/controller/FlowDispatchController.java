@@ -271,6 +271,16 @@ public class FlowDispatchController {
         }
     }
 
+    /** 期次详情（含截止时间、催办时间），期次人员页展示用 */
+    @GetMapping("/period/{id}")
+    public Result<Map<String, Object>> periodInfo(@PathVariable Long id) {
+        try {
+            return Result.success("获取成功", flowDispatchService.getPeriodInfo(id));
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
     /** 解析前端传来的日期时间字符串（yyyy-MM-dd HH:mm:ss），非字符串/空值返回 null */
     private Date parseDate(Object value) {
         if (!(value instanceof String)) return null;

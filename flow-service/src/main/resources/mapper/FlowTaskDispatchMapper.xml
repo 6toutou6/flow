@@ -15,6 +15,7 @@
                d.manual_flag AS manualFlag,
                d.start_time AS startTime,
                d.end_time AS endTime,
+               CASE WHEN IFNULL(c.urge_days, 0) > 0 THEN DATE_SUB(d.end_time, INTERVAL c.urge_days DAY) ELSE NULL END AS urgeTime,
                d.create_time AS dispatchTime,
                d.id AS primaryTaskId,
                COALESCE(m.memberCount, 0) AS memberCount,
@@ -29,6 +30,7 @@
                END AS status
         FROM flow_task_dispatch d
         LEFT JOIN flow_dispatch t ON t.id = d.task_id
+        LEFT JOIN flow_dispatch_config c ON c.task_id = d.task_id
         LEFT JOIN (
             SELECT dispatch_id,
                    COUNT(*) AS memberCount,

@@ -187,3 +187,11 @@ export function updatePeriodEndTime(dispatchId, endTime) {
     data: { endTime }
   })
 }
+
+// 期次详情（含截止时间、催办时间），期次人员页展示用
+export function getPeriodInfo(dispatchId) {
+  return request({
+    url: `/flow-dispatch/period/${dispatchId}`,
+    method: 'get'
+  })
+}
