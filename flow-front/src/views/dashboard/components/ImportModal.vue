@@ -130,7 +130,7 @@ export default {
 
 .modal-content {
   background-color: white;
-  border-radius: 8px;
+  border-radius: 3px;
   width: 90%;
   max-width: 500px;
   max-height: 90vh;
@@ -154,7 +154,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #e4beba;
+  border-bottom: 1px solid #CBD5E1;
   background-color: #faf9f9;
 }
 
@@ -190,7 +190,7 @@ export default {
   justify-content: flex-end;
   gap: 12px;
   padding: 20px 24px;
-  border-top: 1px solid #e4beba;
+  border-top: 1px solid #CBD5E1;
   background-color: #faf9f9;
 }
 
@@ -201,8 +201,8 @@ export default {
 }
 
 .upload-area {
-  border: 2px dashed #e4beba;
-  border-radius: 12px;
+  border: 2px dashed #CBD5E1;
+  border-radius: 4px;
   padding: 40px 20px;
   text-align: center;
   cursor: pointer;
@@ -210,7 +210,7 @@ export default {
   background-color: #faf9f9;
 
   &:hover {
-    border-color: #a20513;
+    border-color: #334155;
     background-color: #fff5f5;
   }
 
@@ -227,7 +227,7 @@ export default {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background-color: #a20513;
+  background-color: #334155;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -269,25 +269,25 @@ export default {
   gap: 8px;
   padding: 10px 20px;
   background-color: #faf9f9;
-  color: #a20513;
-  border-radius: 8px;
+  color: #334155;
+  border-radius: 3px;
   font-weight: 600;
-  border: 1px solid #a20513;
+  border: 1px solid #334155;
   cursor: pointer;
   transition: all 0.2s;
   font-size: 14px;
   width: fit-content;
 
   &:hover {
-    background-color: rgba(162, 5, 19, 0.1);
+    background-color: rgba(51, 65, 85, 0.1);
   }
 }
 
 .btn-primary {
   padding: 10px 24px;
-  background-color: #a20513;
+  background-color: #334155;
   color: white;
-  border-radius: 8px;
+  border-radius: 3px;
   font-weight: 700;
   border: none;
   cursor: pointer;
@@ -310,9 +310,9 @@ export default {
   padding: 10px 24px;
   background-color: #faf9f9;
   color: #414755;
-  border-radius: 8px;
+  border-radius: 3px;
   font-weight: 600;
-  border: 1px solid #e4beba;
+  border: 1px solid #CBD5E1;
   cursor: pointer;
   transition: all 0.2s;
 

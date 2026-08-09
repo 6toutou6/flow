@@ -59,7 +59,7 @@ export default {
     position: relative;
     height: 100%;
     width: 100%;
-    background-color: #FCFAF9;
+    background-color: #F8FAFC;
     &.mobile.openSidebar{
       position: fixed;
       top: 0;
@@ -85,7 +85,7 @@ export default {
   }
 
   .hideSidebar .fixed-header {
-    width: calc(100% - 54px)
+    width: calc(100% - #{$sidebar-collapsed})
   }
 
   .mobile .fixed-header {
@@ -100,7 +100,7 @@ export default {
   }
 
   .hideSidebar .main-container {
-    margin-left: 54px;
+    margin-left: #{$sidebar-collapsed};
   }
 
   .mobile .main-container {

@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>线性顺序流转工作流系统 · 操作指引</title>
+  <style>
+    :root {
+      --primary: #334155;
+      --primary-dark: #1e293b;
+      --accent: #c53030;
+      --surface: #f1f5f9;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-secondary: #64748b;
+      --success: #16a34a;
+      --warning: #d97706;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 6px 16px rgba(0,0,0,0.09);
+      --shadow-lg: 0 12px 32px rgba(0,0,0,0.14);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: var(--surface);
+      line-height: 1.75;
+      min-height: 100vh;
+    }
+    .layout { min-height: 100vh; }
+
+    /* ├─ Sidebar ─── */
+    .sidebar {
+      position: fixed; top: 0; left: 0;
+      width: 268px; height: 100vh;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      overflow-y: auto; z-index: 100;
+      padding: 24px 0 40px;
+      scrollbar-width: thin;
+    }
+    .sidebar::-webkit-scrollbar { width: 5px; }
+    .sidebar::-webkit-scrollbar-thumb { background: #d7dde6; border-radius: 3px; }
+    .brand {
+      padding: 0 20px 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .brand-logo { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; flex-shrink: 0; background: #f1f5f9; }
+    .brand-icon { display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--accent), #e06464); color: #fff; font-size: 20px; font-weight: 800; }
+    .brand-title { font-size: 14px; font-weight: 700; color: var(--primary-dark); line-height: 1.35; }
+    .brand-subtitle { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    .toc-title {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      padding: 0 20px 8px;
+    }
+    .toc a {
+      display: block; padding: 7px 20px;
+      color: var(--text); text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+    }
+    .toc a:hover { background: #f1f5f9; color: var(--primary-dark); border-left-color: var(--primary); }
+    .toc a.active { background: #f1f5f9; color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+    .toc a.l2 { padding-left: 34px; font-size: 12px; color: var(--text-secondary); }
+    .toc a.l3 { padding-left: 46px; font-size: 12px; color: var(--text-secondary); }
+
+    /* ├─ Main ─── */
+    .main {
+      margin-left: 268px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 32px 120px;
+    }
+    .main > * {
+      width: 100%;
+      max-width: 960px;
+    }
+
+    /* ├─ Cover ─── */
+    .cover {
+      position: relative; overflow: hidden;
+      background: linear-gradient(135deg, #1e293b 0%, #334155 55%, #c53030 130%);
+      border-radius: var(--radius-lg); padding: 60px 48px;
+      text-align: center; margin-bottom: 40px;
+      box-shadow: var(--shadow-md);
+      color: #fff;
+    }
+    .cover::after {
+      content: ""; position: absolute; inset: 0;
+      background: radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08), transparent 40%);
+      pointer-events: none;
+    }
+    .cover-logo { width: 72px; height: 72px; border-radius: 18px; object-fit: cover; margin-bottom: 18px; border: 2px solid rgba(255,255,255,0.25); box-shadow: var(--shadow-lg); }
+    .cover-icon { display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.12); color: #fff; font-size: 34px; font-weight: 800; }
+    .cover h1 { margin: 0 0 10px; font-size: 30px; font-weight: 800; letter-spacing: 0.5px; }
+    .cover .subtitle { font-size: 15px; color: rgba(255,255,255,0.82); margin-bottom: 30px; }
+    .cover .meta { display: inline-flex; gap: 32px; padding: 18px 28px; background: rgba(255,255,255,0.08); border-radius: var(--radius-md); backdrop-filter: blur(4px); }
+    .cover .meta-item { text-align: left; }
+    .cover .meta-label { font-size: 11px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.05em; }
+    .cover .meta-value { font-size: 14px; font-weight: 600; }
+
+    /* ├─ Sections ─── */
+    section { margin-bottom: 56px; }
+    h2 {
+      font-size: 23px; font-weight: 800; color: var(--primary-dark);
+      margin: 0 0 18px; padding-bottom: 10px;
+      border-bottom: 3px solid var(--accent); display: inline-block;
+    }
+    h3 { font-size: 18px; font-weight: 700; color: var(--text); margin: 40px 0 14px; }
+    h4 { font-size: 15px; font-weight: 700; color: var(--accent); margin: 24px 0 10px; }
+    p { margin: 0 0 14px; color: var(--text); }
+
+    /* ├─ Cards ─── */
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 20px 24px;
+      margin-bottom: 16px; box-shadow: var(--shadow-sm);
+      transition: box-shadow 0.2s;
+    }
+    .card:hover { box-shadow: var(--shadow-md); }
+    .card-title {
+      font-size: 15px; font-weight: 700; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-num {
+      width: 22px; height: 22px; background: var(--accent);
+      color: #fff; border-radius: var(--radius-sm);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+
+    /* ├─ Steps ─── */
+    .steps { counter-reset: step; list-style: none; padding: 0; }
+    .steps li { position: relative; padding-left: 44px; margin-bottom: 18px; min-height: 28px; }
+    .steps li::before {
+      counter-increment: step; content: counter(step);
+      position: absolute; left: 0; top: 2px;
+      width: 24px; height: 24px; background: var(--accent);
+      color: #fff; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700;
+    }
+    .steps li:not(:last-child)::after {
+      content: ""; position: absolute; left: 11px; top: 30px; bottom: -18px;
+      width: 2px; background: var(--border);
+    }
+    .steps li strong { display: block; color: var(--primary-dark); margin-bottom: 2px; }
+
+    /* ├─ Quick start ─── */
+    .quickstart-grid {
+      display: flex; align-items: stretch; gap: 8px; margin: 20px 0;
+    }
+    .qs-card {
+      position: relative; overflow: hidden;
+      flex: 1 1 0; min-width: 0;
+      background: #fff; border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px 16px 18px;
+      text-align: center; box-shadow: var(--shadow-sm);
+      transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+    }
+    .qs-card::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, var(--accent), #ef6a6a);
+      opacity: 0; transition: opacity 0.25s;
+    }
+    .qs-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); border-color: rgba(197,48,48,0.35); }
+    .qs-card:hover::before { opacity: 1; }
+    .qs-no {
+      width: 36px; height: 36px; margin: 0 auto 12px;
+      background: linear-gradient(135deg, var(--accent), #e06464);
+      color: #fff; border-radius: 50%; font-size: 15px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 10px rgba(197,48,48,0.3);
+    }
+    .qs-name { font-size: 14px; font-weight: 700; color: var(--primary-dark); margin-bottom: 6px; }
+    .qs-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+    .qs-arrow {
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0; position: relative; flex: 0 0 18px;
+    }
+    .qs-arrow::after {
+      content: ""; width: 9px; height: 9px;
+      border-top: 2px solid #cbd5e1; border-right: 2px solid #cbd5e1;
+      transform: rotate(45deg);
+    }
+
+    /* ├─ Overall flow diagram ─── */
+    .flow-diagram {
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 26px 18px;
+      margin: 20px 0; box-shadow: var(--shadow-sm);
+      display: flex; align-items: stretch; justify-content: space-between; gap: 6px;
+      flex-wrap: nowrap;
+    }
+    .fd-step {
+      position: relative; overflow: hidden;
+      flex: 1 1 0; min-width: 0; text-align: center; padding: 22px 8px 16px;
+      border-radius: 12px; background: #fff; border: 1px solid var(--border);
+      transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+    }
+    .fd-step::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    }
+    .fd-step:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+    .fd-step:nth-child(1)::before { background: linear-gradient(90deg, #8b5cf6, #c4b5fd); }
+    .fd-step:nth-child(3)::before { background: linear-gradient(90deg, #16a34a, #86efac); }
+    .fd-step:nth-child(5)::before { background: linear-gradient(90deg, #d97706, #fcd34d); }
+    .fd-step:nth-child(7)::before { background: linear-gradient(90deg, var(--accent), #fca5a5); }
+    .fd-step:nth-child(9)::before { background: linear-gradient(90deg, #2563eb, #93c5fd); }
+    .fd-icon {
+      width: 44px; height: 44px; margin: 0 auto 10px;
+      border-radius: 50%; font-size: 17px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: inset 0 0 0 3px rgba(255,255,255,0.7);
+    }
+    .fd-step:nth-child(1) .fd-icon { background: linear-gradient(135deg, #ede9fe, #ddd6fe); color: #6d28d9; }
+    .fd-step:nth-child(3) .fd-icon { background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #15803d; }
+    .fd-step:nth-child(5) .fd-icon { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #b45309; }
+    .fd-step:nth-child(7) .fd-icon { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #b91c1c; }
+    .fd-step:nth-child(9) .fd-icon { background: linear-gradient(135deg, #dbeafe, #bfdbfe); color: #1d4ed8; }
+    .fd-name { font-size: 13px; font-weight: 700; color: var(--primary-dark); margin-bottom: 4px; }
+    .fd-desc { font-size: 11px; color: var(--text-secondary); line-height: 1.55; }
+    .fd-arrow {
+      display: flex; align-items: center; font-size: 0; padding: 0 2px; position: relative;
+      flex: 0 0 auto;
+    }
+    .fd-arrow::after {
+      content: ""; width: 10px; height: 10px;
+      border-top: 2px solid #cbd5e1; border-right: 2px solid #cbd5e1;
+      transform: rotate(45deg);
+    }
+
+    /* ├─ Screenshots ─── */
+    .screenshot { margin: 18px 0; }
+    .screenshot img {
+      display: block; width: 100%; max-width: 860px;
+      border: 1px solid var(--border); border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md); cursor: zoom-in;
+      background: #fff; transition: box-shadow 0.2s;
+    }
+    .screenshot img:hover { box-shadow: var(--shadow-lg); }
+    .screenshot-caption {
+      margin-top: 8px; font-size: 12px; color: var(--text-secondary);
+      text-align: center;
+    }
+    .screenshot-caption b { color: var(--text); }
+
+    /* ├─ Lightbox ─── */
+    .lightbox {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(15, 23, 42, 0.85);
+      display: none; align-items: center; justify-content: center;
+      padding: 40px; cursor: zoom-out;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox img {
+      max-width: 100%; max-height: 100%;
+      border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+    }
+    .lightbox-close {
+      position: absolute; top: 20px; right: 28px;
+      color: #fff; font-size: 34px; line-height: 1; cursor: pointer; opacity: 0.85;
+    }
+    .lightbox-close:hover { opacity: 1; }
+
+    /* ├─ Tables ─── */
+    table {
+      width: 100%; border-collapse: collapse; margin: 16px 0;
+      font-size: 13px; background: var(--card);
+      border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { background: #f1f5f9; font-weight: 700; color: var(--primary); font-size: 12px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fafc; }
+
+    /* ├─ Callouts ─── */
+    .callout {
+      border-left: 4px solid var(--primary); background: #fff;
+      padding: 14px 18px; border-radius: 0 var(--radius-md) var(--radius-md) 0; margin: 16px 0;
+      box-shadow: var(--shadow-sm);
+    }
+    .callout-warning { border-left-color: var(--warning); }
+    .callout-danger  { border-left-color: var(--accent); }
+    .callout-success { border-left-color: var(--success); }
+    .callout-title { font-weight: 700; margin-bottom: 4px; color: var(--primary-dark); }
+    .callout p:last-child { margin-bottom: 0; }
+
+    /* ├─ Tags ─── */
+    .badge {
+      display: inline-flex; align-items: center; padding: 1px 8px;
+      border-radius: 20px; font-size: 11px; font-weight: 600; margin-right: 4px;
+    }
+    .badge-primary { background: rgba(51,65,85,0.1); color: var(--primary); border: 1px solid var(--primary); }
+    .badge-success { background: rgba(22,163,74,0.1); color: var(--success); border: 1px solid var(--success); }
+    .badge-warning { background: rgba(217,119,6,0.1); color: var(--warning); border: 1px solid var(--warning); }
+    .badge-danger  { background: rgba(197,48,48,0.1); color: var(--accent); border: 1px solid var(--accent); }
+
+    /* ├─ Menu tree ─── */
+    .menu-tree {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 16px 20px;
+      font-size: 13px; line-height: 2.1; margin: 16px 0; box-shadow: var(--shadow-sm);
+    }
+    .menu-tree .menu-item { padding-left: 0; color: var(--text); font-weight: 700; }
+    .menu-tree .menu-child { padding-left: 22px; color: var(--text-secondary); }
+
+    /* ├─ Lists ─── */
+    ul, ol { margin: 0 0 14px; padding-left: 22px; }
+    li { margin-bottom: 6px; }
+
+    /* ├─ Concept grid ─── */
+    .concept-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 12px; margin: 20px 0;
+    }
+    .concept-box {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow-sm);
+      transition: transform 0.2s;
+    }
+    .concept-box:hover { transform: translateY(-2px); }
+    .concept-box h4 { margin: 0 0 6px; color: var(--accent); font-size: 14px; }
+    .concept-box p { font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.6; }
+
+    code {
+      font-family: "SF Mono", Consolas, monospace;
+      background: #f1f5f9; padding: 1px 6px;
+      border-radius: var(--radius-sm); font-size: 0.9em;
+      color: var(--accent);
+    }
+
+    /* ├─ Back to top ─── */
+    .back-top {
+      position: fixed; right: 28px; bottom: 32px; z-index: 99;
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: none; align-items: center; justify-content: center;
+      font-size: 20px; cursor: pointer;
+      box-shadow: var(--shadow-md); border: none;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+    .back-top:hover { transform: translateY(-3px); }
+    .back-top.show { display: flex; }
+
+    /* ├─ Print & Mobile ─── */
+    @media print {
+      .sidebar, .back-top, .lightbox { display: none !important; }
+      .main { margin-left: 0; max-width: 100%; }
+      .main > * { max-width: 100%; }
+    }
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 24px; }
+      .concept-grid { grid-template-columns: 1fr; }
+      .flow-diagram { flex-direction: column; }
+      .fd-arrow, .qs-arrow { transform: rotate(90deg); }
+      .quickstart-grid { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="brand">
+        <div class="brand-logo brand-icon">流</div>
+        <div>
+          <div class="brand-title">线性顺序流转工作流系统</div>
+          <div class="brand-subtitle">用户操作指引</div>
+        </div>
+      </div>
+      <div class="toc-title">目 录</div>
+      <div class="toc" id="toc">
+        <a href="#cover" class="active">封面</a>
+        <a href="#quickstart" class="l2">快速上手 · 五步走</a>
+        <a href="#overview">第一章 · 系统概述</a>
+        <a href="#concepts" class="l2">1.1 核心概念</a>
+        <a href="#roles" class="l2">1.2 角色与权限</a>
+        <a href="#menu" class="l2">1.3 菜单导航</a>
+
+        <a href="#admin-ops">第二章 · 管理员操作</a>
+        <a href="#user-mgmt" class="l2">2.1 用户管理</a>
+        <a href="#template-mgmt" class="l2">2.2 模板管理</a>
+        <a href="#form-design" class="l2">2.3 表单设计器</a>
+        <a href="#task-config" class="l2">2.4 任务管理</a>
+        <a href="#dispatch-period" class="l2">2.5 期次下发</a>
+        <a href="#config-template" class="l2">2.6 下发配置模板</a>
+
+        <a href="#operator-ops">第三章 · 处理人操作</a>
+        <a href="#my-todo" class="l2">3.1 我的待办</a>
+        <a href="#fill-form" class="l2">3.2 填写表单</a>
+        <a href="#submit-flow" class="l2">3.3 提交与流转</a>
+        <a href="#reject-draft" class="l2">3.4 退回与草稿</a>
+
+        <a href="#data-monitor">第四章 · 数据监控</a>
+        <a href="#stats-dashboard" class="l2">4.1 数据展示看板</a>
+        <a href="#urge" class="l2">4.2 催办</a>
+
+        <a href="#faq">第五章 · 常见问题</a>
+      </div>
+    </nav>
+
+    <main class="main">
+
+      <!-- ═══════════ Cover ═══════════ -->
+      <section id="cover" class="cover">
+        <div class="cover-logo cover-icon">流</div>
+        <h1>线性顺序流转工作流系统</h1>
+        <div class="subtitle">用户操作指引 · 管理员与处理人完整使用手册</div>
+        <div class="meta">
+          <div class="meta-item">
+            <div class="meta-label">版本</div>
+            <div class="meta-value">v2.0</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">适用对象</div>
+            <div class="meta-value">管理员 / 处理人</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">最后更新</div>
+            <div class="meta-value">2026-08-09</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ Quick Start ═══════════ -->
+      <section id="quickstart">
+        <h2>快速上手 · 五步走</h2>
+        <p>不想看长篇文档？只需要记住下面 <strong>5 个步骤</strong>，就能理解整个系统的运转方式：</p>
+
+        <div class="flow-diagram">
+          <div class="fd-step">
+            <div class="fd-icon">1</div>
+            <div class="fd-name">设计模板</div>
+            <div class="fd-desc">画流程节点<br>配填写字段</div>
+          </div>
+          <div class="fd-arrow">→</div>
+          <div class="fd-step">
+            <div class="fd-icon">2</div>
+            <div class="fd-name">创建任务</div>
+            <div class="fd-desc">选模板 · 配周期<br>选处理人员</div>
+          </div>
+          <div class="fd-arrow">→</div>
+          <div class="fd-step">
+            <div class="fd-icon">3</div>
+            <div class="fd-name">生成期次</div>
+            <div class="fd-desc">自动 / 手动下发<br>每人一条待办</div>
+          </div>
+          <div class="fd-arrow">→</div>
+          <div class="fd-step">
+            <div class="fd-icon">4</div>
+            <div class="fd-name">处理人流转</div>
+            <div class="fd-desc">按节点顺序填写<br>提交 / 退回</div>
+          </div>
+          <div class="fd-arrow">→</div>
+          <div class="fd-step">
+            <div class="fd-icon">5</div>
+            <div class="fd-name">数据查看</div>
+            <div class="fd-desc">看板统计<br>流程下钻</div>
+          </div>
+        </div>
+
+        <div class="quickstart-grid">
+          <div class="qs-card">
+            <div class="qs-no">1</div>
+            <div class="qs-name">管理员先设计"图纸"</div>
+            <div class="qs-desc">模板管理里建模板 → 进入表单设计器，把流程节点和每个节点要填的字段配好</div>
+          </div>
+          <div class="qs-arrow">›</div>
+          <div class="qs-card">
+            <div class="qs-no">2</div>
+            <div class="qs-name">建任务并下发期次</div>
+            <div class="qs-desc">任务管理里新建任务（选模板、配周期、选人员），启用后生成期次，系统为每人建一条待办</div>
+          </div>
+          <div class="qs-arrow">›</div>
+          <div class="qs-card">
+            <div class="qs-no">3</div>
+            <div class="qs-name">处理人逐个节点填写</div>
+            <div class="qs-desc">任务处理页打开待办，填当前节点字段 → 通过（指定下一位）或退回，直到结束节点</div>
+          </div>
+          <div class="qs-arrow">›</div>
+          <div class="qs-card">
+            <div class="qs-no">4</div>
+            <div class="qs-name">超期不影响处理</div>
+            <div class="qs-desc">超过期次截止时间仍可正常处理，界面会显示"已超期"标识，仅作提醒</div>
+          </div>
+          <div class="qs-arrow">›</div>
+          <div class="qs-card">
+            <div class="qs-no">5</div>
+            <div class="qs-name">管理员看数据</div>
+            <div class="qs-desc">数据展示看板看统计与趋势，任务管理里可按人员下钻查看每条流程的每一步</div>
+          </div>
+        </div>
+
+        <div class="callout callout-danger">
+          <div class="callout-title">三个最容易踩的坑</div>
+          <ol style="margin:8px 0 0 18px;">
+            <li>模板要<strong>启用</strong>，否则新建任务时选不到。</li>
+            <li>任务要<strong>启用</strong>并<strong>生成期次</strong>，处理人才会收到待办。</li>
+            <li>每个中间节点必须指定<strong>下一节点处理人</strong>，流程才能往下走。</li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- ═══════════ Chapter 1 · 系统概述 ═══════════ -->
+      <section id="overview">
+        <h2>第一章 · 系统概述</h2>
+        <p>本系统是一套<strong>线性顺序流转工作流平台</strong>。简单来说：管理员先画好一张"流程图"（模板），再创建一个"任务"并指派处理人员；系统会按期自动给每位人员发一条待办，人员按流程顺序一步一步填写、提交、流转——从"开始"节点直到"结束"节点，任务完成。</p>
+
+        <div class="callout callout-success">
+          <div class="callout-title">一句话理解</div>
+          <p>这不是"多人同时填一张表"，而是"<strong>一份表单在多人之间按顺序传递填写</strong>"——张三填完第 1 步交给李四，李四填完第 2 步交给王五……一步一步往前走。</p>
+        </div>
+
+        <h3>系统整体使用流程</h3>
+        <p>下面的链路图是整个系统的核心运转逻辑，建议先看这一张图：</p>
+        <div class="flow-diagram">
+          <div class="fd-step">
+            <div class="fd-icon">1</div>
+            <div class="fd-name">流程模板</div>
+            <div class="fd-desc">管理员设计<br>节点 + 字段</div>
+          </div>
+          <div class="fd-arrow">→</div>
+          <div class="fd-step">
+            <div class="fd-icon">2</div>
+            <div class="fd-name">任务</div>
+            <div class="fd-desc">选择模板<br>配置周期与人员</div>
+          </div>
+          <div class="fd-arrow">→</div>
+          <div class="fd-step">
+            <div class="fd-icon">3</div>
+            <div class="fd-name">期次</div>
+            <div class="fd-desc">按期生成<br>（可自动下发）</div>
+          </div>
+          <div class="fd-arrow">→</div>
+          <div class="fd-step">
+            <div class="fd-icon">4</div>
+            <div class="fd-name">人员任务</div>
+            <div class="fd-desc">每个处理人<br>独立完整流程</div>
+          </div>
+          <div class="fd-arrow">→</div>
+          <div class="fd-step">
+            <div class="fd-icon">5</div>
+            <div class="fd-name">节点流转</div>
+            <div class="fd-desc">通过 / 退回<br>直到结束节点</div>
+          </div>
+        </div>
+
+        <h3 id="concepts">1.1 核心概念</h3>
+        <div class="concept-grid">
+          <div class="concept-box">
+            <h4>流程模板</h4>
+            <p>业务"图纸"：定义流程有几个步骤（节点），每个步骤要填哪些字段。支持版本管理和复制。</p>
+          </div>
+          <div class="concept-box">
+            <h4>任务</h4>
+            <p>基于模板创建的具体工作项。配置了什么人、按什么周期、什么时候截止。</p>
+          </div>
+          <div class="concept-box">
+            <h4>期次</h4>
+            <p>任务按周期生成的每一轮。比如"每月 1 号下发"的任务，2026 年 8 月就是一期。</p>
+          </div>
+          <div class="concept-box">
+            <h4>人员任务</h4>
+            <p>每个处理人在某一期次中需要独立完成的完整流程。一期有多少人，就有多少条人员任务。</p>
+          </div>
+          <div class="concept-box">
+            <h4>节点</h4>
+            <p>流程中的每一步。分为开始节点、中间节点、结束节点。每个节点可以设置不同的填写字段。</p>
+          </div>
+          <div class="concept-box">
+            <h4>流转</h4>
+            <p>当前节点填完后，提交给下一节点的人继续。支持正常通过和退回重做。</p>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-title">一个例子帮你理解</div>
+          <p>假设公司每月要做一次"项目进度汇报"：</p>
+          <ol style="margin:8px 0 0 18px;">
+            <li>管理员创建模板：<strong>项目填表人</strong> → <strong>组长审核</strong> → <strong>部门汇总</strong></li>
+            <li>创建任务"月度项目报告"，人员选了张三、李四、王五，周期"每月"。系统每月 1 号自动为三人各生成一条任务。</li>
+            <li>张三打开待办，填好项目数据，提交给组长赵六。</li>
+            <li>赵六审核后提交给部门汇总人。</li>
+            <li>汇总人汇总后提交，流程结束。</li>
+          </ol>
+        </div>
+
+        <h3 id="roles">1.2 角色与权限</h3>
+        <table>
+          <thead><tr><th>角色</th><th>主要能做什么</th><th>对应菜单</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="badge badge-danger">超级管理员</span></td>
+              <td>管理系统用户、设置样例模板/任务</td>
+              <td>超管 → 用户管理</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-primary">流程管理员</span></td>
+              <td>设计模板与表单、创建任务、配置周期与人员、生成期次、查看数据</td>
+              <td>管理员 → 任务管理 / 模板管理 / 数据展示</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-success">处理人</span></td>
+              <td>接收待办任务、填写表单、提交/退回流程</td>
+              <td>任务处理</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 id="menu">1.3 菜单导航</h3>
+        <p>登录后，左侧菜单栏按照角色展示不同模块：</p>
+        <div class="menu-tree">
+          <div class="menu-item">操作指引</div>
+          <div class="menu-item">任务处理</div>
+          <div class="menu-item">管理员</div>
+          <div class="menu-child">任务管理</div>
+          <div class="menu-child">模板管理</div>
+          <div class="menu-child">下发配置模板</div>
+          <div class="menu-child">数据展示</div>
+          <div class="menu-item">超管</div>
+          <div class="menu-child">用户管理</div>
+        </div>
+        <p>所有用户都能看到全部菜单，但具体页面的数据由后端根据登录用户角色自动过滤，超管和管理员能操作全部数据，处理人只能看到自己的待办。</p>
+      </section>
+
+      <!-- ═══════════ Chapter 2 · 管理员操作 ═══════════ -->
+      <section id="admin-ops">
+        <h2>第二章 · 管理员操作</h2>
+        <p>本章面向超级管理员和流程管理员，介绍如何配置用户、设计模板、创建任务、下发期次。</p>
+
+        <!-- 2.1 -->
+        <h3 id="user-mgmt">2.1 用户管理</h3>
+        <p>菜单位置：<strong>超管 → 用户管理</strong>。仅超级管理员可操作，用于管理系统用户账号。</p>
+
+        <div class="screenshot">
+          <img src="images/user-management.png" alt="用户管理页面截图" title="点击放大">
+          <div class="screenshot-caption"><b>图 2-0</b> 用户管理：用户列表含账号、员工号、部门、状态，可新增/编辑/删除</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="card-num">1</span>新增用户</div>
+          <ol>
+            <li>进入"用户管理"页面，点击<strong>「新增」</strong>按钮。</li>
+            <li>填写信息：账号（登录名）、员工号、真实姓名、部门、手机号、密码。</li>
+            <li>状态选择<strong>「正常」</strong>后，该用户即可登录系统，也会出现在处理人选人列表中。</li>
+            <li>点击保存。</li>
+          </ol>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="card-num">2</span>编辑 / 删除用户</div>
+          <ol>
+            <li>在用户列表中，点击操作列的<strong>编辑图标</strong>可修改用户信息。</li>
+            <li>点击<strong>删除图标</strong>可删除用户。删除后该用户无法登录，但历史数据保留。</li>
+          </ol>
+        </div>
+        <p>系统预置了 5 个测试用户，方便测试多人流转场景。</p>
+
+        <!-- 2.2 -->
+        <h3 id="template-mgmt">2.2 模板管理</h3>
+        <p>菜单位置：<strong>管理员 → 模板管理</strong>。流程模板是系统的核心"图纸"，所有任务都必须基于模板创建。</p>
+
+        <div class="screenshot">
+          <img src="images/template-management.png" alt="模板管理页面截图" title="点击放大">
+          <div class="screenshot-caption"><b>图 2-1</b> 模板管理列表：支持搜索、启用/停用、复制、设计、删除</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="card-num">1</span>创建模板</div>
+          <ol>
+            <li>进入"模板管理"页面，点击<strong>「创建模板」</strong>按钮。</li>
+            <li>填写模板名称、分类、简要说明。</li>
+            <li>保存后，自动进入<strong>表单设计器</strong>（见 2.3 节）设计流程节点和字段。</li>
+          </ol>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="card-num">2</span>模板列表操作</div>
+          <table>
+            <thead><tr><th>操作</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td>设计</td><td>点击进入表单设计器，编辑流程节点与字段。</td></tr>
+              <tr><td>启用 / 停用</td><td>切换状态开关。停用后不能用于创建新任务，但已下发的任务不受影响。</td></tr>
+              <tr><td>复制</td><td>快速复制一份完全相同的模板（含节点与字段），方便在不同场景间复用。</td></tr>
+              <tr><td>删除</td><td>仅当模板未被任何任务引用时才可删除。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 2.3 -->
+        <h3 id="form-design">2.3 表单设计器</h3>
+        <p>从模板管理列表点击<strong>「设计」</strong>进入。设计器是创建和编辑流程的核心工具，采用三栏布局。</p>
+
+        <div class="screenshot">
+          <img src="images/form-designer.png" alt="表单设计器页面截图" title="点击放大">
+          <div class="screenshot-caption"><b>图 2-2</b> 表单设计器：左节点链 / 中字段画布 / 右属性面板</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="card-num">1</span>三栏布局说明</div>
+          <table>
+            <thead><tr><th>区域</th><th>位置</th><th>功能</th></tr></thead>
+            <tbody>
+              <tr><td><strong>节点链</strong></td><td>左侧</td><td>显示流程的全部节点。每个节点显示名称、类型徽章、包含的字段数。可上下拖拽调整顺序、点击删除。</td></tr>
+              <tr><td><strong>字段画布</strong></td><td>中间</td><td>当前选中节点的字段列表。可点击添加字段、拖拽排序、删除。</td></tr>
+              <tr><td><strong>属性面板</strong></td><td>右侧</td><td>上半部分：当前节点的属性（名称、类型、填写提示、说明文件）。下半部分：当前选中字段的属性（字段标签、占位提示、是否必填、最大长度、枚举选项等）。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="card-num">2</span>设计流程的步骤</div>
+          <ol class="steps">
+            <li>
+              <strong>新建节点</strong>
+              <p>在节点链区域添加节点。首节点自动设为"开始节点"，最后位置自动为"结束节点"，中间的为"中间节点"。</p>
+            </li>
+            <li>
+              <strong>为每个节点添加字段</strong>
+              <p>选中一个节点，在中间画布区添加该节点需要处理的字段。</p>
+            </li>
+            <li>
+              <strong>配置字段属性</strong>
+              <p>选中一个字段，在右侧面板设置字段标签、输入提示、是否必填等。</p>
+            </li>
+            <li>
+              <strong>设置节点属性</strong>
+              <p>为每个节点设置名称、填写说明、下一步处理人提示语、可上传的说明文件。</p>
+            </li>
+            <li>
+              <strong>保存流程</strong>
+              <p>点击右上角「保存流程」按钮，选择"保存到当前版本"或"保存为新版本"。</p>
+            </li>
+          </ol>
+        </div>
+
+        <h4>字段类型一览</h4>
+        <table>
+          <thead><tr><th>类型</th><th>说明</th><th>支持必填</th></tr></thead>
+          <tbody>
+            <tr><td>单行文本</td><td>短文字输入，如姓名、编号</td><td>是</td></tr>
+            <tr><td>多行文本</td><td>长文字输入，如备注、说明</td><td>是</td></tr>
+            <tr><td>数字</td><td>整数或小数，如金额、数量</td><td>是</td></tr>
+            <tr><td>日期</td><td>日期选择器</td><td>是</td></tr>
+            <tr><td>单选</td><td>从预设选项中选一个，如状态、级别</td><td>是</td></tr>
+            <tr><td>多选</td><td>从预设选项中选多个</td><td>是</td></tr>
+            <tr><td>文件</td><td>上传附件</td><td>是</td></tr>
+            <tr><td>图片</td><td>上传图片</td><td>是</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-warning">
+          <div class="callout-title">节点规则</div>
+          <p>首节点必须是"开始节点"，末节点必须是"结束节点"。中间节点至少保留一个，否则无法构成完整的流程链。</p>
+        </div>
+        <div class="callout">
+          <div class="callout-title">版本管理</div>
+          <p>保存为<strong>新版本</strong>时，旧配置会归档到版本记录中，方便回溯。模板升级不会影响已下发任务——历史期次使用的是下发时的版本快照。</p>
+        </div>
+
+        <!-- 2.4 -->
+        <h3 id="task-config">2.4 任务管理</h3>
+        <p>菜单位置：<strong>管理员 → 任务管理</strong>。基于模板创建任务，配置周期和人员后，系统即可按期自动下发。</p>
+
+        <div class="screenshot">
+          <img src="images/task-distribution.png" alt="任务管理页面截图" title="点击放大">
+          <div class="screenshot-caption"><b>图 2-3</b> 任务管理：创建任务、配置周期与人员、生成期次</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="card-num">1</span>创建任务</div>
+          <ol class="steps">
+            <li>
+              <strong>进入新建任务</strong>
+              <p>在任务管理页面点击<strong>「新建任务」</strong>按钮。</p>
+            </li>
+            <li>
+              <strong>选择模板并填写基本信息</strong>
+              <p>选择流程模板（仅显示已启用的模板）。填写任务名称、任务说明。如有模板级配置字段（任务级别统一设定的值），在此一并填写。</p>
+            </li>
+            <li>
+              <strong>配置下发周期</strong>
+              <p>选择周期类型：每周 / 每月 / 每季度 / 单次。设置触发日、每期截止天数、提前催办天数。也可以从"下发配置模板库"一键拉取常用配置（见 2.6 节）。</p>
+            </li>
+            <li>
+              <strong>配置处理人员</strong>
+              <p>从用户列表中选择处理人。任务创建后人员可随时增减。</p>
+            </li>
+            <li>
+              <strong>保存</strong>
+              <p>点击保存返回任务管理页。任务默认为停用状态，需要<strong>手动启用</strong>才会开始按周期下发。</p>
+            </li>
+          </ol>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="card-num">2</span>任务列表操作</div>
+          <table>
+            <thead><tr><th>操作</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td>启用 / 停用</td><td>启用后定时任务才会按周期自动下发期次。停用后不再生成新期次，但已下发的继续有效。</td></tr>
+              <tr><td>编辑</td><td>修改任务基本信息和下发配置。</td></tr>
+              <tr><td>生成期次</td><td>手动生成一期任务（见 2.5 节）。</td></tr>
+              <tr><td>人员管理</td><td>增减任务的处理人员。新增人员会在下个期次开始收到待办。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 2.5 -->
+        <h3 id="dispatch-period">2.5 期次下发</h3>
+        <p>在任务管理页展开某个任务后，可以看到该任务下的所有期次。生成期次后，系统才会为每位处理人创建实际的待办任务。</p>
+
+        <div class="screenshot">
+          <img src="images/period-generate.png" alt="期次下发弹窗截图" title="点击放大">
+          <div class="screenshot-caption"><b>图 2-4</b> 期次下发：选择生成方式、确认本期次人员后下发</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="card-num">1</span>三种生成方式</div>
+          <table>
+            <thead><tr><th>方式</th><th>适用场景</th></tr></thead>
+            <tbody>
+              <tr><td><strong>立即下发</strong></td><td>生成当前应下发的期次。比如每月 1 号下发，今天 8 月 6 号才操作，系统会补发 2026-08 期次。</td></tr>
+              <tr><td><strong>下一期次下发</strong></td><td>提前生成下一个周期的期次，如提前生成 2026-09 期次。</td></tr>
+              <tr><td><strong>手动临时期次</strong></td><td>自定义期次名称和起止时间，用于特殊情况。不影响后续自动下发编排。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="card-num">2</span>生成期次操作</div>
+          <ol>
+            <li>在任务管理页展开目标任务。</li>
+            <li>点击<strong>「生成期次」</strong>按钮。</li>
+            <li>选择生成方式，确认人员列表（默认抄用任务配置的人员，可临时增减本期次人员）。</li>
+            <li>点击<strong>「确认下发」</strong>。系统会为每位人员创建一条独立的待办任务。</li>
+          </ol>
+        </div>
+
+        <h4>期次管理</h4>
+        <p>展开任务后可以看到期次列表，每行显示期次名、成员数、状态、起止时间。可进行的操作：</p>
+        <ul>
+          <li><strong>查看人员</strong>：进入期次人员页，查看每位成员的处理进度和当前节点。</li>
+          <li><strong>修改截止时间</strong>：调整特定期次的截止日期。</li>
+          <li><strong>删除期次</strong>：删除无人员任务的空期次。</li>
+        </ul>
+
+        <div class="callout callout-success">
+          <div class="callout-title">自动下发</div>
+          <p>启用状态的任务，系统每天上午 8:00 自动检查并下发到期期次。不需要每次手动操作。</p>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-title">关于截止时间与超期</div>
+          <p>期次截止时间仅用于展示与催办提醒。<strong>超过截止时间后处理人仍可正常处理</strong>，界面会显示"已超期"标识；超期提交的节点记录会标注"超期处理"，不影响流程流转。</p>
+        </div>
+
+        <!-- 2.6 -->
+        <h3 id="config-template">2.6 下发配置模板</h3>
+        <p>菜单位置：<strong>管理员 → 下发配置模板</strong>。如果同一个周期配置要反复使用（比如"每月 1 号下发，7 天截止，提前 2 天催办"），可以将其保存为配置模板，创建新任务时一键拉取，避免每次手动填写。</p>
+
+        <div class="screenshot">
+          <img src="images/config-template.png" alt="下发配置模板页截图" title="点击放大">
+          <div class="screenshot-caption"><b>图 2-5</b> 下发配置模板：常用周期配置库，新建任务时可一键拉取</div>
+        </div>
+
+        <p>配置模板支持增删改查，删除模板不影响已拉取到任务上的配置。</p>
+      </section>
+
+      <!-- ═══════════ Chapter 3 · 处理人操作 ═══════════ -->
+      <section id="operator-ops">
+        <h2>第三章 · 处理人操作</h2>
+        <p>本章面向处理人，介绍如何在"任务处理"页面完成待办事项。</p>
+
+        <h3 id="my-todo">3.1 我的待办</h3>
+        <p>菜单位置：<strong>任务处理</strong>。登录后默认进入此页面，显示当前用户作为处理人的全部待办。</p>
+        <p>任务按来源分组展示，每项包含：任务名称、期次、当前节点、截止时间。点击<strong>「处理」</strong>按钮进入处理界面。</p>
+
+        <div class="screenshot">
+          <img src="images/task-process.png" alt="任务处理页截图" title="点击放大">
+          <div class="screenshot-caption"><b>图 3-1</b> 任务处理：待办列表 + 统计卡，点击「处理」进入填报</div>
+        </div>
+
+        <h3 id="fill-form">3.2 填写表单</h3>
+        <p>点击「处理」后打开的弹窗包含以下区域：</p>
+        <table>
+          <thead><tr><th>区域</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>任务信息</td><td>顶部显示期次名、任务名、截止时间等。超过截止时间会提示"已超期"，但仍可正常处理。</td></tr>
+            <tr><td>流程链</td><td>可切换横向/竖向：横向点击节点查看单个节点填写内容，竖向可同时展开多个节点对照查看。</td></tr>
+            <tr><td>节点说明</td><td>管理员在模板中为本节点配置的填写说明文字和附件。</td></tr>
+            <tr><td>动态表单</td><td>核心区域，根据当前节点的字段配置渲染输入控件。红色星号表示必填项。</td></tr>
+            <tr><td>操作历史</td><td>右侧时间线，显示该流程的通过、退回记录和意见。</td></tr>
+          </tbody>
+        </table>
+
+        <h3 id="submit-flow">3.3 提交与流转</h3>
+        <div class="card">
+          <div class="card-title"><span class="card-num">1</span>提交步骤</div>
+          <ol>
+            <li>确认所有必填字段（红色星号）已填写完整。</li>
+            <li>如果当前节点不是"结束节点"，需要<strong>指定下一节点处理人</strong>——从用户列表中选择一人。</li>
+            <li>点击<strong>「通过」</strong>按钮，在确认弹窗中点击确定。</li>
+            <li>提交成功后，该节点标记为已完成，下一节点处理人会收到待办通知。</li>
+          </ol>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-title">重要规则</div>
+          <p>如果某个节点配置了多名处理人：<strong>任一人提交即算该节点完成</strong>，其他人的待办会自动消解，避免重复流程。</p>
+        </div>
+
+        <h3 id="reject-draft">3.4 退回与草稿</h3>
+        <div class="card">
+          <div class="card-title"><span class="card-num">1</span>退回</div>
+          <ol>
+            <li>在表单页点击<strong>「退回」</strong>按钮。</li>
+            <li>选择退回目标节点（仅可选择流程中已经到达过的前置节点）。</li>
+            <li>填写退回原因（选填但不建议为空），提交后目标节点处理人重新收到待办。</li>
+            <li>退回后表单数据保留，处理人可修改后重新提交。</li>
+          </ol>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="card-num">2</span>暂存草稿</div>
+          <ol>
+            <li>点击<strong>「暂存」</strong>按钮可保存当前填写内容。</li>
+            <li>暂存不校验必填字段，不触发流转。</li>
+            <li>下次从待办列表点击"处理"进入时，草稿内容会自动回填，可继续编辑。</li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- ═══════════ Chapter 4 · 数据监控 ═══════════ -->
+      <section id="data-monitor">
+        <h2>第四章 · 数据监控</h2>
+        <p>菜单位置：<strong>管理员 → 数据展示</strong>。管理员可在此查看全局填报数据、趋势、人员提交情况，并下钻到具体流程详情。</p>
+
+        <div class="screenshot">
+          <img src="images/data-dashboard.png" alt="数据展示看板截图" title="点击放大">
+          <div class="screenshot-caption"><b>图 4-1</b> 数据展示看板：统计卡 + 提交趋势 + 提交明细</div>
+        </div>
+
+        <h3 id="stats-dashboard">4.1 数据展示看板</h3>
+        <table>
+          <thead><tr><th>功能模块</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>统计卡</td><td>顶部展示总提交次数、待处理数量、完成率、任务总数、进行中期次等关键指标。</td></tr>
+            <tr><td>提交趋势</td><td>按日/月/季度/年展示提交量变化折线图。</td></tr>
+            <tr><td>数据提交明细</td><td>表格列出每条填报记录，包含状态、提交人、模板、时间，支持筛选导出。</td></tr>
+            <tr><td>人员提交汇总</td><td>按人员统计提交次数、完成率、平均处理时长，方便评估工作量。</td></tr>
+            <tr><td>流程详情下钻</td><td>从任务管理 → 期次人员 → <strong>「查看流程」</strong>，可查看某人完整的节点链、每步表单数据、操作历史。</td></tr>
+          </tbody>
+        </table>
+
+        <div class="screenshot">
+          <img src="images/flow-detail.png" alt="流程详情截图" title="点击放大">
+          <div class="screenshot-caption"><b>图 4-2</b> 流程详情：查看节点链与节点表单、操作记录</div>
+        </div>
+
+        <h3 id="urge">4.2 催办</h3>
+        <p>在期次人员页，对进行中的成员可点击<strong>「催办」</strong>按钮。系统每天上午 9:00 也会根据任务配置的"提前催办天数"自动催办即将到期的任务。</p>
+
+        <div class="screenshot">
+          <img src="images/period-users.png" alt="期次人员页截图" title="点击放大">
+          <div class="screenshot-caption"><b>图 4-3</b> 期次人员：查看每位成员的处理进度与当前节点，可催办、查看流程</div>
+        </div>
+      </section>
+
+      <!-- ═══════════ Chapter 5 · 常见问题 ═══════════ -->
+      <section id="faq">
+        <h2>第五章 · 常见问题</h2>
+        <table>
+          <thead><tr><th>问题</th><th>解决方法</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>登录失败</td>
+              <td>确认账号密码正确（默认密码 123456）。如忘记密码，联系超级管理员重置。</td>
+            </tr>
+            <tr>
+              <td>创建任务时找不到模板</td>
+              <td>确认模板已"启用"。停用状态的模板不会出现在任务创建的选择列表中。</td>
+            </tr>
+            <tr>
+              <td>任务创建了但没人收到待办</td>
+              <td>检查两步：① 任务是否已<strong>启用</strong>；② 是否已<strong>生成期次</strong>。仅创建任务不生成期次时，处理人不会收到待办。</td>
+            </tr>
+            <tr>
+              <td>退回后流程似乎卡住了</td>
+              <td>退回后目标节点的处理人需要重新处理并提交。确认目标节点处理人已收到待办。</td>
+            </tr>
+            <tr>
+              <td>期次没有自动生成</td>
+              <td>检查：① 任务是否启用；② 周期配置是否正确；③ 系统每天 8:00 自动执行，如果刚创建可以手动"立即下发"。</td>
+            </tr>
+            <tr>
+              <td>提交时提示"该节点已被处理"</td>
+              <td>同一节点的多位处理人中已有人先提交了，这条待办已自动消解，无需处理。</td>
+            </tr>
+            <tr>
+              <td>想删除模板但提示有引用</td>
+              <td>该模板已被某个任务使用。需要先删除或更换引用此模板的任务，才能删除模板。</td>
+            </tr>
+            <tr>
+              <td>保存了模板但任务下发的还是旧流程</td>
+              <td>已下发的任务使用的是下发时的版本快照，模板修改不会影响已有期次。如需让新一期使用新流程，生成新期次即可——新期次会自动使用模板最新版本。</td>
+            </tr>
+            <tr>
+              <td>期次截止时间过了还能处理吗</td>
+              <td>可以。截止时间仅用于展示与催办，超期后仍可正常提交，界面会显示"已超期"标识，节点记录标注"超期处理"。</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <footer style="padding-top: 40px; border-top: 1px solid var(--border); margin-top: 48px; color: var(--text-secondary); font-size: 12px; text-align: center;">
+        <p>线性顺序流转工作流系统 · 操作指引<br>文档版本 v2.0 · 2026-08-09</p>
+      </footer>
+    </main>
+  </div>
+
+  <!-- ═══════════ Lightbox ═══════════ -->
+  <div class="lightbox" id="lightbox">
+    <span class="lightbox-close" onclick="closeLightbox()">×</span>
+    <img id="lightboxImg" src="" alt="放大预览">
+  </div>
+
+  <button class="back-top" id="backTop" title="返回顶部">↑</button>
+
+  <script>
+    // 目录高亮
+    const sections = document.querySelectorAll('section[id], h3[id], h4[id]');
+    const tocLinks = document.querySelectorAll('.toc a');
+    function onScroll() {
+      const sp = window.scrollY + 120;
+      let cur = '';
+      sections.forEach(s => { if (s.offsetTop <= sp) cur = s.getAttribute('id'); });
+      tocLinks.forEach(l => {
+        l.classList.remove('active');
+        if (l.getAttribute('href') === '#' + cur) l.classList.add('active');
+      });
+      // 返回顶部按钮
+      const bt = document.getElementById('backTop');
+      if (window.scrollY > 400) bt.classList.add('show'); else bt.classList.remove('show');
+    }
+    window.addEventListener('scroll', onScroll);
+    onScroll();
+
+    // 图片灯箱（点击截图放大）
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightboxImg');
+    document.querySelectorAll('.screenshot img').forEach(img => {
+      img.addEventListener('click', () => {
+        lightboxImg.src = img.getAttribute('src');
+        lightbox.classList.add('open');
+      });
+    });
+    function closeLightbox() { lightbox.classList.remove('open'); }
+    lightbox.addEventListener('click', closeLightbox);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+    // 返回顶部
+    const backTop = document.getElementById('backTop');
+    backTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  </script>
+</body>
+</html>

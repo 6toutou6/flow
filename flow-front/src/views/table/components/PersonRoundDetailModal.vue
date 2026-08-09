@@ -140,7 +140,7 @@ export default {
 
 .modal-content {
   background: white;
-  border-radius: 12px;
+  border-radius: 4px;
   width: 92%;
   max-width: 960px;
   max-height: 85vh;
@@ -166,13 +166,13 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(228, 190, 186, 0.4);
+  border-bottom: 1px solid rgba(51, 65, 85, 0.1);
 }
 
 .modal-title {
   font-size: 18px;
   font-weight: bold;
-  color: #a20513;
+  color: #334155;
   margin: 0;
 }
 
@@ -185,7 +185,7 @@ export default {
   transition: color 0.2s;
 
   &:hover {
-    color: #a20513;
+    color: #334155;
   }
 }
 
@@ -214,33 +214,33 @@ export default {
 
 .modal-footer {
   padding: 14px 20px;
-  border-top: 1px solid rgba(228, 190, 186, 0.4);
+  border-top: 1px solid rgba(51, 65, 85, 0.1);
   display: flex;
   justify-content: flex-end;
 }
 
 .btn-modal-close {
   padding: 8px 20px;
-  border: 1px solid #e4beba;
+  border: 1px solid #CBD5E1;
   border-radius: 4px;
   font-size: 14px;
-  color: #5b403d;
+  color: #334155;
   background: white;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: #f6f3f2;
-    border-color: #a20513;
-    color: #a20513;
+    background: #F1F5F9;
+    border-color: #334155;
+    color: #334155;
   }
 }
 
 /* 基本信息卡片 */
 .info-card {
-  background: #fcf9f8;
-  border: 1px solid rgba(228, 190, 186, 0.4);
-  border-radius: 8px;
+  background: #F8FAFC;
+  border: 1px solid rgba(51, 65, 85, 0.1);
+  border-radius: 3px;
   padding: 16px;
 }
 
@@ -249,7 +249,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding-bottom: 14px;
-  border-bottom: 1px solid rgba(228, 190, 186, 0.3);
+  border-bottom: 1px solid rgba(51, 65, 85, 0.08);
   margin-bottom: 14px;
 }
 
@@ -263,7 +263,7 @@ export default {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #a20513, #c71530);
+  background: linear-gradient(135deg, #334155, #c71530);
   color: white;
   display: flex;
   align-items: center;
@@ -293,8 +293,8 @@ export default {
 
 .round-badge-lg {
   padding: 6px 12px;
-  background: rgba(162, 5, 19, 0.1);
-  color: #a20513;
+  background: rgba(51, 65, 85, 0.1);
+  color: #334155;
   border-radius: 4px;
   font-size: 13px;
   font-weight: bold;
@@ -324,18 +324,18 @@ export default {
 
 /* 区块卡片 */
 .section-card {
-  border: 1px solid rgba(228, 190, 186, 0.4);
-  border-radius: 8px;
+  border: 1px solid rgba(51, 65, 85, 0.1);
+  border-radius: 3px;
   padding: 16px;
 }
 
 .section-title {
   font-size: 14px;
   font-weight: bold;
-  color: #a20513;
+  color: #334155;
   margin: 0 0 12px 0;
   padding-left: 8px;
-  border-left: 3px solid #a20513;
+  border-left: 3px solid #334155;
 }
 
 .remark-text {
@@ -357,14 +357,14 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px;
-  background: #fcf9f8;
-  border-radius: 6px;
+  background: #F8FAFC;
+  border-radius: 2px;
   text-decoration: none;
-  color: #a20513;
+  color: #334155;
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(162, 5, 19, 0.05);
+    background: rgba(51, 65, 85, 0.05);
   }
 
   i {
@@ -387,9 +387,9 @@ export default {
 
 /* 流程卡片 */
 .flow-card {
-  background: #fcf9f8;
-  border: 1px solid rgba(228, 190, 186, 0.4);
-  border-radius: 8px;
+  background: #F8FAFC;
+  border: 1px solid rgba(51, 65, 85, 0.1);
+  border-radius: 3px;
   padding: 16px;
   flex: 1;
   display: flex;
@@ -399,10 +399,10 @@ export default {
 .flow-title {
   font-size: 14px;
   font-weight: bold;
-  color: #a20513;
+  color: #334155;
   margin: 0 0 16px 0;
   padding-left: 8px;
-  border-left: 3px solid #a20513;
+  border-left: 3px solid #334155;
 }
 
 .flow-empty {
@@ -413,7 +413,7 @@ export default {
 
   i {
     font-size: 28px;
-    color: #e4beba;
+    color: #CBD5E1;
     display: block;
     margin-bottom: 8px;
   }
@@ -449,21 +449,21 @@ export default {
   flex-shrink: 0;
 
   &.step-completed {
-    background: #a20513;
+    background: #334155;
     color: white;
   }
 
   &.step-pending {
-    background: #f6f3f2;
-    color: #c8b3b0;
-    border: 1px solid #e4beba;
+    background: #F1F5F9;
+    color: #94A3B8;
+    border: 1px solid #CBD5E1;
   }
 }
 
 .step-connector {
   flex: 1;
   width: 2px;
-  background: #e4beba;
+  background: #CBD5E1;
   margin: 4px 0;
 }
 
@@ -499,7 +499,7 @@ export default {
   color: #757575;
   margin-top: 4px;
   padding-left: 12px;
-  border-left: 2px solid #e4beba;
+  border-left: 2px solid #CBD5E1;
 }
 
 .submit-tag {
@@ -509,15 +509,15 @@ export default {
   font-weight: bold;
 
   &.submit-verified {
-    background: #e8f5e9;
-    color: #2e7d32;
-    border: 1px solid #c8e6c9;
+    background: #ECFDF5;
+    color: #15803D;
+    border: 1px solid #DCFCE7;
   }
 
   &.submit-processing {
-    background: #fff3e0;
-    color: #e65100;
-    border: 1px solid #ffcc80;
+    background: #FFFBEB;
+    color: #EA580C;
+    border: 1px solid #FDE68A;
   }
 
   &.submit-pending {
@@ -534,13 +534,13 @@ export default {
   font-weight: bold;
 
   &.round-status-completed {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: #ECFDF5;
+    color: #15803D;
   }
 
   &.round-status-progress {
-    background: #fff3e0;
-    color: #e65100;
+    background: #FFFBEB;
+    color: #EA580C;
   }
 
   &.round-status-pending {

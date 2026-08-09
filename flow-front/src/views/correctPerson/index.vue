@@ -570,7 +570,7 @@ export default {
 <style lang="scss" scoped>
 .correct-container {
   min-height: 100vh;
-  background-color: #fcf9f8;
+  background-color: #F8FAFC;
 }
 
 .main-content {
@@ -589,18 +589,18 @@ export default {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #5b403d;
+  color: #334155;
 
   .active {
     font-weight: bold;
-    color: #a20513;
+    color: #334155;
   }
 }
 
 .page-heading {
   font-size: 20px;
   font-weight: 600;
-  color: #a20513;
+  color: #334155;
   margin: 0;
 }
 
@@ -611,20 +611,20 @@ export default {
 
 .form-card {
   background: white;
-  border: 1px solid #e4beba;
-  border-radius: 8px;
+  border: 1px solid #CBD5E1;
+  border-radius: 3px;
   overflow: hidden;
 }
 
 .form-header {
   padding: 16px 20px;
-  background: #fcf9f8;
-  border-bottom: 1px solid #e4beba;
+  background: #F8FAFC;
+  border-bottom: 1px solid #CBD5E1;
 
   h4 {
     font-size: 16px;
     font-weight: bold;
-    color: #a20513;
+    color: #334155;
     margin: 0 0 4px 0;
   }
 
@@ -643,15 +643,15 @@ export default {
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 20px;
-  border-top: 1px solid #e4beba;
-  background: #fcf9f8;
+  border-top: 1px solid #CBD5E1;
+  background: #F8FAFC;
 }
 
 .upload-area {
-  border: 1px dashed #e4beba;
+  border: 1px dashed #CBD5E1;
   border-radius: 4px;
   padding: 16px;
-  background: #fcf9f8;
+  background: #F8FAFC;
 }
 
 .approver-section {
@@ -675,7 +675,7 @@ export default {
 .empty-hint {
   margin-top: 8px;
   font-size: 12px;
-  color: #c8b3b0;
+  color: #94A3B8;
 }
 
 .records-section {
@@ -685,8 +685,8 @@ export default {
 
 .records-card {
   background: white;
-  border: 1px solid #e4beba;
-  border-radius: 8px;
+  border: 1px solid #CBD5E1;
+  border-radius: 3px;
   overflow: hidden;
 }
 
@@ -695,13 +695,13 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: #fcf9f8;
-  border-bottom: 1px solid #e4beba;
+  background: #F8FAFC;
+  border-bottom: 1px solid #CBD5E1;
 
   h4 {
     font-size: 16px;
     font-weight: bold;
-    color: #a20513;
+    color: #334155;
     margin: 0;
   }
 }
@@ -711,8 +711,8 @@ export default {
   align-items: center;
   gap: 12px;
   padding: 16px 20px;
-  background: #fcf9f8;
-  border-bottom: 1px solid #e4beba;
+  background: #F8FAFC;
+  border-bottom: 1px solid #CBD5E1;
 
   .filter-select {
     width: 120px;
@@ -766,7 +766,7 @@ export default {
   .detail-label {
     width: 100px;
     font-weight: 500;
-    color: #5b403d;
+    color: #334155;
     flex-shrink: 0;
   }
 
@@ -800,7 +800,7 @@ export default {
 
   .success-icon {
     font-size: 48px;
-    color: #67c23a;
+    color: #22C55E;
     margin-bottom: 12px;
   }
 

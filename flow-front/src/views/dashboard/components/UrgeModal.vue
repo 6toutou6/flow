@@ -68,7 +68,7 @@ export default {
 
 .modal-content {
   background-color: white;
-  border-radius: 8px;
+  border-radius: 3px;
   width: 90%;
   max-width: 400px;
   max-height: 90vh;
@@ -96,7 +96,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #e4beba;
+  border-bottom: 1px solid #CBD5E1;
   background-color: #faf9f9;
 }
 
@@ -138,7 +138,7 @@ export default {
 
   .el-icon-bell {
     font-size: 36px;
-    color: #a20513;
+    color: #334155;
   }
 }
 
@@ -158,7 +158,7 @@ export default {
 }
 
 .dept-name {
-  color: #a20513;
+  color: #334155;
   font-weight: 600;
 }
 
@@ -167,7 +167,7 @@ export default {
   justify-content: center;
   gap: 12px;
   padding: 20px 24px;
-  border-top: 1px solid #e4beba;
+  border-top: 1px solid #CBD5E1;
   background-color: #faf9f9;
 }
 
@@ -175,9 +175,9 @@ export default {
   padding: 10px 24px;
   background-color: #faf9f9;
   color: #414755;
-  border-radius: 8px;
+  border-radius: 3px;
   font-weight: 600;
-  border: 1px solid #e4beba;
+  border: 1px solid #CBD5E1;
   cursor: pointer;
   transition: all 0.2s;
 
@@ -188,9 +188,9 @@ export default {
 
 .btn-primary {
   padding: 10px 24px;
-  background-color: #a20513;
+  background-color: #334155;
   color: white;
-  border-radius: 8px;
+  border-radius: 3px;
   font-weight: 700;
   border: none;
   cursor: pointer;

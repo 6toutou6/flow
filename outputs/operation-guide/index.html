@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>线性顺序流转工作流系统 · 操作指引</title>
+  <style>
+    :root {
+      --primary: #334155;
+      --primary-dark: #1e293b;
+      --accent: #c53030;
+      --accent-light: #ef4444;
+      --surface: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-secondary: #64748b;
+      --success: #16a34a;
+      --warning: #d97706;
+      --info: #2563eb;
+      --radius-sm: 2px;
+      --radius-md: 3px;
+      --radius-lg: 4px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: var(--surface);
+      line-height: 1.6;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 100vh;
+    }
+    /* Sidebar TOC */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 280px;
+      height: 100vh;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      z-index: 100;
+      padding: 24px 0;
+    }
+    .brand {
+      padding: 0 20px 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand img {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+    }
+    .brand-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .toc-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      padding: 0 20px 8px;
+    }
+    .toc a {
+      display: block;
+      padding: 8px 20px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+    }
+    .toc a:hover {
+      background: #f1f5f9;
+      color: var(--primary-dark);
+      border-left-color: var(--primary);
+    }
+    .toc a.active {
+      background: #f1f5f9;
+      color: var(--primary-dark);
+      border-left-color: var(--primary);
+      font-weight: 600;
+    }
+    .toc a.l2 {
+      padding-left: 32px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .toc a.l3 {
+      padding-left: 44px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    /* Main content */
+    .main {
+      margin-left: 280px;
+      max-width: 900px;
+      padding: 48px 56px 120px;
+      background: var(--surface);
+    }
+    /* Cover */
+    .cover {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 64px 56px;
+      text-align: center;
+      margin-bottom: 48px;
+      box-shadow: var(--shadow-sm);
+    }
+    .cover-logo {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 24px;
+    }
+    .cover h1 {
+      margin: 0 0 16px;
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      letter-spacing: -0.02em;
+    }
+    .cover .subtitle {
+      font-size: 18px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+    .cover .meta {
+      display: inline-flex;
+      gap: 24px;
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+    }
+    .cover .meta-item {
+      text-align: left;
+    }
+    .cover .meta-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .cover .meta-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    /* Sections */
+    section {
+      margin-bottom: 64px;
+    }
+    h2 {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin: 0 0 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--primary);
+      display: inline-block;
+    }
+    h3 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 40px 0 16px;
+    }
+    h4 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--primary);
+      margin: 28px 0 12px;
+    }
+    p {
+      margin: 0 0 16px;
+      color: var(--text);
+    }
+    /* Cards */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title .icon {
+      width: 24px;
+      height: 24px;
+      background: var(--primary);
+      color: #fff;
+      border-radius: var(--radius-sm);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    /* Lists */
+    ul, ol {
+      margin: 0 0 16px;
+      padding-left: 22px;
+    }
+    li {
+      margin-bottom: 8px;
+    }
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 13px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.03em;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fafc; }
+    code {
+      font-family: "SF Mono", Consolas, monospace;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      font-size: 0.9em;
+      color: var(--accent);
+    }
+    pre {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 16px;
+      border-radius: var(--radius-md);
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 16px 0;
+    }
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+    /* Images */
+    .figure {
+      margin: 24px 0;
+    }
+    .figure img {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
+    }
+    .figure-caption {
+      font-size: 12px;
+      color: var(--text-secondary);
+      text-align: center;
+      margin-top: 8px;
+      font-style: italic;
+    }
+    .img-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 24px 0;
+    }
+    .img-grid .figure {
+      margin: 0;
+    }
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 600;
+      margin-right: 6px;
+    }
+    .badge-primary { background: rgba(51, 65, 85, 0.1); color: var(--primary); border: 1px solid var(--primary); }
+    .badge-success { background: rgba(22, 163, 74, 0.1); color: var(--success); border: 1px solid var(--success); }
+    .badge-warning { background: rgba(217, 119, 6, 0.1); color: var(--warning); border: 1px solid var(--warning); }
+    .badge-danger { background: rgba(197, 48, 48, 0.1); color: var(--accent); border: 1px solid var(--accent); }
+    .badge-info { background: rgba(37, 99, 235, 0.1); color: var(--info); border: 1px solid var(--info); }
+    /* Steps */
+    .steps {
+      counter-reset: step;
+      list-style: none;
+      padding: 0;
+    }
+    .steps li {
+      position: relative;
+      padding-left: 48px;
+      margin-bottom: 20px;
+      min-height: 32px;
+    }
+    .steps li::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 28px;
+      height: 28px;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .steps li:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      left: 13px;
+      top: 32px;
+      bottom: -20px;
+      width: 2px;
+      background: var(--border);
+    }
+    .steps li strong {
+      display: block;
+      color: var(--primary-dark);
+      margin-bottom: 4px;
+    }
+    /* Callouts */
+    .callout {
+      border-left: 4px solid var(--primary);
+      background: #f8fafc;
+      padding: 16px 20px;
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      margin: 20px 0;
+    }
+    .callout-warning { border-left-color: var(--warning); }
+    .callout-danger { border-left-color: var(--accent); }
+    .callout-success { border-left-color: var(--success); }
+    .callout-title {
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--primary-dark);
+    }
+    /* Architecture diagram */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .arch-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      text-align: center;
+    }
+    .arch-box h4 {
+      margin: 0 0 8px;
+      color: var(--primary);
+    }
+    .arch-box p {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+    .arch-connector {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      font-size: 12px;
+      padding: 8px 0;
+    }
+    /* Print */
+    @media print {
+      .sidebar { display: none; }
+      .main { margin-left: 0; max-width: 100%; }
+      pre { white-space: pre-wrap; }
+    }
+    @media (max-width: 1024px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 24px; }
+      .img-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="brand">
+        <img src="images/logo.png" alt="Logo">
+        <div>
+          <div class="brand-title">线性顺序流转<br>工作流系统</div>
+          <div class="brand-subtitle">操作指引</div>
+        </div>
+      </div>
+      <div class="toc-title">目录</div>
+      <div class="toc" id="toc">
+        <a href="#cover" class="active">封面</a>
+        <a href="#overview">第一章 · 系统概述</a>
+        <a href="#concepts" class="l2">1.1 核心概念</a>
+        <a href="#roles" class="l2">1.2 角色与权限</a>
+        <a href="#architecture">第二章 · 技术架构</a>
+        <a href="#tech-stack" class="l2">2.1 技术栈</a>
+        <a href="#data-model" class="l2">2.2 数据模型</a>
+        <a href="#deploy">第三章 · 部署启动</a>
+        <a href="#env-requirements" class="l2">3.1 环境要求</a>
+        <a href="#db-init" class="l2">3.2 数据库初始化</a>
+        <a href="#backend-start" class="l2">3.3 启动后端</a>
+        <a href="#frontend-start" class="l2">3.4 启动前端</a>
+        <a href="#admin-ops">第四章 · 管理员操作</a>
+        <a href="#user-mgmt" class="l2">4.1 用户管理</a>
+        <a href="#template-mgmt" class="l2">4.2 流程模板管理</a>
+        <a href="#form-design" class="l2">4.3 表单设计器</a>
+        <a href="#task-config" class="l2">4.4 任务配置</a>
+        <a href="#dispatch-period" class="l2">4.5 期次下发</a>
+        <a href="#operator-ops">第五章 · 处理人操作</a>
+        <a href="#my-todo" class="l2">5.1 我的待办</a>
+        <a href="#submit-flow" class="l2">5.2 节点提交与流转</a>
+        <a href="#data-monitor">第六章 · 数据监控</a>
+        <a href="#api-reference">第七章 · API 接口速查</a>
+        <a href="#maintenance">第八章 · 运维维护</a>
+        <a href="#appendix">附录 · 常用命令</a>
+      </div>
+    </nav>
+
+    <main class="main">
+      <!-- Cover -->
+      <section id="cover" class="cover">
+        <img src="images/logo.png" alt="系统 Logo" class="cover-logo">
+        <h1>线性顺序流转工作流系统</h1>
+        <div class="subtitle">操作指引 · 管理员与处理人完整操作手册</div>
+        <div class="meta">
+          <div class="meta-item">
+            <div class="meta-label">版本</div>
+            <div class="meta-value">v1.0</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">适用对象</div>
+            <div class="meta-value">管理员 / 处理人 / 运维</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">最后更新</div>
+            <div class="meta-value">2026-08-09</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Chapter 1 -->
+      <section id="overview">
+        <h2>第一章 · 系统概述</h2>
+        <p>本系统是一套<strong>线性顺序流转工作流平台</strong>，管理员先设计流程模板（节点链 + 节点表单），再基于模板创建任务并配置周期与人员；系统按周期自动生成期次，每个期次为每位任务人员创建一条独立的提交任务，人员从“开始”节点起按节点链顺序流转：当前节点处理人填写表单、提交时指定下一节点处理人，依此推进直到“结束”节点任务完成。</p>
+
+        <div class="callout callout-success">
+          <div class="callout-title">核心定位</div>
+          <p>本系统不是“多人同时填一张表”的并行收集，而是“一步一步往前走”的顺序审批/填报工作流。每个节点由不同人处理，每个节点填写不同的字段。</p>
+        </div>
+
+        <h3 id="concepts">1.1 核心概念</h3>
+        <div class="arch-grid">
+          <div class="arch-box">
+            <h4>流程模板</h4>
+            <p>业务图纸：节点链 + 每个节点要填写的字段定义。支持版本管理、启用停用、复制。</p>
+          </div>
+          <div class="arch-box">
+            <h4>任务</h4>
+            <p>基于模板的长期工作项，含周期配置、人员配置、模板级字段值。</p>
+          </div>
+          <div class="arch-box">
+            <h4>期次</h4>
+            <p>任务按周期生成的每一轮，如“2026-08 期次”。期次内为每位人员创建独立人员任务。</p>
+          </div>
+          <div class="arch-box">
+            <h4>人员任务</h4>
+            <p>每个人员在某一期次中需要独立完成的完整流程链。</p>
+          </div>
+          <div class="arch-box">
+            <h4>节点</h4>
+            <p>流程链中的步骤，分为开始节点 / 中间节点 / 结束节点，每个节点可配置不同表单字段。</p>
+          </div>
+          <div class="arch-box">
+            <h4>流转</h4>
+            <p>当前节点处理人提交后，任务指针移动到下一节点并指定下一处理人；支持退回重做。</p>
+          </div>
+        </div>
+
+        <h4>模型关系图</h4>
+        <pre><code>flow_template（模板）
+  ├── flow_template_node（节点链）
+  ├── flow_template_field（节点字段）
+  └── flow_template_version（版本快照）
+
+flow_dispatch（任务配置）
+  ├── flow_dispatch_config（周期配置：每周/每月/每季度/单次）
+  ├── flow_task_member（任务人员）
+  └── flow_task_dispatch（期次）
+        ├── flow_task_dispatch_node（期次节点快照）
+        └── flow_task（人员任务）
+              ├── flow_task_node（流转节点记录）
+              ├── flow_form_record（表单填报记录）
+              ├── flow_form_data（字段值）
+              └── flow_task_log（流转/催办日志）</code></pre>
+
+        <h3 id="roles">1.2 角色与权限</h3>
+        <table>
+          <thead>
+            <tr><th>角色</th><th>权限范围</th><th>典型操作</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge badge-danger">超级管理员</span></td>
+              <td>全局：用户管理、系统配置、样例设置</td>
+              <td>新增/编辑/删除系统用户；设置模板/任务/配置模板是否为样例</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-primary">流程管理员</span></td>
+              <td>业务配置：模板设计、任务管理、数据查看</td>
+              <td>设计流程模板与表单；创建任务、配置周期与人员；生成期次；查看流转数据</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-success">处理人</span></td>
+              <td>执行：接收待办、填写表单、提交流转</td>
+              <td>在“任务处理”页处理当前节点；指定下一节点处理人；查看流转进度</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-warning">
+          <div class="callout-title">超管配置说明</div>
+          <p>超级管理员在 <code>application.yml</code> 中配置：<code>system.super-admin.emp-no</code> 与 <code>system.super-admin.real-name</code>。默认 <code>EMP001 / 张三</code>。</p>
+        </div>
+      </section>
+
+      <!-- Chapter 2 -->
+      <section id="architecture">
+        <h2>第二章 · 技术架构</h2>
+
+        <h3 id="tech-stack">2.1 技术栈</h3>
+        <table>
+          <thead>
+            <tr><th>层级</th><th>技术</th><th>版本/说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>前端框架</td><td>Vue.js</td><td>2.6.10</td></tr>
+            <tr><td>UI 组件库</td><td>Element UI</td><td>2.13.2（中文）</td></tr>
+            <tr><td>状态管理</td><td>Vuex</td><td>3.1.0</td></tr>
+            <tr><td>路由</td><td>Vue Router</td><td>3.0.6</td></tr>
+            <tr><td>HTTP 客户端</td><td>Axios</td><td>0.18.1</td></tr>
+            <tr><td>前端脚手架</td><td>vue-admin-template</td><td>4.4.0</td></tr>
+            <tr><td>构建工具</td><td>Vue CLI</td><td>4.4.4</td></tr>
+            <tr><td>CSS 预处理</td><td>Sass</td><td>1.26.8</td></tr>
+            <tr><td>后端框架</td><td>Spring Boot</td><td>3.4.2</td></tr>
+            <tr><td>Java 版本</td><td>Java</td><td>21</td></tr>
+            <tr><td>ORM</td><td>MyBatis-Plus</td><td>3.5.5</td></tr>
+            <tr><td>认证</td><td>JWT (jjwt)</td><td>0.11.5，24 小时过期</td></tr>
+            <tr><td>数据库</td><td>MySQL</td><td>8.0+，utf8mb4</td></tr>
+            <tr><td>构建工具</td><td>Maven</td><td>3.9+</td></tr>
+          </tbody>
+        </table>
+
+        <h4>前后端通信</h4>
+        <pre><code>浏览器 http://localhost:9528
+    ↓ 开发代理 /dev-api
+Vue dev server
+    ↓ 转发
+后端 http://localhost:9000/house-service
+    ↓ JDBC
+MySQL jdbc:mysql://localhost:3306/flow</code></pre>
+
+        <h3 id="data-model">2.2 数据模型</h3>
+        <p>数据库 <code>flow</code> 共 17 张业务表，核心表说明如下：</p>
+        <table>
+          <thead>
+            <tr><th>表名</th><th>用途</th><th>关键字段</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>sys_user</code></td><td>系统用户</td><td>username, emp_no, real_name, dept_id, dept_name, password, status</td></tr>
+            <tr><td><code>flow_template</code></td><td>流程模板主表</td><td>template_name, category, version, status, creator_id, is_sample</td></tr>
+            <tr><td><code>flow_template_node</code></td><td>模板节点链</td><td>template_id, node_name, sort_num, node_type(1/2/3)</td></tr>
+            <tr><td><code>flow_template_field</code></td><td>节点表单字段</td><td>template_id, node_id, field_key, field_label, field_type, required, enum_options</td></tr>
+            <tr><td><code>flow_template_version</code></td><td>模板版本快照</td><td>template_id, version, version_desc, config_snapshot(json)</td></tr>
+            <tr><td><code>flow_dispatch</code></td><td>任务配置</td><td>template_id, template_data(json), task_name, status</td></tr>
+            <tr><td><code>flow_dispatch_config</code></td><td>任务下发配置</td><td>task_id, cycle_type, cycle_day, deadline_days, urge_days</td></tr>
+            <tr><td><code>flow_task_member</code></td><td>任务人员</td><td>task_id, user_id</td></tr>
+            <tr><td><code>flow_task_dispatch</code></td><td>期次</td><td>task_id, period_no, period_name, start_time, end_time, manual_flag</td></tr>
+            <tr><td><code>flow_task_dispatch_node</code></td><td>期次节点快照</td><td>dispatch_id, node_id, fields_json（防止模板升级影响历史期次）</td></tr>
+            <tr><td><code>flow_task</code></td><td>人员任务</td><td>dispatch_id, status, current_node_id, current_handler_id</td></tr>
+            <tr><td><code>flow_task_node</code></td><td>流转节点记录</td><td>task_id, node_id, handler_user_id, submit_status, action, reject_reason</td></tr>
+            <tr><td><code>flow_form_record</code></td><td>表单填报主记录</td><td>task_id, node_id, task_node_id, user_id, is_draft</td></tr>
+            <tr><td><code>flow_form_data</code></td><td>字段值明细</td><td>record_id, field_id, field_key, field_value</td></tr>
+            <tr><td><code>flow_task_log</code></td><td>流转/催办日志</td><td>task_id, dispatch_id, log_type, content, operator_name</td></tr>
+            <tr><td><code>flow_dispatch_config_template</code></td><td>下发配置模板库</td><td>config_name, cycle_type, cycle_day, deadline_days, urge_days</td></tr>
+            <tr><td><code>attach</code></td><td>附件表</td><td>biz_id, file_name, ecs_url, creator</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Chapter 3 -->
+      <section id="deploy">
+        <h2>第三章 · 部署启动</h2>
+
+        <h3 id="env-requirements">3.1 环境要求</h3>
+        <table>
+          <thead>
+            <tr><th>组件</th><th>版本/要求</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>JDK</td><td>21</td></tr>
+            <tr><td>Maven</td><td>3.9+</td></tr>
+            <tr><td>Node.js</td><td>16+（推荐 22 LTS）</td></tr>
+            <tr><td>MySQL</td><td>8.0+</td></tr>
+          </tbody>
+        </table>
+
+        <h3 id="db-init">3.2 数据库初始化</h3>
+        <ol class="steps">
+          <li>
+            <strong>启动 MySQL</strong>
+            <p>确保本地 MySQL 服务已运行，默认使用 root / 12345。</p>
+          </li>
+          <li>
+            <strong>执行建库脚本</strong>
+            <pre><code>mysql -uroot -p12345 &lt; flow_schema.sql</code></pre>
+            <p>该脚本会创建数据库 <code>flow</code> 及全部 17 张表。</p>
+          </li>
+          <li>
+            <strong>导入样例模板（可选）</strong>
+            <pre><code>mysql -uroot -p12345 &lt; flow_template5_import.sql</code></pre>
+            <p>导入整改复杂模板样例（template_id=5），含完整节点与字段设计。</p>
+          </li>
+        </ol>
+
+        <div class="callout callout-danger">
+          <div class="callout-title">数据源配置</div>
+          <p>后端连接配置位于 <code>flow-service/src/main/resources/application.yml</code>，默认：<br><code>jdbc:mysql://localhost:3306/flow</code>，用户名 <code>root</code>，密码 <code>12345</code>。请根据实际环境修改。</p>
+        </div>
+
+        <h3 id="backend-start">3.3 启动后端</h3>
+        <pre><code>cd flow-service
+mvn spring-boot:run</code></pre>
+        <p>后端服务默认监听 <code>http://localhost:9000/house-service</code>。启动成功后将看到 Spring Boot 启动日志。</p>
+
+        <h3 id="frontend-start">3.4 启动前端</h3>
+        <pre><code>cd flow-front
+npm install
+npm run dev</code></pre>
+        <p>前端开发服务器默认监听 <code>http://localhost:9528</code>。浏览器访问该地址即可进入登录页。</p>
+
+        <h4>默认账号</h4>
+        <table>
+          <thead>
+            <tr><th>账号</th><th>密码</th><th>姓名</th><th>角色</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>zhangsan</td><td>123456</td><td>张三</td><td>超级管理员</td></tr>
+            <tr><td>lisi</td><td>123456</td><td>李四</td><td>处理人</td></tr>
+          </tbody>
+        </table>
+        <p>系统预置约 15 个测试用户（EMP003~EMP017），便于测试多人员流转。</p>
+
+        <h4>生产构建</h4>
+        <pre><code>cd flow-front
+npm run build:prod   # 生成 dist/ 目录</code></pre>
+      </section>
+
+      <!-- Chapter 4 -->
+      <section id="admin-ops">
+        <h2>第四章 · 管理员操作</h2>
+        <p>管理员（超级管理员 / 流程管理员）通过左侧菜单进入各管理模块：用户管理、模板管理、任务管理、数据展示等。</p>
+
+        <h3 id="user-mgmt">4.1 用户管理</h3>
+        <p>仅超级管理员可见。用于维护系统用户账号，是流程处理人的基础数据来源。</p>
+        <div class="card">
+          <div class="card-title"><span class="icon">01</span>操作步骤</div>
+          <ol>
+            <li>点击左侧菜单“用户管理”。</li>
+            <li>点击“新增用户”按钮，填写账号、员工号、姓名、部门、手机号、密码、状态。</li>
+            <li>状态选择“正常”后该用户可登录系统并作为处理人。</li>
+            <li>编辑/删除：在列表右侧操作列点击对应图标。</li>
+          </ol>
+        </div>
+
+        <h3 id="template-mgmt">4.2 流程模板管理</h3>
+        <p>流程模板是系统的核心“图纸”。管理员在此创建模板、启用/停用、复制、删除，并进入表单设计器设计节点链与字段。</p>
+        <div class="figure">
+          <img src="images/template-management.png" alt="流程模板管理">
+          <div class="figure-caption">图 1：流程模板管理页（设计稿示意）</div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="icon">02</span>模板管理操作</div>
+          <ol>
+            <li><strong>新建模板</strong>：点击“创建模板”，填写模板名称、分类、说明，保存后进入设计器。</li>
+            <li><strong>设计流程</strong>：点击列表中“设计”按钮，进入三栏布局的流程设计器。</li>
+            <li><strong>启用/停用</strong>：在列表中切换状态开关。停用后无法被新任务引用，但已下发的任务不受影响。</li>
+            <li><strong>复制模板</strong>：点击复制图标，系统会生成一份完全相同的模板（含节点与字段），便于快速复用。</li>
+            <li><strong>删除模板</strong>：仅当模板未被任何任务引用时才可删除。</li>
+            <li><strong>版本记录</strong>：保存流程时选择“保存为新版本”，旧配置会归档到版本记录，支持回溯。</li>
+          </ol>
+        </div>
+
+        <h4>字段类型说明</h4>
+        <table>
+          <thead>
+            <tr><th>字段类型</th><th>用途</th><th>必填支持</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>单行文本 text</td><td>短文本输入</td><td>是</td></tr>
+            <tr><td>多行文本 textarea</td><td>长文本、备注</td><td>是</td></tr>
+            <tr><td>数字 number</td><td>整数或小数</td><td>是</td></tr>
+            <tr><td>日期 date</td><td>日期选择</td><td>是</td></tr>
+            <tr><td>单选 radio</td><td>枚举单选</td><td>是</td></tr>
+            <tr><td>多选 checkbox</td><td>枚举多选</td><td>是</td></tr>
+            <tr><td>文件 file</td><td>附件上传</td><td>是</td></tr>
+            <tr><td>图片 image</td><td>图片上传</td><td>是</td></tr>
+          </tbody>
+        </table>
+
+        <h3 id="form-design">4.3 表单设计器</h3>
+        <p>设计器采用三栏布局，管理员可在此完成节点链设计与字段配置。</p>
+        <div class="img-grid">
+          <div class="figure">
+            <img src="images/form-designer.png" alt="表单设计器">
+            <div class="figure-caption">图 2：表单设计器（英文设计稿）</div>
+          </div>
+          <div class="figure">
+            <img src="images/form-designer-cn.png" alt="表单设计器中文">
+            <div class="figure-caption">图 3：表单设计器（中文设计稿）</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="icon">03</span>设计器三栏说明</div>
+          <ol>
+            <li><strong>左栏：节点链</strong> — 显示全部节点，每项含节点名、类型徽章、字段数。支持上下移动、删除。</li>
+            <li><strong>中栏：字段画布</strong> — 当前选中节点的字段列表。可从左侧拖拽或点击添加字段，支持排序、删除。</li>
+            <li><strong>右栏：属性面板</strong> — 上半部分设置当前节点属性（名称、类型、提示、填写说明、说明文件、下一步处理人提示）；下半部分设置选中字段属性（标签、占位、必填、最大长度、枚举选项等）。</li>
+          </ol>
+        </div>
+        <div class="callout callout-warning">
+          <div class="callout-title">节点类型规则</div>
+          <p>首节点强制为“开始节点”，末节点强制为“结束节点”。中间节点至少保留一个，否则无法构成完整流程链。</p>
+        </div>
+        <div class="callout">
+          <div class="callout-title">保存流程</div>
+          <p>点击“保存流程”后弹窗选择：<strong>保存到当前版本</strong>（覆盖，版本号不变）或 <strong>保存为新版本</strong>（版本号 +1，旧配置归档）。已下发任务锁定当时版本，模板升级不会影响历史任务。</p>
+        </div>
+
+        <h3 id="task-config">4.4 任务配置</h3>
+        <p>任务基于模板创建，配置周期、人员后，系统即可按期自动生成期次。任务管理页采用折叠面板，一屏概览全部任务。</p>
+        <div class="img-grid">
+          <div class="figure">
+            <img src="images/task-distribution.png" alt="任务下发配置">
+            <div class="figure-caption">图 4：任务下发配置页（中文设计稿）</div>
+          </div>
+          <div class="figure">
+            <img src="images/task-distribution-2.png" alt="任务下发配置 2">
+            <div class="figure-caption">图 5：任务下发配置页（英文设计稿）</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="icon">04</span>创建任务步骤</div>
+          <ol>
+            <li>点击“任务管理”菜单 → “新建任务”。</li>
+            <li><strong>基本信息</strong>：选择流程模板（仅启用的模板），填写任务名称、任务说明，填写模板级字段值（任务级配置）。</li>
+            <li><strong>下发配置</strong>：选择周期类型（每周/每月/每季度/单次）、触发日、每期截止天数、提前催办天数。可从“下发配置模板库”一键拉取常用配置。</li>
+            <li><strong>配置人员</strong>：多选任务人员，保存后返回任务管理页。人员可随时变更。</li>
+          </ol>
+        </div>
+
+        <h4>下发配置模板库</h4>
+        <p>任务管理页右上角入口进入“下发配置模板管理”。维护常用的周期配置，如“每月 1 号下发，7 天截止，提前 2 天催办”。新建任务时一键拉取，避免反复配置出错。删除模板不影响已拉取到任务上的配置。</p>
+
+        <h3 id="dispatch-period">4.5 期次下发</h3>
+        <p>任务创建后不会立即生成人员任务，需要管理员手动或系统自动生成期次。每个期次为任务人员每人创建一条独立的提交任务。</p>
+        <div class="card">
+          <div class="card-title"><span class="icon">05</span>生成期次操作</div>
+          <ol>
+            <li>在任务管理页展开目标任务。</li>
+            <li>点击“生成期次”按钮，打开生成弹窗。</li>
+            <li>选择生成方式：
+              <ul>
+                <li><strong>立即下发</strong>：生成当前应下发的期次（如每月 1 号触发，8 月 6 日操作则补发 2026-08 期次）。</li>
+                <li><strong>下一期次下发</strong>：生成下一个周期的期次（如 2026-09）。</li>
+                <li><strong>手动临时期次</strong>：自定义期次名与起止时间，不影响后续自动下发编排。</li>
+              </ul>
+            </li>
+            <li>确认人员列表：默认抄用任务配置人员，可临时增加或删除本期次人员。</li>
+            <li>点击“确认下发”，系统为每位人员创建独立任务，并写入期次节点快照。</li>
+          </ol>
+        </div>
+        <div class="callout callout-success">
+          <div class="callout-title">自动定时下发</div>
+          <p>系统内置定时任务 <code>PeriodAutoDispatchTask</code>，每天 08:00 自动扫描启用中的周期任务，到期时自动生成期次。手动生成适合临时期次或立即触发场景。</p>
+        </div>
+
+        <h4>期次管理</h4>
+        <p>展开任务后，期次列表显示期次名、成员数、状态、起止时间、下发时间。支持：</p>
+        <ul>
+          <li><strong>查看人员</strong>：进入期次人员页，查看每位成员的处理人、当前节点、进度。</li>
+          <li><strong>修改截止时间</strong>：延长或缩短特定期次的截止时间。</li>
+          <li><strong>删除期次</strong>：删除空期次或无期次人员任务的期次。</li>
+        </ul>
+      </section>
+
+      <!-- Chapter 5 -->
+      <section id="operator-ops">
+        <h2>第五章 · 处理人操作</h2>
+        <p>处理人登录后默认进入“任务处理”页，查看自己的待办任务并提交流转。</p>
+
+        <h3 id="my-todo">5.1 我的待办</h3>
+        <p>左侧菜单“任务处理”展示当前登录用户作为当前处理人的全部待办，按任务分组，可快速查看任务名称、期次、当前节点、截止时间。</p>
+        <div class="card">
+          <div class="card-title"><span class="icon">06</span>处理入口</div>
+          <ol>
+            <li>登录系统，默认跳转至任务处理页。</li>
+            <li>在待办卡片或列表中找到需要处理的任务。</li>
+            <li>点击“处理”按钮，打开处理弹窗。</li>
+          </ol>
+        </div>
+
+        <h3 id="submit-flow">5.2 节点提交与流转</h3>
+        <p>处理弹窗是处理人完成节点填报、推进流程的核心界面。弹窗包含：</p>
+        <ul>
+          <li><strong>任务信息</strong>：期次名、任务名、截止时间等。</li>
+          <li><strong>流程链</strong>：横向步骤条，展示已通过 / 处理中 / 退回 / 未到达节点。</li>
+          <li><strong>节点填写说明</strong>：设计器配置的说明文字与附件。</li>
+          <li><strong>动态表单</strong>：根据当前节点字段配置渲染的输入组件。</li>
+          <li><strong>操作历史</strong>：右侧时间线，展示通过、退回记录与意见。</li>
+        </ul>
+        <div class="card">
+          <div class="card-title"><span class="icon">07</span>提交操作</div>
+          <ol>
+            <li>填写当前节点表单，红色星号表示必填字段。</li>
+            <li>非结束节点需指定“下一节点处理人”（支持多选，每人一条独立分支）。</li>
+            <li>点击“通过”按钮，二次确认后提交。</li>
+            <li>系统自动流转：当前节点标记为已处理，下一节点处理人收到待办。</li>
+          </ol>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="icon">08</span>退回操作</div>
+          <ol>
+            <li>点击“退回”按钮，选择退回目标节点（仅可退回到已到达过的前置节点）。</li>
+            <li>填写退回原因（建议），提交后目标节点处理人重新收到待办。</li>
+            <li>退回后表单数据保留，处理人可修改后重新提交。</li>
+          </ol>
+        </div>
+        <div class="callout callout-warning">
+          <div class="callout-title">任一完成即可</div>
+          <p>若某节点指定了多名处理人，<strong>任一人提交即完成该节点</strong>，其余待办自动消解，避免产生重复流程。</p>
+        </div>
+        <div class="callout callout-success">
+          <div class="callout-title">暂存草稿</div>
+          <p>点击“暂存”可保存当前填写内容，不校验必填、不流转。下次打开时可继续编辑。</p>
+        </div>
+      </section>
+
+      <!-- Chapter 6 -->
+      <section id="data-monitor">
+        <h2>第六章 · 数据监控</h2>
+        <p>管理员通过“数据展示”菜单查看全局填报数据、趋势、人员提交统计，并可下钻到具体任务的期次、人员、流程详情。</p>
+        <div class="img-grid">
+          <div class="figure">
+            <img src="images/data-dashboard.png" alt="数据展示后台">
+            <div class="figure-caption">图 6：数据展示后台（中文设计稿）</div>
+          </div>
+          <div class="figure">
+            <img src="images/data-explorer.png" alt="数据探索">
+            <div class="figure-caption">图 7：数据探索页（英文设计稿）</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="icon">09</span>数据监控功能</div>
+          <ol>
+            <li><strong>统计卡</strong>：总提交次数、待处理申请、表单完成率、任务总数、进行中期次等。</li>
+            <li><strong>提交量趋势</strong>：按日/月/季度/年展示提交量变化。</li>
+            <li><strong>数据提交明细</strong>：查看每条填报记录的状态、提交人、模板、时间。</li>
+            <li><strong>人员提交汇总</strong>：按人员统计提交次数、完成率、平均处理时长。</li>
+            <li><strong>流程详情下钻</strong>：从任务管理页 → 期次人员 → 流程详情，查看完整节点链、表单数据、操作历史。</li>
+          </ol>
+        </div>
+        <h4>催办</h4>
+        <p>在期次人员页，对进行中的成员可点击“催办”按钮，二次确认后系统记录催办日志（<code>flow_task_log.log_type=2</code>）。系统每天 09:00 也会自动催办截止前 <code>urge_days</code> 天的任务。</p>
+      </section>
+
+      <!-- Chapter 7 -->
+      <section id="api-reference">
+        <h2>第七章 · API 接口速查</h2>
+        <p>后端接口统一前缀 <code>/house-service</code>，开发环境下前端通过 <code>/dev-api</code> 代理。所有业务接口需在请求头携带 <code>Authorization: Bearer {token}</code>。</p>
+
+        <h4>7.1 认证与用户</h4>
+        <table>
+          <thead><tr><th>方法</th><th>路径</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>POST</td><td><code>/user/login</code></td><td>登录</td></tr>
+            <tr><td>GET</td><td><code>/user/info</code></td><td>当前用户信息</td></tr>
+            <tr><td>POST</td><td><code>/sys-user/list</code></td><td>用户分页</td></tr>
+            <tr><td>POST</td><td><code>/sys-user/add</code></td><td>新增用户</td></tr>
+            <tr><td>PUT</td><td><code>/sys-user/update</code></td><td>更新用户</td></tr>
+            <tr><td>DELETE</td><td><code>/sys-user/delete/{id}</code></td><td>删除用户</td></tr>
+          </tbody>
+        </table>
+
+        <h4>7.2 流程模板</h4>
+        <table>
+          <thead><tr><th>方法</th><th>路径</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>POST</td><td><code>/flow-template/list</code></td><td>模板分页</td></tr>
+            <tr><td>GET</td><td><code>/flow-template/{id}</code></td><td>模板详情</td></tr>
+            <tr><td>POST</td><td><code>/flow-template/save</code></td><td>新建模板</td></tr>
+            <tr><td>PUT</td><td><code>/flow-template/update</code></td><td>更新模板</td></tr>
+            <tr><td>PUT</td><td><code>/flow-template/toggle-status/{id}</code></td><td>启用/停用</td></tr>
+            <tr><td>PUT</td><td><code>/flow-template/save-flow</code></td><td>保存流程设计</td></tr>
+            <tr><td>GET</td><td><code>/flow-template/versions/{id}</code></td><td>版本记录</td></tr>
+            <tr><td>POST</td><td><code>/flow-template/copy/{id}</code></td><td>复制模板</td></tr>
+          </tbody>
+        </table>
+
+        <h4>7.3 任务管理</h4>
+        <table>
+          <thead><tr><th>方法</th><th>路径</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>GET</td><td><code>/flow-dispatch/list</code></td><td>任务分页</td></tr>
+            <tr><td>POST</td><td><code>/flow-dispatch/save</code></td><td>创建任务</td></tr>
+            <tr><td>PUT</td><td><code>/flow-dispatch/update</code></td><td>更新任务</td></tr>
+            <tr><td>PUT</td><td><code>/flow-dispatch/toggle-status/{id}</code></td><td>启用/停用任务</td></tr>
+            <tr><td>POST</td><td><code>/flow-dispatch/{taskId}/periods</code></td><td>生成期次</td></tr>
+            <tr><td>GET</td><td><code>/flow-dispatch/{taskId}/members</code></td><td>任务人员列表</td></tr>
+            <tr><td>PUT</td><td><code>/flow-dispatch/{taskId}/members</code></td><td>保存任务人员</td></tr>
+          </tbody>
+        </table>
+
+        <h4>7.4 任务流转</h4>
+        <table>
+          <thead><tr><th>方法</th><th>路径</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>POST</td><td><code>/flow-task/my-todo</code></td><td>我的待办</td></tr>
+            <tr><td>POST</td><td><code>/flow-task/submit</code></td><td>节点提交/退回</td></tr>
+            <tr><td>POST</td><td><code>/flow-task/save-draft</code></td><td>暂存草稿</td></tr>
+            <tr><td>GET</td><td><code>/flow-task/progress/{taskId}</code></td><td>流转进度</td></tr>
+            <tr><td>POST</td><td><code>/flow-task/urge/{taskId}</code></td><td>催办单个任务</td></tr>
+            <tr><td>GET</td><td><code>/flow-task/logs/{taskId}</code></td><td>流转/催办日志</td></tr>
+          </tbody>
+        </table>
+
+        <h4>7.5 数据统计</h4>
+        <table>
+          <thead><tr><th>方法</th><th>路径</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>GET</td><td><code>/flow-data/stats</code></td><td>统计卡</td></tr>
+            <tr><td>GET</td><td><code>/flow-data/trend</code></td><td>提交趋势</td></tr>
+            <tr><td>POST</td><td><code>/flow-data/list</code></td><td>填报记录分页</td></tr>
+            <tr><td>GET</td><td><code>/flow-data/person-list</code></td><td>人员提交汇总</td></tr>
+            <tr><td>GET</td><td><code>/flow-data/dashboard</code></td><td>数据看板聚合</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Chapter 8 -->
+      <section id="maintenance">
+        <h2>第八章 · 运维维护</h2>
+
+        <h4>8.1 定时任务</h4>
+        <table>
+          <thead><tr><th>任务</th><th>Cron</th><th>功能</th></tr></thead>
+          <tbody>
+            <tr><td><code>PeriodAutoDispatchTask</code></td><td><code>0 0 8 * * ?</code></td><td>每天 08:00 自动下发到期期次</td></tr>
+            <tr><td><code>FlowUrgeTask</code></td><td><code>0 0 9 * * ?</code></td><td>每天 09:00 自动催办截止前任务</td></tr>
+          </tbody>
+        </table>
+
+        <h4>8.2 常见问题排查</h4>
+        <table>
+          <thead><tr><th>问题</th><th>排查方向</th></tr></thead>
+          <tbody>
+            <tr><td>登录失败</td><td>检查 <code>sys_user</code> 表用户名密码；确认后端服务与数据库连接正常。</td></tr>
+            <tr><td>接口 401</td><td>检查 Cookie 中 <code>vue_admin_template_token</code> 是否过期；确认后端 JWT 密钥一致。</td></tr>
+            <tr><td>前端无法连接后端</td><td>检查 <code>vue.config.js</code> 代理配置与后端端口是否一致；确认后端已启动。</td></tr>
+            <tr><td>期次未自动生成</td><td>检查任务是否启用；检查 <code>flow_dispatch_config</code> 周期配置；查看定时任务日志。</td></tr>
+            <tr><td>退回后流程卡住</td><td>检查退回目标节点是否已到达过；查看 <code>flow_task_node</code> 与 <code>flow_task</code> 指针是否一致。</td></tr>
+          </tbody>
+        </table>
+
+        <h4>8.3 关键设计约束</h4>
+        <ol>
+          <li><strong>模板版本锁定</strong>：已下发任务使用当时模板版本，后续模板升级不影响历史期次。</li>
+          <li><strong>期次节点快照</strong>：<code>flow_task_dispatch_node</code> 在期次生成时锁定节点与字段配置，防止模板升级导致历史期次字段解析错误。</li>
+          <li><strong>事务一致性</strong>：<code>submit</code> 方法在事务中完成节点记录、表单数据、任务指针的更新，避免状态不一致。</li>
+          <li><strong>并发安全</strong>：提交时校验 <code>currentNodeId</code> 与待处理节点一致，防止重复流转。</li>
+          <li><strong>样例可见性</strong>：<code>is_sample</code> 标记的模板/任务/配置模板公共可见但不可修改，仅超管可设置。</li>
+        </ol>
+      </section>
+
+      <!-- Appendix -->
+      <section id="appendix">
+        <h2>附录 · 常用命令</h2>
+        <pre><code># 数据库初始化
+mysql -uroot -p12345 &lt; flow_schema.sql
+mysql -uroot -p12345 &lt; flow_template5_import.sql
+
+# 启动后端
+cd flow-service
+mvn spring-boot:run
+
+# 启动前端
+cd flow-front
+npm install
+npm run dev
+
+# 生产构建
+cd flow-front
+npm run build:prod
+
+# 代码检查
+cd flow-front
+npm run lint
+
+# 后端打包
+cd flow-service
+mvn clean package</code></pre>
+      </section>
+
+      <footer style="padding-top: 48px; border-top: 1px solid var(--border); margin-top: 64px; color: var(--text-secondary); font-size: 12px; text-align: center;">
+        <p>线性顺序流转工作流系统 · 操作指引<br>文档版本 v1.0 · 2026-08-09</p>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    // Active TOC link on scroll
+    const sections = document.querySelectorAll('section[id], h3[id], h4[id]');
+    const tocLinks = document.querySelectorAll('.toc a');
+    function onScroll() {
+      const scrollPos = window.scrollY + 120;
+      let current = '';
+      sections.forEach(sec => {
+        const top = sec.offsetTop;
+        if (top <= scrollPos) current = sec.getAttribute('id');
+      });
+      tocLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + current) link.classList.add('active');
+      });
+    }
+    window.addEventListener('scroll', onScroll);
+    onScroll();
+  </script>
+</body>
+</html>

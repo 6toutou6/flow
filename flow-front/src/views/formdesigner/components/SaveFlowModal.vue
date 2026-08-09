@@ -106,18 +106,18 @@ export default {
 
 <style lang="scss" scoped>
 .sf-wrap { padding: 4px 0; }
-.sf-tip { font-size: 12px; color: #999; background: #f7f8fa; border-radius: 6px; padding: 10px 12px; margin-bottom: 16px; line-height: 1.6; }
-.sf-usage { display: flex; align-items: flex-start; gap: 10px; background: #FFF7E6; border: 1px solid #FFE3A3; border-radius: 6px; padding: 12px 14px; margin-bottom: 16px;
-  i { color: #E6A23C; font-size: 16px; line-height: 22px; flex-shrink: 0; }
+.sf-tip { font-size: 12px; color: #999; background: #f7f8fa; border-radius: 2px; padding: 10px 12px; margin-bottom: 16px; line-height: 1.6; }
+.sf-usage { display: flex; align-items: flex-start; gap: 10px; background: #F0F4FF; border: 1px solid #BFDBFE; border-radius: 2px; padding: 12px 14px; margin-bottom: 16px;
+  i { color: #D97706; font-size: 16px; line-height: 22px; flex-shrink: 0; }
 }
 .sf-usage-body { flex: 1; min-width: 0; }
-.sf-usage-title { font-size: 14px; font-weight: 700; color: #7a5a12; line-height: 1.5;
-  b { font-size: 16px; color: #B8860B; }
+.sf-usage-title { font-size: 14px; font-weight: 700; color: #475569; line-height: 1.5;
+  b { font-size: 16px; color: #475569; }
 }
-.sf-usage-names { font-size: 13px; color: #8c6d1f; margin-top: 6px; line-height: 1.6; }
-.sf-usage-tag { display: inline-block; background: #FDE8C8; color: #A0690C; font-size: 11px; font-weight: 600; border-radius: 3px; padding: 1px 6px; margin-right: 6px; vertical-align: 1px; }
-.sf-usage-desc { font-size: 12px; color: #9a7b2e; margin-top: 6px; line-height: 1.6;
-  b { color: #C53030; }
+.sf-usage-names { font-size: 13px; color: #334155; margin-top: 6px; line-height: 1.6; }
+.sf-usage-tag { display: inline-block; background: #DBEAFE; color: #475569; font-size: 11px; font-weight: 600; border-radius: 3px; padding: 1px 6px; margin-right: 6px; vertical-align: 1px; }
+.sf-usage-desc { font-size: 12px; color: #64748B; margin-top: 6px; line-height: 1.6;
+  b { color: #334155; }
 }
 /* 弹窗出现时提示条闪烁两次，引起注意 */
 @keyframes sfFlash {
@@ -127,12 +127,12 @@ export default {
 .flash { animation: sfFlash 0.45s ease 2; }
 .sf-group { margin-bottom: 16px; }
 .sf-label { display: block; font-size: 13px; font-weight: 600; color: #414755; margin-bottom: 8px; }
-.req { color: #C53030; }
+.req { color: #334155; }
 .save-mode-row { display: flex; gap: 12px; }
-.mode-card { flex: 1; display: flex; align-items: flex-start; gap: 10px; border: 1px solid #e4e7ed; border-radius: 8px; padding: 14px; cursor: pointer; transition: all 0.2s;
+.mode-card { flex: 1; display: flex; align-items: flex-start; gap: 10px; border: 1px solid #e4e7ed; border-radius: 3px; padding: 14px; cursor: pointer; transition: all 0.2s;
   i { font-size: 20px; color: #909399; margin-top: 2px; }
-  &.active { border-color: #C53030; background: #FFF5F5; box-shadow: 0 0 0 1px #C53030;
-    i { color: #C53030; }
+  &.active { border-color: #334155; background: #F1F5F9; box-shadow: 0 0 0 1px #334155;
+    i { color: #334155; }
   }
 }
 .mode-title { font-size: 14px; font-weight: 700; color: #1b1c1c; }

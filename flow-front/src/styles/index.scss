@@ -6,7 +6,7 @@
 
 // ============================================================
 // Flow 流程管理系统 - 全局基础样式
-// 设计方向: "Refined Authority"
+// 设计方向: "Executive Slate"
 // ============================================================
 
 body {
@@ -53,10 +53,31 @@ a {
   &:focus {
     outline: none;
   }
+  &:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
+    border-radius: $radius-sm;
+  }
 }
 
 div:focus {
   outline: none;
+}
+div:focus-visible {
+  outline: 2px solid $color-primary;
+  outline-offset: 2px;
+  border-radius: $radius-sm;
+}
+
+// Global focus-visible for interactive elements
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid $color-primary;
+  outline-offset: 2px;
+  border-radius: $radius-sm;
 }
 
 .clearfix {
@@ -118,7 +139,7 @@ div:focus {
   .el-dialog__header {
     padding: $space-5 $space-6 $space-4;
     border-bottom: 1px solid $border-light;
-    background: $neutral-50;
+    background: $brand-primary-surface;
 
     .el-dialog__title {
       font-size: $font-size-lg;
@@ -145,7 +166,7 @@ div:focus {
   .el-dialog__footer {
     padding: $space-4 $space-6 $space-5;
     border-top: 1px solid $border-light;
-    background: $neutral-50;
+    background: $brand-primary-surface;
   }
 }
 
@@ -159,7 +180,7 @@ div:focus {
 // ============================================================
 .el-table {
   th.el-table__cell {
-    background-color: $brand-red-light !important;
+    background-color: $brand-primary-light !important;
     color: $text-secondary;
     font-weight: 700;
     font-size: $font-size-sm;
@@ -181,7 +202,7 @@ div:focus {
   }
 
   .el-table__body tr:hover > td.el-table__cell {
-    background-color: $brand-red-surface !important;
+    background-color: $brand-primary-surface !important;
   }
 
   &::before {
@@ -234,7 +255,7 @@ div:focus {
 .el-select-dropdown__item {
   &.hover,
   &:hover {
-    background-color: $brand-red-light !important;
+    background-color: $brand-primary-light !important;
   }
   &.selected {
     color: $color-primary;

@@ -1,7 +1,7 @@
 // ============================================================
-// Element UI 组件主题覆盖 — "Refined Authority"
-// 品牌色: #C53030 中国红
-// 覆盖所有 Element UI 组件的默认蓝色为主题红色
+// Element UI 组件主题覆盖 — "Executive Slate"
+// 品牌色: #334155 石板蓝
+// 覆盖所有 Element UI 组件的默认蓝色为主题石板蓝
 // ============================================================
 
 // 面包屑
@@ -54,15 +54,15 @@
 // ============================================================
 // 主题色变量
 // ============================================================
-$--color-primary: #C53030;
-$--color-primary-hover: #B52828;
-$--color-primary-light: rgba(197, 48, 48, 0.08);
+$--color-primary: #334155;
+$--color-primary-hover: #475569;
+$--color-primary-light: rgba(51, 65, 85, 0.08);
 
 // ============================================================
 // 按钮 — 精致圆角 + 微妙阴影
 // ============================================================
 .el-button {
-  border-radius: 6px;
+  border-radius: 2px;
   font-weight: 500;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   letter-spacing: 0.01em;
@@ -75,49 +75,49 @@ $--color-primary-light: rgba(197, 48, 48, 0.08);
 .el-button--primary {
   background-color: $--color-primary;
   border-color: $--color-primary;
-  box-shadow: 0 2px 4px rgba(197, 48, 48, 0.2);
+  box-shadow: 0 2px 4px rgba(51, 65, 85, 0.18);
 
   &:hover, &:focus {
     background-color: $--color-primary-hover;
     border-color: $--color-primary-hover;
-    box-shadow: 0 4px 8px rgba(197, 48, 48, 0.28);
+    box-shadow: 0 4px 8px rgba(51, 65, 85, 0.25);
   }
 
   &:active {
-    background-color: #A20513;
-    border-color: #A20513;
+    background-color: #1E293B;
+    border-color: #1E293B;
     box-shadow: none;
   }
 
   &.is-disabled, &.is-disabled:hover, &.is-disabled:focus {
-    background-color: rgba(197, 48, 48, 0.45);
-    border-color: rgba(197, 48, 48, 0.45);
+    background-color: rgba(51, 65, 85, 0.45);
+    border-color: rgba(51, 65, 85, 0.45);
     color: #fff;
     box-shadow: none;
   }
 
   &.is-plain {
     color: $--color-primary;
-    background-color: rgba(197, 48, 48, 0.06);
-    border-color: rgba(197, 48, 48, 0.3);
+    background-color: rgba(51, 65, 85, 0.06);
+    border-color: rgba(51, 65, 85, 0.3);
     box-shadow: none;
 
     &:hover, &:focus {
       color: #fff;
       background-color: $--color-primary;
       border-color: $--color-primary;
-      box-shadow: 0 2px 4px rgba(197, 48, 48, 0.2);
+      box-shadow: 0 2px 4px rgba(51, 65, 85, 0.18);
     }
   }
 }
 
 .el-button--default {
-  border-color: #DCD5D3;
+  border-color: #CBD5E1;
 
   &:hover, &:focus {
     color: $--color-primary;
-    border-color: rgba(197, 48, 48, 0.35);
-    background-color: rgba(197, 48, 48, 0.04);
+    border-color: rgba(51, 65, 85, 0.35);
+    background-color: rgba(51, 65, 85, 0.04);
   }
 }
 
@@ -238,6 +238,6 @@ $--color-primary-light: rgba(197, 48, 48, 0.08);
 // 弹出框 (popover)
 // ============================================================
 .el-popover {
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(30, 26, 25, 0.12);
+  border-radius: 3px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.10);
 }

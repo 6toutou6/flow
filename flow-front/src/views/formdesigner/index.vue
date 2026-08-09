@@ -199,7 +199,7 @@
             </div>
             <div class="prop-group prop-row">
               <label class="prop-label">是否必填</label>
-              <el-switch v-model="selectedField.required" :active-value="1" :inactive-value="0" active-color="#C53030" />
+              <el-switch v-model="selectedField.required" :active-value="1" :inactive-value="0" active-color="#334155" />
             </div>
 
             <!-- 任务基础字段：填写方式（创建人填写 / 处理人填写） -->
@@ -707,36 +707,36 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #C53030;
-$border: #e4beba;
-.designer-container { display: flex; flex-direction: column; height: calc(100vh - 64px); background: #F5F7FA; font-family: 'Inter', sans-serif; overflow: hidden; }
+$primary: #334155;
+$border: #CBD5E1;
+.designer-container { display: flex; flex-direction: column; height: calc(100vh - 64px); background: #F8FAFC;  overflow: hidden; }
 
 // 顶部
 .designer-header { display: flex; justify-content: space-between; align-items: center; padding: 0 24px; height: 60px; background: #fff; border-bottom: 1px solid $border; flex-shrink: 0; }
 .header-left { display: flex; align-items: center; gap: 16px; }
-.back-btn { display: flex; align-items: center; gap: 4px; padding: 6px 12px; background: transparent; border: 1px solid $border; border-radius: 6px; color: #5b403d; cursor: pointer; font-size: 13px;
-  &:hover { background: #f6f3f2; }
+.back-btn { display: flex; align-items: center; gap: 4px; padding: 6px 12px; background: transparent; border: 1px solid $border; border-radius: 2px; color: #334155; cursor: pointer; font-size: 13px;
+  &:hover { background: #F1F5F9; }
 }
 .tpl-info { display: flex; align-items: center; gap: 8px; }
 .tpl-name { font-size: 16px; font-weight: 600; color: #1b1c1c; }
-.tpl-cat { padding: 2px 8px; background: rgba(197,48,48,0.1); color: $primary; border-radius: 4px; font-size: 12px; }
+.tpl-cat { padding: 2px 8px; background: rgba(51,65,85,0.1); color: $primary; border-radius: 4px; font-size: 12px; }
 .header-right { display: flex; align-items: center; gap: 16px; }
 .field-count { font-size: 13px; color: #757575; }
 .tfe-count { color: $primary; margin-left: 4px; }
-.btn-versions { display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: transparent; border: 1px solid $border; border-radius: 6px; color: #5b403d; font-size: 13px; cursor: pointer;
-  &:hover { border-color: $primary; color: $primary; background: #FFF5F5; }
+.btn-versions { display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: transparent; border: 1px solid $border; border-radius: 2px; color: #334155; font-size: 13px; cursor: pointer;
+  &:hover { border-color: $primary; color: $primary; background: #F1F5F9; }
 }
-.btn-save { display: flex; align-items: center; gap: 4px; padding: 8px 20px; background: $primary; color: #fff; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer;
+.btn-save { display: flex; align-items: center; gap: 4px; padding: 8px 20px; background: $primary; color: #fff; border: none; border-radius: 2px; font-weight: 600; font-size: 13px; cursor: pointer;
   &:hover { opacity: 0.9; } &:disabled { opacity: 0.6; cursor: not-allowed; }
 }
 
 // 任务基础字段入口
-.tfe-entry { display: flex; align-items: center; gap: 10px; margin: 12px 0 16px; padding: 12px; border: 1px dashed #cbd5e0; border-radius: 8px; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+.tfe-entry { display: flex; align-items: center; gap: 10px; margin: 12px 0 16px; padding: 12px; border: 1px dashed #cbd5e0; border-radius: 3px; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
   i { font-size: 20px; color: $primary; }
   // hover 仅轻微提示，避免与选中态混淆
   &:hover { background: #f7f8fa; border-color: #cbd5e0; }
   // 选中态才显示红色系
-  &.active { border-color: $primary; background: #FFF5F5; box-shadow: 0 0 0 1px $primary;
+  &.active { border-color: $primary; background: #F1F5F9; box-shadow: 0 0 0 1px $primary;
     i { color: $primary; }
   }
 }
@@ -744,10 +744,10 @@ $border: #e4beba;
 .tfe-entry-title { font-size: 13px; font-weight: 700; color: #1b1c1c; }
 .tfe-entry-desc { font-size: 11px; color: #999; }
 .tfe-tip { font-size: 12px; color: #999; line-height: 1.7; padding: 8px 0; }
-.badge-tpl { background: rgba(197,48,48,0.1); color: $primary; }
+.badge-tpl { background: rgba(51,65,85,0.1); color: $primary; }
 .field-role-select { display: flex; gap: 8px; }
-.role-btn { flex: 1; padding: 6px 0; border: 1px solid #ddd; border-radius: 5px; background: #fff; color: #555; font-size: 13px; cursor: pointer;
-  &.active { border-color: $primary; color: $primary; background: rgba(197,48,48,0.06); font-weight: 600; }
+.role-btn { flex: 1; padding: 6px 0; border: 1px solid #ddd; border-radius: 2px; background: #fff; color: #555; font-size: 13px; cursor: pointer;
+  &.active { border-color: $primary; color: $primary; background: rgba(51,65,85,0.06); font-weight: 600; }
 }
 .role-tip { font-size: 11px; color: #999; margin-top: 5px; }
 
@@ -759,18 +759,18 @@ $border: #e4beba;
 .panel-title { font-size: 15px; font-weight: 700; color: #1b1c1c; margin-bottom: 4px; }
 .panel-desc { font-size: 12px; color: #999; margin-bottom: 16px; }
 .chain-list { flex: 1; overflow-y: auto; }
-.node-item { padding: 12px; border: 1px solid #e4e7ed; border-radius: 8px; margin-bottom: 0; cursor: pointer; transition: all 0.2s; position: relative;
+.node-item { padding: 12px; border: 1px solid #e4e7ed; border-radius: 3px; margin-bottom: 0; cursor: pointer; transition: all 0.2s; position: relative;
   // hover 仅轻微提示，避免与选中态混淆
   &:hover { background: #f7f8fa; }
-  &.active { border-color: $primary; background: #FFF5F5; box-shadow: 0 0 0 1px $primary; }
+  &.active { border-color: $primary; background: #F1F5F9; box-shadow: 0 0 0 1px $primary; }
 }
 .node-item-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
 .node-idx { width: 20px; height: 20px; border-radius: 50%; background: $primary; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .node-name { font-size: 14px; font-weight: 600; color: #1b1c1c; flex: 1; }
 .node-type-badge { padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
-.badge-start { background: rgba(38,109,0,0.1); color: #266d00; }
+.badge-start { background: rgba(21, 128, 61,0.1); color: #15803D; }
 .badge-mid { background: #f0f3ff; color: #545f72; }
-.badge-end { background: rgba(197,48,48,0.1); color: $primary; }
+.badge-end { background: rgba(51,65,85,0.1); color: $primary; }
 .node-item-meta { display: flex; gap: 10px; font-size: 12px; color: #999; flex-wrap: wrap;
   i { margin-right: 2px; }
 }
@@ -782,8 +782,8 @@ $border: #e4beba;
   p { margin: 4px 0; font-size: 13px; color: #999; }
   .empty-tip { font-size: 12px; color: #bbb; }
 }
-.btn-add-node { margin-top: 12px; padding: 10px; border: 1px dashed #cbd5e0; background: transparent; border-radius: 6px; cursor: pointer; color: $primary; font-size: 13px; font-weight: 600; flex-shrink: 0;
-  &:hover { border-color: $primary; background: #FFF5F5; }
+.btn-add-node { margin-top: 12px; padding: 10px; border: 1px dashed #cbd5e0; background: transparent; border-radius: 2px; cursor: pointer; color: $primary; font-size: 13px; font-weight: 600; flex-shrink: 0;
+  &:hover { border-color: $primary; background: #F1F5F9; }
 }
 
 // 中栏
@@ -793,18 +793,18 @@ $border: #e4beba;
 .global-tips { font-size: 12px; color: #757575; display: flex; align-items: center; gap: 4px; max-width: 50%; }
 
 // 字段库条
-.field-library-bar { background: #fff; border: 1px solid $border; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
+.field-library-bar { background: #fff; border: 1px solid $border; border-radius: 3px; padding: 10px 12px; margin-bottom: 12px; }
 .lib-label { font-size: 12px; color: #999; display: block; margin-bottom: 8px; }
 .field-cards { display: flex; flex-wrap: wrap; gap: 8px; }
-.field-card { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border: 1px dashed #cbd5e0; border-radius: 6px; cursor: pointer; font-size: 12px; color: #414755; transition: all 0.2s;
+.field-card { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border: 1px dashed #cbd5e0; border-radius: 2px; cursor: pointer; font-size: 12px; color: #414755; transition: all 0.2s;
   i { color: $primary; font-size: 14px; }
-  &:hover { border-color: $primary; background: #FFF5F5; color: $primary; }
+  &:hover { border-color: $primary; background: #F1F5F9; color: $primary; }
 }
 
-.canvas-list { flex: 1; overflow-y: auto; background: #fff; border: 1px solid $border; border-radius: 8px; padding: 16px; }
-.field-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid #e4e7ed; border-radius: 6px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
+.canvas-list { flex: 1; overflow-y: auto; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 16px; }
+.field-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid #e4e7ed; border-radius: 2px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
   &:hover { border-color: $primary; }
-  &.active { border-color: $primary; background: #FFF5F5; box-shadow: 0 0 0 1px $primary; }
+  &.active { border-color: $primary; background: #F1F5F9; box-shadow: 0 0 0 1px $primary; }
 }
 .field-item-main { flex: 1; }
 .field-item-label { font-size: 14px; font-weight: 600; color: #1b1c1c; display: flex; align-items: center; gap: 6px; }
@@ -813,14 +813,14 @@ $border: #e4beba;
 .field-item-ph { font-size: 12px; color: #999; margin-top: 4px; }
 .field-item-actions { display: flex; gap: 4px; align-items: center; }
 .role-hint-icon { width: 22px; height: 22px; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: help; font-size: 13px;
-  &.role-creator { background: rgba(38,109,0,0.1); color: #266d00; }
-  &.role-handler { background: rgba(183,121,31,0.12); color: #b7791f; }
+  &.role-creator { background: rgba(21, 128, 61,0.1); color: #15803D; }
+  &.role-handler { background: rgba(180, 83, 9,0.12); color: #B45309; }
 }
 .op-btn { width: 28px; height: 28px; border: 1px solid #e4e7ed; background: #fff; border-radius: 4px; cursor: pointer; color: #606266; display: flex; align-items: center; justify-content: center;
   &:hover:not(:disabled) { border-color: $primary; color: $primary; }
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
-.op-del:hover:not(:disabled) { border-color: #ba1a1a; color: #ba1a1a; }
+.op-del:hover:not(:disabled) { border-color: #DC2626; color: #DC2626; }
 .canvas-empty { text-align: center; padding: 50px 0; color: #ccc;
   i { font-size: 48px; display: block; margin-bottom: 12px; }
   p { margin: 4px 0; font-size: 14px; color: #999; }
@@ -829,7 +829,7 @@ $border: #e4beba;
 
 // 右栏
 .property-panel { background: #f5f6f8; border-left: 1px solid $border; overflow-y: auto; padding: 14px; box-sizing: border-box; }
-.prop-section { background: #fff; border: 1px solid #f0e8e7; border-radius: 10px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+.prop-section { background: #fff; border: 1px solid #f0e8e7; border-radius: 3px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);
   &:last-child { margin-bottom: 0; }
 }
 .panel-title { font-size: 15px; font-weight: 700; color: #1b1c1c; display: flex; align-items: center; gap: 7px; border-left: 3px solid $primary; padding-left: 9px;
@@ -838,8 +838,9 @@ $border: #e4beba;
 .panel-title-click { cursor: pointer; user-select: none;
   &:hover { color: $primary; }
 }
-.collapse-arrow { margin-left: auto; color: #909399 !important; font-size: 14px !important; transition: transform 0.2s;
-  &.open { transform: rotate(180deg); }
+.collapse-arrow { margin-left: auto; color: #94A3B8; font-size: 16px; transition: transform 0.25s ease; cursor: pointer;
+  &.open { transform: rotate(180deg); color: #334155; }
+  &:hover { color: #334155; }
 }
 .panel-empty { text-align: center; padding: 30px 0; color: #ccc;
   p { font-size: 13px; color: #999; margin-top: 8px; }
@@ -847,12 +848,12 @@ $border: #e4beba;
 .prop-form { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
 .prop-group { display: flex; flex-direction: column; gap: 5px; }
 .prop-label { font-size: 13px; color: #4a4f58; font-weight: 600; }
-.prop-input { height: 36px; border: 1px solid #dcdfe6; border-radius: 6px; padding: 0 10px; font-size: 13px; outline: none; transition: all 0.2s; background: #fff;
-  &:focus { border-color: $primary; box-shadow: 0 0 0 2px rgba(197,48,48,0.12); }
+.prop-input { height: 36px; border: 1px solid #dcdfe6; border-radius: 2px; padding: 0 10px; font-size: 13px; outline: none; transition: all 0.2s; background: #fff;
+  &:focus { border-color: $primary; box-shadow: 0 0 0 2px rgba(51,65,85,0.12); }
   &:hover { border-color: #c0c4cc; }
 }
-.prop-textarea { width: 100%; border: 1px solid #dcdfe6; border-radius: 6px; padding: 8px 10px; font-size: 13px; font-family: inherit; line-height: 1.6; resize: vertical; outline: none; box-sizing: border-box; transition: all 0.2s; background: #fff;
-  &:focus { border-color: $primary; box-shadow: 0 0 0 2px rgba(197,48,48,0.12); }
+.prop-textarea { width: 100%; border: 1px solid #dcdfe6; border-radius: 2px; padding: 8px 10px; font-size: 13px; font-family: inherit; line-height: 1.6; resize: vertical; outline: none; box-sizing: border-box; transition: all 0.2s; background: #fff;
+  &:focus { border-color: $primary; box-shadow: 0 0 0 2px rgba(51,65,85,0.12); }
   &:hover { border-color: #c0c4cc; }
 }
 .node-type-line { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
@@ -862,11 +863,11 @@ $border: #e4beba;
   i { color: #909399; font-size: 13px; flex-shrink: 0; }
 }
 .gf-input { flex: 1; }
-.gf-del { width: 26px; height: 26px; border: 1px solid #dcdfe6; background: #fff; border-radius: 4px; cursor: pointer; color: #ba1a1a; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  &:hover { border-color: #ba1a1a; }
+.gf-del { width: 26px; height: 26px; border: 1px solid #dcdfe6; background: #fff; border-radius: 4px; cursor: pointer; color: #DC2626; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  &:hover { border-color: #DC2626; }
 }
 .gf-add { padding: 6px; border: 1px dashed #cbd5e0; background: transparent; border-radius: 4px; cursor: pointer; color: $primary; font-size: 12px; text-align: center;
-  &:hover { border-color: $primary; background: #FFF5F5; }
+  &:hover { border-color: $primary; background: #F1F5F9; }
 }
 .prop-row { flex-direction: row; align-items: center; justify-content: space-between; }
 .prop-hint { font-size: 12px; color: $primary; margin: 0; }
@@ -875,8 +876,8 @@ $border: #e4beba;
 .enum-input { flex: 1; height: 28px; border: 1px solid #dcdfe6; border-radius: 4px; padding: 0 6px; font-size: 12px; outline: none;
   &:focus { border-color: $primary; }
 }
-.enum-del { width: 28px; height: 28px; border: 1px solid #dcdfe6; background: #fff; border-radius: 4px; cursor: pointer; color: #ba1a1a; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.enum-del { width: 28px; height: 28px; border: 1px solid #dcdfe6; background: #fff; border-radius: 4px; cursor: pointer; color: #DC2626; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .enum-add { width: 100%; padding: 6px; border: 1px dashed #cbd5e0; background: transparent; border-radius: 4px; cursor: pointer; color: $primary; font-size: 12px;
-  &:hover { border-color: $primary; background: #FFF5F5; }
+  &:hover { border-color: $primary; background: #F1F5F9; }
 }
 </style>

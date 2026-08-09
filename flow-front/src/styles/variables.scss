@@ -1,39 +1,39 @@
 // ============================================================
 // Flow 流程管理系统 - 设计令牌 (Design Tokens)
-// 美学方向: "Refined Authority" — 专业权威、温润克制
-// 基于 4px 栅格体系 + OKLCH 感知均匀色彩
+// 美学方向: "Executive Slate" — 简约大气、正式权威
+// 基于 4px 栅格体系
 // ============================================================
 
-// ---- 品牌色 ----
-$brand-red:          #C53030;
-$brand-red-deep:     #A20513;
-$brand-red-light:    #FDF4F3;
-$brand-red-surface:  #FFF8F7;
+// ---- 品牌色 (石板蓝) ----
+$brand-primary:        #334155;
+$brand-primary-deep:   #1E293B;
+$brand-primary-light:  #F1F5F9;
+$brand-primary-surface:#F8FAFC;
 
 // ---- 语义色 ----
-$color-primary:       $brand-red;
-$color-primary-hover: #B52828;
-$color-primary-active: $brand-red-deep;
-$color-success:       #2D7D46;
-$color-warning:       #C4732D;
-$color-danger:        $brand-red;
+$color-primary:        $brand-primary;
+$color-primary-hover:  #475569;
+$color-primary-active: $brand-primary-deep;
+$color-success:        #15803D;
+$color-warning:        #B45309;
+$color-danger:         #B91C1C;
 
-// ---- 中性色 (warm-tinted, not pure gray) ----
+// ---- 中性色 (cool-tinted slate) ----
 $neutral-0:   #FFFFFF;
-$neutral-50:  #FCFAF9;
-$neutral-100: #F7F4F3;
-$neutral-200: #EDE8E7;
-$neutral-300: #DCD5D3;
-$neutral-400: #BEB4B2;
-$neutral-500: #9A8F8C;
-$neutral-600: #7A6E6B;
-$neutral-700: #5C514E;
-$neutral-800: #3D3532;
-$neutral-900: #1E1A19;
+$neutral-50:  #F8FAFC;
+$neutral-100: #F1F5F9;
+$neutral-200: #E2E8F0;
+$neutral-300: #CBD5E1;
+$neutral-400: #94A3B8;
+$neutral-500: #64748B;
+$neutral-600: #475569;
+$neutral-700: #334155;
+$neutral-800: #1E293B;
+$neutral-900: #0F172A;
 
 // ---- 文字色 ----
 $text-primary:    $neutral-900;
-$text-secondary:  $neutral-700;
+$text-secondary:  $neutral-600;
 $text-tertiary:   $neutral-500;
 $text-disabled:   $neutral-400;
 
@@ -41,7 +41,7 @@ $text-disabled:   $neutral-400;
 $surface-page:        $neutral-50;
 $surface-card:        $neutral-0;
 $surface-elevated:    $neutral-0;
-$surface-hover:       $neutral-100;
+$surface-hover:       $brand-primary-light;
 
 // ---- 边框色 ----
 $border-light:   $neutral-200;
@@ -49,17 +49,17 @@ $border-default: $neutral-300;
 $border-strong:  $neutral-400;
 
 // ---- 阴影 (layered, refined) ----
-$shadow-sm:  0 1px 2px rgba(30, 26, 25, 0.06);
-$shadow-md:  0 4px 12px rgba(30, 26, 25, 0.08);
-$shadow-lg:  0 8px 32px rgba(30, 26, 25, 0.12);
-$shadow-xl:  0 16px 48px rgba(30, 26, 25, 0.16);
+$shadow-sm:  0 1px 2px rgba(15, 23, 42, 0.05);
+$shadow-md:  0 4px 12px rgba(15, 23, 42, 0.06);
+$shadow-lg:  0 8px 32px rgba(15, 23, 42, 0.08);
+$shadow-xl:  0 16px 48px rgba(15, 23, 42, 0.12);
 
 // ---- 圆角 ----
-$radius-sm:  4px;
-$radius-md:  8px;
-$radius-lg:  12px;
-$radius-xl:  16px;
-$radius-2xl: 20px;
+$radius-sm:  2px;
+$radius-md:  3px;
+$radius-lg:  4px;
+$radius-xl:  6px;
+$radius-2xl: 8px;
 
 // ---- 间距 (4px base) ----
 $space-1:  4px;
@@ -96,7 +96,7 @@ $transition-slow:   0.35s cubic-bezier(0.4, 0, 0.2, 1);
 // ---- 布局 ----
 $navbar-height:  56px;
 $sidebar-width:  240px;
-$sidebar-collapsed: 64px;
+$sidebar-collapsed: 54px;
 
 // ---- 旧版兼容变量 (保持现有代码不报错) ----
 $menuText:           $text-secondary;

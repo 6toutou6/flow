@@ -106,9 +106,9 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #C53030;
-$border: #e4beba;
-.dashboard-container { display: flex; min-height: 100vh; background-color: #F5F7FA; font-family: 'Inter', sans-serif; color: #1b1c1c; }
+$primary: #334155;
+$border: #CBD5E1;
+.dashboard-container { display: flex; min-height: 100vh; background-color: #F8FAFC;  color: #1b1c1c; }
 .main-content { width: 100%; display: flex; flex-direction: column; min-height: 100vh; }
 .page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; box-sizing: border-box; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; }
@@ -118,14 +118,14 @@ $border: #e4beba;
     &:hover { text-decoration: underline; }
   }
 }
-.page-heading { font-size: 30px; line-height: 38px; font-weight: 600; color: #1b1c1c; }
-.btn-back { display: flex; align-items: center; gap: 4px; padding: 8px 16px; background: #fff; border: 1px solid $border; border-radius: 6px; color: #5b403d; cursor: pointer; font-size: 13px;
-  &:hover { background: #f6f3f2; }
+.page-heading { font-size: 24px; line-height: 32px; font-weight: 600; color: #1b1c1c; }
+.btn-back { display: flex; align-items: center; gap: 4px; padding: 8px 16px; background: #fff; border: 1px solid $border; border-radius: 2px; color: #334155; cursor: pointer; font-size: 13px;
+  &:hover { background: #F1F5F9; }
 }
-.tip-bar { display: flex; align-items: center; gap: 8px; background: #FFF5F5; border: 1px solid $border; color: #8a4b46; font-size: 13px; border-radius: 10px; padding: 10px 14px;
+.tip-bar { display: flex; align-items: center; gap: 8px; background: #F1F5F9; border: 1px solid $border; color: #475569; font-size: 13px; border-radius: 3px; padding: 10px 14px;
   i { color: $primary; }
 }
-.flow-wrap { background: #fff; border: 1px solid $border; border-radius: 10px; padding: 20px; min-height: 300px; }
+.flow-wrap { background: #fff; border: 1px solid $border; border-radius: 3px; padding: 20px; min-height: 300px; }
 .empty-state { text-align: center; padding: 60px 20px; color: #bbb;
   i { font-size: 48px; display: block; margin-bottom: 12px; }
   p { font-size: 14px; margin: 0; }

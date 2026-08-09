@@ -325,27 +325,27 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #C53030;
+$primary: #334155;
 .gpd { display: flex; flex-direction: column; gap: 14px; }
-.gpd-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 14px; border-bottom: 1px dashed #e4beba; }
+.gpd-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 14px; border-bottom: 1px dashed #CBD5E1; }
 .gpd-title { display: flex; align-items: center; gap: 12px;
-  i { width: 42px; height: 42px; border-radius: 10px; background: $primary; color: #fff; font-size: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  i { width: 42px; height: 42px; border-radius: 3px; background: $primary; color: #fff; font-size: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 }
 .gpd-name { font-size: 17px; font-weight: 700; color: #1b1c1c; line-height: 1.3; }
 .gpd-task { font-size: 12px; color: #909399; margin-top: 2px; max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gpd-badge { padding: 3px 12px; border-radius: 12px; font-size: 12px; background: #f0f0f0; color: #909399; flex-shrink: 0;
-  &.on { background: rgba(197,48,48,0.1); color: $primary; font-weight: 600; }
+.gpd-badge { padding: 3px 12px; border-radius: 4px; font-size: 12px; background: #f0f0f0; color: #909399; flex-shrink: 0;
+  &.on { background: rgba(51,65,85,0.1); color: $primary; font-weight: 600; }
 }
-.gpd-config { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; background: #FFF5F5; border: 1px dashed $primary; border-radius: 0px; padding: 9px 14px; font-size: 12px;
+.gpd-config { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; background: #F1F5F9; border: 1px dashed $primary; border-radius: 0px; padding: 9px 14px; font-size: 12px;
   > i { color: $primary; }
   .gpd-config-label { color: $primary; font-weight: 700; flex-shrink: 0; }
-  .gpd-config-item { color: #5b403d; b { color: #1b1c1c; font-weight: 700; } }
-  .gpd-config-edit { margin-left: auto; color: $primary; background: none; border: 1px solid $primary; border-radius: 6px; padding: 3px 12px; cursor: pointer; font-size: 12px; flex-shrink: 0;
+  .gpd-config-item { color: #334155; b { color: #1b1c1c; font-weight: 700; } }
+  .gpd-config-edit { margin-left: auto; color: $primary; background: none; border: 1px solid $primary; border-radius: 2px; padding: 3px 12px; cursor: pointer; font-size: 12px; flex-shrink: 0;
     &:hover { background: $primary; color: #fff; }
   }
 }
 .gpd-mode { display: flex; }
-.gpd-card { background: #FFFDFD; border: 1px solid #e4beba; border-radius: 10px; padding: 14px 16px; }
+.gpd-card { background: #FCFCFD; border: 1px solid #CBD5E1; border-radius: 3px; padding: 14px 16px; }
 .gpd-card-title { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #414755; margin-bottom: 12px;
   i { color: $primary; }
 }
@@ -353,26 +353,26 @@ $primary: #C53030;
 .gpd-switch-label { font-size: 13px; color: #414755; }
 .gpd-check-group { display: flex; align-items: center; gap: 10px; }
 .gpd-check-hint { font-size: 12px; color: #909399; }
-.gpd-preview { min-height: 40px; background: #fff; border: 1px solid #f0e3e1; border-radius: 8px; }
+.gpd-preview { min-height: 40px; background: #fff; border: 1px solid #E2E8F0; border-radius: 3px; }
 .gpd-preview-body { padding: 4px 14px; }
 .gpd-preview-empty { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 14px; color: #999; font-size: 13px; }
 .gpd-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; font-size: 13px;
-  &:not(:last-child) { border-bottom: 1px dashed #f0e3e1; }
+  &:not(:last-child) { border-bottom: 1px dashed #E2E8F0; }
 }
 .gpd-label { width: 84px; color: #909399; flex-shrink: 0; }
 .gpd-value { color: #1b1c1c; flex: 1; }
-.gpd-input { flex: 1; height: 34px; border: 1px solid #dcdfe6; border-radius: 6px; padding: 0 10px; font-size: 13px; outline: none; transition: all .2s;
-  &:focus { border-color: $primary; box-shadow: 0 0 0 2px rgba(197,48,48,0.15); }
+.gpd-input { flex: 1; height: 34px; border: 1px solid #dcdfe6; border-radius: 2px; padding: 0 10px; font-size: 13px; outline: none; transition: all .2s;
+  &:focus { border-color: $primary; box-shadow: 0 0 0 2px rgba(51,65,85,0.15); }
 }
 .gpd-date { flex: 1; width: 100%; }
 .req { color: $primary; }
-.gpd-tip { display: flex; align-items: center; gap: 5px; margin-top: 10px; font-size: 12px; color: #8a4b46; background: #FFF5F5; border-radius: 6px; padding: 7px 10px;
+.gpd-tip { display: flex; align-items: center; gap: 5px; margin-top: 10px; font-size: 12px; color: #475569; background: #F1F5F9; border-radius: 2px; padding: 7px 10px;
   i { color: $primary; }
 }
 .gpd-members-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
   b { color: $primary; }
 }
-.gpd-add { display: flex; align-items: center; gap: 4px; padding: 5px 12px; background: $primary; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;
+.gpd-add { display: flex; align-items: center; gap: 4px; padding: 5px 12px; background: $primary; color: #fff; border: none; border-radius: 2px; cursor: pointer; font-size: 12px; font-weight: 600;
   &:hover { opacity: 0.9; }
 }
 .gpd-empty { text-align: center; padding: 26px 16px; color: #bbb;
@@ -380,8 +380,8 @@ $primary: #C53030;
   p { margin: 0; font-size: 13px; }
 }
 .gpd-members { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-.gpd-chip { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #e4beba; border-radius: 8px; padding: 8px 10px; transition: all .2s;
-  &:hover { border-color: $primary; box-shadow: 0 2px 8px rgba(197,48,48,0.1); }
+.gpd-chip { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #CBD5E1; border-radius: 3px; padding: 8px 10px; transition: all .2s;
+  &:hover { border-color: $primary; box-shadow: 0 2px 8px rgba(51,65,85,0.1); }
 }
 .gpd-avatar { width: 34px; height: 34px; border-radius: 50%; background: $primary; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; flex-shrink: 0; }
 .gpd-chip-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }

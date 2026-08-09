@@ -1,6 +1,6 @@
 // ============================================================
 // Flow 流程管理系统 - 侧边栏样式
-// 设计方向: 白底红章，温润克制
+// 设计方向: Executive Slate — 白底石板蓝
 // ============================================================
 
 #app {
@@ -24,7 +24,7 @@
     left: 0;
     z-index: 1001;
     overflow: hidden;
-    border-right: 1px solid rgba(197, 48, 48, 0.08);
+    border-right: 1px solid rgba(51, 65, 85, 0.08);
 
     // 重置 element-ui
     .horizontal-collapse-transition {
@@ -114,11 +114,11 @@
   // ---- 折叠态 ----
   .hideSidebar {
     .sidebar-container {
-      width: 54px !important;
+      width: $sidebar-collapsed !important;
     }
 
     .main-container {
-      margin-left: 54px;
+      margin-left: $sidebar-collapsed;
     }
 
     .submenu-title-noDropdown {
@@ -204,13 +204,13 @@
   >.el-menu--popup {
     max-height: 100vh;
     overflow-y: auto;
-    border-radius: 8px;
+    border-radius: 3px;
     box-shadow: 0 8px 24px rgba(30, 26, 25, 0.12) !important;
 
-    &::-webkit-scrollbar-track-piece { background: #F7F4F3; }
+    &::-webkit-scrollbar-track-piece { background: transparent; }
     &::-webkit-scrollbar { width: 5px; }
     &::-webkit-scrollbar-thumb {
-      background: rgba(197, 48, 48, 0.2);
+      background: rgba(51, 65, 85, 0.2);
       border-radius: 3px;
     }
   }

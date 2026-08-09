@@ -46,7 +46,21 @@ export const constantRoutes = [
 
   {
     path: '/',
-    redirect: '/task-process/index'
+    redirect: '/dashboard/index'
+  },
+
+  // ==================== 操作指引（Dashboard） ====================
+  {
+    path: '/dashboard',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'Dashboard',
+        component: () => import('@/views/dashboard/index'),
+        meta: { title: '操作指引', icon: 'el-icon-reading' }
+      }
+    ]
   },
 
   // ==================== 普通用户：任务处理（我的任务） ====================

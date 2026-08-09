@@ -162,35 +162,35 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #C53030;
+$primary: #334155;
 
-.modal-banner { display: flex; gap: 14px; align-items: center; padding: 16px; border-radius: 10px; margin-bottom: 16px;
-  &.banner-reject { background: rgba(183,121,31,0.1); border: 1px solid rgba(183,121,31,0.3); }
-  &.banner-pass { background: rgba(197,48,48,0.07); border: 1px solid rgba(197,48,48,0.22); }
+.modal-banner { display: flex; gap: 14px; align-items: center; padding: 16px; border-radius: 3px; margin-bottom: 16px;
+  &.banner-reject { background: rgba(180, 83, 9,0.1); border: 1px solid rgba(180, 83, 9,0.3); }
+  &.banner-pass { background: rgba(51,65,85,0.07); border: 1px solid rgba(51,65,85,0.22); }
 }
 .banner-icon { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #fff; flex-shrink: 0;
-  .banner-reject & { background: #b7791f; }
+  .banner-reject & { background: #B45309; }
   .banner-pass & { background: $primary; }
 }
 .banner-text { flex: 1; }
 .banner-title { font-size: 17px; font-weight: 700; color: #1b1c1c; }
 .banner-sub { font-size: 12px; color: #757575; margin-top: 3px; }
 
-.confirm-card { border-radius: 10px; padding: 12px 16px; margin-bottom: 12px;
-  &.card-reject { background: #FFF8EF; border: 1px dashed rgba(183,121,31,0.45); }
-  &.card-pass { background: #FFF5F5; border: 1px dashed rgba(197,48,48,0.4); }
+.confirm-card { border-radius: 3px; padding: 12px 16px; margin-bottom: 12px;
+  &.card-reject { background: #F0F4FF; border: 1px dashed rgba(180, 83, 9,0.45); }
+  &.card-pass { background: #F1F5F9; border: 1px dashed rgba(51,65,85,0.4); }
 }
 .card-item { display: flex; gap: 9px; align-items: flex-start; padding: 5px 0; line-height: 1.6;
   & + .card-item { border-top: 1px dashed rgba(0,0,0,0.06); }
 }
 .card-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 9px; flex-shrink: 0;
-  .card-reject & { background: #b7791f; }
+  .card-reject & { background: #B45309; }
   .card-pass & { background: $primary; }
 }
 .card-text { font-size: 14px; color: #414755; word-break: break-all; }
 
 .confirm-tip { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #999; padding: 0 4px;
-  i { color: #b7791f; }
+  i { color: #B45309; }
 }
 
 .comment-area { margin-top: 16px; padding-top: 16px; border-top: 1px solid #f0f0f0; }
@@ -199,19 +199,19 @@ $primary: #C53030;
 
 // 下一节点处理人选择区（通过且非结束节点）
 .handler-area { margin-top: 16px; padding-top: 16px; border-top: 1px solid #f0f0f0; }
-.handler-tip { display: flex; align-items: flex-start; gap: 6px; background: #FFF5F5; border: 1px dashed rgba(197,48,48,0.4); border-radius: 6px; padding: 8px 10px; font-size: 12px; color: #8a4b46; line-height: 1.6; margin-bottom: 10px;
+.handler-tip { display: flex; align-items: flex-start; gap: 6px; background: #F1F5F9; border: 1px dashed rgba(51,65,85,0.4); border-radius: 2px; padding: 8px 10px; font-size: 12px; color: #475569; line-height: 1.6; margin-bottom: 10px;
   i { color: $primary; margin-top: 2px; flex-shrink: 0; }
 }
 .handler-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-.handler-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px 3px 4px; background: #f7f7f9; border: 1px solid #e8e8e8; border-radius: 16px; font-size: 12px; }
+.handler-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px 3px 4px; background: #f7f7f9; border: 1px solid #e8e8e8; border-radius: 4px; font-size: 12px; }
 .hc-avatar { width: 22px; height: 22px; border-radius: 50%; background: $primary; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
 .hc-name { color: #414755; font-weight: 600; }
 .hc-emp { color: #999; font-weight: 400; margin-left: 2px; }
 .hc-remove { cursor: pointer; color: #bbb; font-size: 13px;
   &:hover { color: $primary; }
 }
-.btn-pick { width: 100%; height: 34px; border: 1px dashed rgba(197,48,48,0.4); border-radius: 6px; background: #FFF5F5; color: $primary; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 4px;
-  &:hover { border-color: $primary; background: rgba(197,48,48,0.08); }
+.btn-pick { width: 100%; height: 34px; border: 1px dashed rgba(51,65,85,0.4); border-radius: 2px; background: #F1F5F9; color: $primary; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 4px;
+  &:hover { border-color: $primary; background: rgba(51,65,85,0.08); }
 }
 .dialog-footer { text-align: right; }
 </style>

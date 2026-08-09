@@ -1,95 +1,87 @@
 <template>
-  <div v-if="visible" class="modal-overlay" @click.self="handleClose">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 class="modal-title">{{ isEdit ? '编辑用户' : '新增用户' }}</h3>
-        <button class="modal-close" @click="handleClose">
-          <i class="el-icon-close"></i>
-        </button>
+  <BaseModal
+    :visible="visible"
+    :title="isEdit ? '编辑用户' : '新增用户'"
+    @close="handleClose"
+  >
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">用户名 <span class="required">*</span></label>
+        <input class="form-input" v-model="localFormData.username" placeholder="请输入登录账号" />
       </div>
-      <div class="modal-body">
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">用户名 <span class="required">*</span></label>
-            <input class="form-input" v-model="localFormData.username" placeholder="请输入登录账号" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">员工号 <span class="required">*</span></label>
-            <input class="form-input" v-model="localFormData.empNo" placeholder="请输入员工号" />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">员工姓名 <span class="required">*</span></label>
-            <input class="form-input" v-model="localFormData.realName" placeholder="请输入员工姓名" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">手机号</label>
-            <input class="form-input" v-model="localFormData.phone" placeholder="请输入手机号" />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">部门ID</label>
-            <input class="form-input" v-model="localFormData.deptId" type="number" placeholder="请输入部门ID" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">部门名称</label>
-            <input class="form-input" v-model="localFormData.deptName" placeholder="请输入部门名称" />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">
-              密码
-              <span v-if="!isEdit" class="required">*</span>
-              <span v-else class="form-tip">（留空则不修改）</span>
-            </label>
-            <input class="form-input" v-model="localFormData.password" type="password" :placeholder="isEdit ? '留空则不修改' : '请输入密码'" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">状态 <span class="required">*</span></label>
-            <select class="form-select" v-model="localFormData.status">
-              <option :value="1">正常</option>
-              <option :value="0">禁用</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" @click="handleClose">取消</button>
-        <button class="btn-primary" @click="handleSubmit">{{ isEdit ? '保存修改' : '创建用户' }}</button>
+      <div class="form-group">
+        <label class="form-label">员工号 <span class="required">*</span></label>
+        <input class="form-input" v-model="localFormData.empNo" placeholder="请输入员工号" />
       </div>
     </div>
-  </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">员工姓名 <span class="required">*</span></label>
+        <input class="form-input" v-model="localFormData.realName" placeholder="请输入员工姓名" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">手机号</label>
+        <input class="form-input" v-model="localFormData.phone" placeholder="请输入手机号" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">部门ID</label>
+        <input class="form-input" v-model="localFormData.deptId" type="number" placeholder="请输入部门ID" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">部门名称</label>
+        <input class="form-input" v-model="localFormData.deptName" placeholder="请输入部门名称" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">
+          密码
+          <span v-if="!isEdit" class="required">*</span>
+          <span v-else class="form-tip">（留空则不修改）</span>
+        </label>
+        <input class="form-input" v-model="localFormData.password" type="password" :placeholder="isEdit ? '留空则不修改' : '请输入密码'" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">状态 <span class="required">*</span></label>
+        <select class="form-select" v-model="localFormData.status">
+          <option :value="1">正常</option>
+          <option :value="0">禁用</option>
+        </select>
+      </div>
+    </div>
+
+    <template #footer>
+      <button class="btn btn-secondary" @click="handleClose">取消</button>
+      <button class="btn btn-primary" @click="handleSubmit">{{ isEdit ? '保存修改' : '创建用户' }}</button>
+    </template>
+  </BaseModal>
 </template>
 
 <script>
+import BaseModal from '@/components/BaseModal'
+
 export default {
   name: 'AddModal',
+  components: { BaseModal },
   props: {
-    visible: { type: Boolean, default: false },
-    isEdit: { type: Boolean, default: false },
-    formData: { type: Object, default: () => ({}) }
+    visible:  { type: Boolean, default: false },
+    isEdit:   { type: Boolean, default: false },
+    formData: { type: Object,  default: () => ({}) }
   },
   data() {
-    return {
-      localFormData: {}
-    }
+    return { localFormData: {} }
   },
   watch: {
     formData: {
-      handler(val) {
-        this.localFormData = { ...val }
-      },
+      handler(val) { this.localFormData = { ...val } },
       immediate: true,
       deep: true
     }
   },
   methods: {
-    handleClose() {
-      this.$emit('close')
-    },
+    handleClose() { this.$emit('close') },
     handleSubmit() {
       if (!this.localFormData.username || !this.localFormData.empNo || !this.localFormData.realName) {
         this.$emit('error', '请填写用户名、员工号、员工姓名')
@@ -99,7 +91,6 @@ export default {
         this.$emit('error', '新增用户必须填写密码')
         return
       }
-      // deptId 转数字
       if (this.localFormData.deptId !== null && this.localFormData.deptId !== '' && this.localFormData.deptId !== undefined) {
         this.localFormData.deptId = Number(this.localFormData.deptId)
       } else {
@@ -112,40 +103,20 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.modal-overlay {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 1000; animation: fadeIn 0.2s ease;
+@import "~@/styles/common.scss";
+
+.form-row          { @include form-row; }
+.form-group        { @include form-group; }
+.form-label        { @include form-label;
+  margin-bottom: $space-2;
+  .form-tip       { color: #999; font-weight: 400; font-size: $font-size-xs; }
 }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.modal-content {
-  background-color: white; border-radius: 8px; width: 90%; max-width: 600px; max-height: 90vh; overflow: hidden;
-  animation: slideIn 0.3s ease;
-}
-@keyframes slideIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #e4beba; background-color: #faf9f9; }
-.modal-title { font-size: 20px; font-weight: 700; color: #1b1c1c; margin: 0; }
-.modal-close { background: none; border: none; cursor: pointer; color: #414755; padding: 4px; border-radius: 4px;
-  &:hover { background-color: #efeded; color: #1b1c1c; }
-}
-.modal-body { padding: 24px; max-height: 60vh; overflow-y: auto; }
-.modal-footer { display: flex; justify-content: flex-end; gap: 12px; padding: 20px 24px; border-top: 1px solid #e4beba; background-color: #faf9f9; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-.form-group { margin-bottom: 16px; }
-.form-label { font-size: 14px; font-weight: 600; color: #414755; margin-bottom: 8px; display: block;
-  .required { color: #ba1a1a; }
-  .form-tip { color: #999; font-weight: 400; font-size: 12px; }
-}
-.form-input, .form-select {
-  width: 100%; padding: 10px 12px; border: 1px solid #e4beba; border-radius: 8px; font-size: 14px; outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s; box-sizing: border-box;
-  &:focus { border-color: #a20513; box-shadow: 0 0 0 2px rgba(162, 5, 19, 0.15); }
-}
-.btn-primary { padding: 10px 24px; background-color: #a20513; color: white; border-radius: 8px; font-weight: 700; border: none; cursor: pointer;
-  &:hover { opacity: 0.9; }
-}
-.btn-secondary { padding: 10px 24px; background-color: #faf9f9; color: #414755; border-radius: 8px; font-weight: 600; border: 1px solid #e4beba; cursor: pointer;
-  &:hover { background-color: #efeded; }
+.form-input,
+.form-select       { @include form-input; }
+
+.btn {
+  @include btn-base;
+  &.btn-primary   { @include btn-primary; }
+  &.btn-secondary { @include btn-secondary; }
 }
 </style>

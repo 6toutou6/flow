@@ -63,7 +63,7 @@
         >
           <i
             slot="suffix"
-            :class="passwordType === 'password' ? 'el-icon-view' : 'el-icon-loading'"
+            :class="passwordType === 'password' ? 'el-icon-view' : 'el-icon-view pwd-visible'"
             class="pwd-toggle"
             @click="showPwd"
           />
@@ -170,7 +170,7 @@ export default {
     align-items: center;
 
     .el-input__icon {
-      color: #9A8F8C;
+      color: #94A3B8;
       font-size: 16px;
       transition: color 0.2s;
     }
@@ -179,29 +179,29 @@ export default {
   .el-input__inner {
     padding-left: 40px;
     height: 44px;
-    background: #F7F4F3;
-    border: 1.5px solid #EDE8E7;
-    border-radius: 10px;
+    background: #F1F5F9;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 3px;
     font-size: 14px;
-    color: #1E1A19;
+    color: #0F172A;
     transition: all 0.2s;
 
     &::placeholder {
-      color: #BEB4B2;
+      color: #94A3B8;
     }
 
     &:focus {
       background: #fff;
-      border-color: #C53030;
-      box-shadow: 0 0 0 3px rgba(197, 48, 48, 0.08);
+      border-color: #334155;
+      box-shadow: 0 0 0 3px rgba(51, 65, 85, 0.08);
     }
   }
 
   .el-form-item.is-error .el-input__inner {
-    border-color: #C53030;
+    border-color: #B91C1C;
 
     &:focus {
-      box-shadow: 0 0 0 3px rgba(197, 48, 48, 0.12);
+      box-shadow: 0 0 0 3px rgba(153, 27, 27, 0.12);
     }
   }
 
@@ -210,13 +210,14 @@ export default {
 
     .pwd-toggle {
       cursor: pointer;
-      color: #9A8F8C;
+      color: #94A3B8;
       font-size: 18px;
       transition: color 0.2s;
 
       &:hover {
-        color: #C53030;
+        color: #334155;
       }
+      &.pwd-visible { opacity: 0.55; }
     }
   }
 }
@@ -226,7 +227,7 @@ export default {
 .login-container {
   min-height: 100vh;
   width: 100%;
-  background: linear-gradient(145deg, #6B1010 0%, #A01C1C 15%, #C53030 45%, #B52828 75%, #7A1515 100%);
+  background: linear-gradient(145deg, #0F172A 0%, #1E293B 20%, #334155 55%, #1E293B 85%, #0F172A 100%);
   overflow: hidden;
   position: relative;
   display: flex;
@@ -322,20 +323,20 @@ export default {
 .card-title {
   font-size: 22px;
   font-weight: 700;
-  color: #1E1A19;
+  color: #0F172A;
   margin: 0;
   letter-spacing: 0.03em;
 }
 
 .card-desc {
   font-size: 13px;
-  color: #9A8F8C;
+  color: #64748B;
   margin: 6px 0 0;
 }
 
 // ---- 表单 ----
 ::v-deep .el-form-item__label {
-  color: #5C514E;
+  color: #334155;
   font-weight: 600;
   font-size: 13px;
   line-height: 1.4;
@@ -349,7 +350,7 @@ export default {
 ::v-deep .el-form-item__error {
   font-size: 12px;
   padding-top: 3px;
-  color: #C53030;
+  color: #B91C1C;
 }
 
 // ---- 登录按钮 ----
@@ -360,24 +361,24 @@ export default {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.12em;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #C53030 0%, #A20513 100%);
+  border-radius: 3px;
+  background: linear-gradient(135deg, #334155 0%, #1E293B 100%);
   border: none;
-  box-shadow: 0 4px 14px rgba(197, 48, 48, 0.35);
+  box-shadow: 0 4px 14px rgba(51, 65, 85, 0.35);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(197, 48, 48, 0.45);
+    box-shadow: 0 6px 20px rgba(51, 65, 85, 0.45);
   }
 
   &:active {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(197, 48, 48, 0.3);
+    box-shadow: 0 2px 8px rgba(51, 65, 85, 0.3);
   }
 
   &.is-loading {
-    background: linear-gradient(135deg, #C53030 0%, #A20513 100%);
+    background: linear-gradient(135deg, #334155 0%, #1E293B 100%);
   }
 }
 
@@ -386,12 +387,12 @@ export default {
   text-align: center;
   margin-top: 18px;
   padding-top: 14px;
-  border-top: 1px solid #EDE8E7;
+  border-top: 1px solid #E2E8F0;
 }
 
 .footer-hint {
   font-size: 12px;
-  color: #BEB4B2;
+  color: #94A3B8;
   letter-spacing: 0.02em;
 }
 

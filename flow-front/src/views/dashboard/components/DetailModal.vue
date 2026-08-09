@@ -119,7 +119,7 @@ export default {
 
 .modal-content {
   background-color: white;
-  border-radius: 8px;
+  border-radius: 3px;
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
@@ -143,7 +143,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #e4beba;
+  border-bottom: 1px solid #CBD5E1;
   background-color: #faf9f9;
 }
 
@@ -179,7 +179,7 @@ export default {
   justify-content: flex-end;
   gap: 12px;
   padding: 20px 24px;
-  border-top: 1px solid #e4beba;
+  border-top: 1px solid #CBD5E1;
   background-color: #faf9f9;
 }
 
@@ -205,8 +205,8 @@ export default {
 .form-input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #e4beba;
-  border-radius: 8px;
+  border: 1px solid #CBD5E1;
+  border-radius: 3px;
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -219,15 +219,15 @@ export default {
   }
 
   &.text-error {
-    color: #ba1a1a;
+    color: #DC2626;
   }
 }
 
 .form-textarea {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #e4beba;
-  border-radius: 8px;
+  border: 1px solid #CBD5E1;
+  border-radius: 3px;
   font-size: 14px;
   min-height: 100px;
   resize: vertical;
@@ -246,14 +246,14 @@ export default {
   display: flex;
   align-items: center;
   padding: 10px 12px;
-  border: 1px solid #e4beba;
-  border-radius: 8px;
+  border: 1px solid #CBD5E1;
+  border-radius: 3px;
   background-color: #faf9f9;
 }
 
 .status-chip {
   padding: 2px 8px;
-  border-radius: 2px;
+  border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
   display: inline-flex;
@@ -262,9 +262,9 @@ export default {
 }
 
 .status-pending {
-  background-color: rgba(162, 5, 19, 0.1);
-  border-color: #a20513;
-  color: #a20513;
+  background-color: rgba(51, 65, 85, 0.1);
+  border-color: #334155;
+  color: #334155;
 }
 
 .status-rectifying {
@@ -274,20 +274,20 @@ export default {
 }
 
 .status-overdue {
-  background-color: rgba(186, 26, 26, 0.1);
-  border-color: #ba1a1a;
-  color: #ba1a1a;
+  background-color: rgba(220, 38, 38, 0.08);
+  border-color: #DC2626;
+  color: #DC2626;
 }
 
 .status-completed {
-  background-color: rgba(38, 109, 0, 0.1);
-  border-color: #266d00;
-  color: #266d00;
+  background-color: rgba(21, 128, 61, 0.1);
+  border-color: #15803D;
+  color: #15803D;
 }
 
 .priority-chip {
   padding: 2px 8px;
-  border-radius: 2px;
+  border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
   display: inline-flex;
@@ -296,9 +296,9 @@ export default {
 }
 
 .priority-high {
-  background-color: rgba(186, 26, 26, 0.1);
-  border-color: #ba1a1a;
-  color: #ba1a1a;
+  background-color: rgba(220, 38, 38, 0.08);
+  border-color: #DC2626;
+  color: #DC2626;
 }
 
 .priority-medium {
@@ -308,16 +308,16 @@ export default {
 }
 
 .priority-low {
-  background-color: rgba(162, 5, 19, 0.1);
-  border-color: #a20513;
-  color: #a20513;
+  background-color: rgba(51, 65, 85, 0.1);
+  border-color: #334155;
+  color: #334155;
 }
 
 .btn-primary {
   padding: 10px 24px;
-  background-color: #a20513;
+  background-color: #334155;
   color: white;
-  border-radius: 8px;
+  border-radius: 3px;
   font-weight: 700;
   border: none;
   cursor: pointer;

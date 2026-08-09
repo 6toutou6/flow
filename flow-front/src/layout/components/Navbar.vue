@@ -80,7 +80,7 @@ export default {
   overflow: hidden;
   position: relative;
   background: #fff;
-  box-shadow: 0 1px 0 rgba(197, 48, 48, 0.06), 0 2px 8px rgba(30, 26, 25, 0.04);
+  box-shadow: 0 1px 0 rgba(51, 65, 85, 0.06), 0 2px 8px rgba(15, 23, 42, 0.04);
   display: flex;
   align-items: center;
 
@@ -96,7 +96,7 @@ export default {
     align-items: center;
 
     &:hover {
-      background: rgba(197, 48, 48, 0.04);
+      background: rgba(51, 65, 85, 0.04);
     }
   }
 
@@ -123,7 +123,7 @@ export default {
       line-height: 56px;
       margin-right: 16px;
       font-size: 13px;
-      color: #5C514E;
+      color: #334155;
 
       .user-item {
         display: flex;
@@ -132,7 +132,7 @@ export default {
         padding: 0 4px;
 
         i {
-          color: #C53030;
+          color: #334155;
           font-size: 14px;
         }
 
@@ -145,7 +145,7 @@ export default {
       }
 
       .user-divider {
-        color: #DCD5D3;
+        color: #94A3B8;
         font-size: 12px;
       }
     }
@@ -159,18 +159,18 @@ export default {
         gap: 6px;
         cursor: pointer;
         padding: 4px 8px;
-        border-radius: 8px;
+        border-radius: 3px;
         transition: background 0.2s;
 
         &:hover {
-          background: rgba(197, 48, 48, 0.05);
+          background: rgba(51, 65, 85, 0.05);
         }
 
         .avatar-placeholder {
           width: 36px;
           height: 36px;
-          border-radius: 10px;
-          background: linear-gradient(135deg, #C53030 0%, #A20513 100%);
+          border-radius: 3px;
+          background: linear-gradient(135deg, #334155 0%, #1E293B 100%);
           color: #fff;
           display: flex;
           align-items: center;
@@ -178,17 +178,17 @@ export default {
           font-size: 16px;
           font-weight: 700;
           letter-spacing: 0.02em;
-          box-shadow: 0 2px 6px rgba(197, 48, 48, 0.3);
+          box-shadow: 0 2px 6px rgba(51, 65, 85, 0.3);
         }
 
         .el-icon-arrow-down {
           font-size: 11px;
-          color: #9A8F8C;
+          color: #94A3B8;
           transition: transform 0.2s;
         }
 
         &:hover .el-icon-arrow-down {
-          color: #C53030;
+          color: #334155;
         }
       }
     }
@@ -197,24 +197,24 @@ export default {
 
 // 下拉菜单样式（非 scoped，影响弹出层）
 .user-dropdown {
-  border-radius: 10px;
-  border: 1px solid rgba(197, 48, 48, 0.08);
-  box-shadow: 0 8px 24px rgba(30, 26, 25, 0.12);
+  border-radius: 3px;
+  border: 1px solid rgba(51, 65, 85, 0.08);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.10);
 
   .el-dropdown-menu__item {
     padding: 10px 18px;
     font-size: 14px;
-    color: #5C514E;
+    color: #334155;
     display: flex;
     align-items: center;
     gap: 8px;
 
-    i { font-size: 15px; color: #9A8F8C; }
+    i { font-size: 15px; color: #94A3B8; }
 
     &:hover {
-      background-color: #FDF4F3;
-      color: #C53030;
-      i { color: #C53030; }
+      background-color: #F1F5F9;
+      color: #334155;
+      i { color: #334155; }
     }
   }
 }

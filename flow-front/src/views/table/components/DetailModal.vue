@@ -158,7 +158,7 @@ export default {
   max-width: 1000px;
   max-height: 85vh;
   background: #ffffff;
-  border-radius: 8px;
+  border-radius: 3px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -170,14 +170,14 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: #fcf9f8;
-  border-bottom: 1px solid #e4beba;
+  background: #F8FAFC;
+  border-bottom: 1px solid #CBD5E1;
 }
 
 .detail-modal-title {
   font-size: 18px;
   font-weight: bold;
-  color: #a20513;
+  color: #334155;
   margin: 0;
 }
 
@@ -190,7 +190,7 @@ export default {
   padding: 0;
 
   &:hover {
-    color: #a20513;
+    color: #334155;
   }
 }
 
@@ -201,8 +201,8 @@ export default {
 }
 
 .detail-section {
-  background: #fcf9f8;
-  border: 1px solid #e4beba;
+  background: #F8FAFC;
+  border: 1px solid #CBD5E1;
   border-radius: 4px;
   padding: 16px;
   margin-bottom: 16px;
@@ -218,7 +218,7 @@ export default {
   color: #1b1c1c;
   margin: 0 0 16px 0;
   padding-bottom: 8px;
-  border-bottom: 1px solid #e4beba;
+  border-bottom: 1px solid #CBD5E1;
 }
 
 .detail-grid {
@@ -240,7 +240,7 @@ export default {
 .detail-label {
   font-size: 13px;
   font-weight: 500;
-  color: #5b403d;
+  color: #334155;
 }
 
 .detail-value {
@@ -248,7 +248,7 @@ export default {
   color: #1b1c1c;
   padding: 8px 12px;
   background: #ffffff;
-  border: 1px solid #e4beba;
+  border: 1px solid #CBD5E1;
   border-radius: 4px;
   min-height: 36px;
   display: flex;
@@ -270,7 +270,7 @@ export default {
   width: 100%;
   min-height: 80px;
   padding: 12px;
-  border: 1px solid #e4beba;
+  border: 1px solid #CBD5E1;
   border-radius: 4px;
   font-size: 14px;
   color: #1b1c1c;
@@ -281,8 +281,8 @@ export default {
 
   &:focus {
     outline: none;
-    border-color: #a20513;
-    box-shadow: 0 0 0 2px rgba(162, 5, 19, 0.1);
+    border-color: #334155;
+    box-shadow: 0 0 0 2px rgba(51, 65, 85, 0.1);
   }
 }
 
@@ -298,11 +298,11 @@ export default {
   gap: 8px;
   padding: 8px 12px;
   background: #ffffff;
-  border: 1px solid #e4beba;
+  border: 1px solid #CBD5E1;
   border-radius: 4px;
 
   i {
-    color: #a20513;
+    color: #334155;
   }
 
   .attachment-name {
@@ -319,7 +319,7 @@ export default {
   .attachment-download {
     background: none;
     border: none;
-    color: #a20513;
+    color: #334155;
     cursor: pointer;
     font-size: 16px;
     padding: 0;
@@ -335,7 +335,7 @@ export default {
   color: #757575;
   padding: 12px;
   background: #ffffff;
-  border: 1px solid #e4beba;
+  border: 1px solid #CBD5E1;
   border-radius: 4px;
   text-align: center;
 }
@@ -344,24 +344,24 @@ export default {
   display: flex;
   justify-content: flex-end;
   padding: 14px 20px;
-  border-top: 1px solid #e4beba;
-  background: #fcf9f8;
+  border-top: 1px solid #CBD5E1;
+  background: #F8FAFC;
 }
 
 .btn-modal-close {
   padding: 8px 24px;
-  border: 1px solid #e4beba;
+  border: 1px solid #CBD5E1;
   border-radius: 4px;
   font-size: 14px;
-  color: #5b403d;
+  color: #334155;
   background: white;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: #f6f3f2;
-    border-color: #a20513;
-    color: #a20513;
+    background: #F1F5F9;
+    border-color: #334155;
+    color: #334155;
   }
 }
 </style>

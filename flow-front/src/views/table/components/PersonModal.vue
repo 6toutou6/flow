@@ -255,7 +255,7 @@ export default {
 
 .modal-content {
   background: white;
-  border-radius: 12px;
+  border-radius: 4px;
   width: 92%;
   max-width: 1100px;
   max-height: 85vh;
@@ -278,13 +278,13 @@ export default {
 
 .modal-header {
   padding: 20px 24px;
-  border-bottom: 1px solid #e4beba;
+  border-bottom: 1px solid #CBD5E1;
   position: relative;
 
   .modal-title {
     font-size: 18px;
     font-weight: bold;
-    color: #a20513;
+    color: #334155;
     margin: 0;
   }
 
@@ -306,12 +306,12 @@ export default {
     border-radius: 50%;
     cursor: pointer;
     font-size: 16px;
-    color: #5b403d;
+    color: #334155;
     transition: all 0.2s;
 
     &:hover {
-      background: #f6f3f2;
-      color: #a20513;
+      background: #F1F5F9;
+      color: #334155;
     }
   }
 }
@@ -327,7 +327,7 @@ export default {
   display: flex;
   gap: 4px;
   margin-bottom: 20px;
-  border-bottom: 1px solid #e4beba;
+  border-bottom: 1px solid #CBD5E1;
   padding: 0 4px;
 }
 
@@ -347,12 +347,12 @@ export default {
   margin-bottom: -1px;
 
   &:hover {
-    color: #a20513;
+    color: #334155;
   }
 
   &.active {
-    color: #a20513;
-    border-bottom-color: #a20513;
+    color: #334155;
+    border-bottom-color: #334155;
   }
 }
 
@@ -368,7 +368,7 @@ export default {
   font-size: 13px;
   font-weight: bold;
   letter-spacing: 0.05em;
-  color: #5b403d;
+  color: #334155;
   margin: 0;
   text-transform: uppercase;
 }
@@ -376,13 +376,13 @@ export default {
 .round-count {
   font-size: 12px;
   font-weight: normal;
-  color: #a20513;
+  color: #334155;
   margin-left: 8px;
 }
 
 .rounds-table {
-  border: 1px solid rgba(228, 190, 186, 0.4);
-  border-radius: 6px;
+  border: 1px solid rgba(51, 65, 85, 0.1);
+  border-radius: 2px;
   overflow: hidden;
 }
 
@@ -391,10 +391,10 @@ export default {
   grid-template-columns: 1fr 1.2fr 1.2fr 0.8fr 1.5fr 0.8fr;
   gap: 8px;
   padding: 10px 12px;
-  background: #f6f3f2;
+  background: #F1F5F9;
   font-size: 12px;
   font-weight: bold;
-  color: #5b403d;
+  color: #334155;
 }
 
 .rounds-table-row {
@@ -402,22 +402,22 @@ export default {
   grid-template-columns: 1fr 1.2fr 1.2fr 0.8fr 1.5fr 0.8fr;
   gap: 8px;
   padding: 10px 12px;
-  border-top: 1px solid rgba(228, 190, 186, 0.3);
+  border-top: 1px solid rgba(51, 65, 85, 0.08);
   font-size: 13px;
   color: #1b1c1c;
   align-items: center;
   transition: background 0.2s;
 
   &:hover {
-    background: #fcf9f8;
+    background: #F8FAFC;
   }
 }
 
 .round-badge {
   display: inline-block;
   padding: 2px 8px;
-  background: rgba(162, 5, 19, 0.1);
-  color: #a20513;
+  background: rgba(51, 65, 85, 0.1);
+  color: #334155;
   border-radius: 4px;
   font-size: 12px;
   font-weight: bold;
@@ -425,7 +425,7 @@ export default {
 
 .col-time, .col-deadline {
   font-size: 13px;
-  color: #5b403d;
+  color: #334155;
 }
 
 .col-people {
@@ -434,7 +434,7 @@ export default {
 
   i {
     margin-right: 4px;
-    color: #a20513;
+    color: #334155;
   }
 }
 
@@ -457,8 +457,8 @@ export default {
   border-radius: 3px;
   transition: width 0.3s;
 
-  &.rate-completed { background: #166534; }
-  &.rate-progress { background: #a20513; }
+  &.rate-completed { background: #15803D; }
+  &.rate-progress { background: #334155; }
   &.rate-pending { background: #e0e0e0; }
 }
 
@@ -476,14 +476,14 @@ export default {
 
   &.round-status-completed {
     background: #f0fdf4;
-    color: #166534;
+    color: #15803D;
     border: 1px solid #bbf7d0;
   }
 
   &.round-status-progress {
-    background: #FEF0F0;
-    color: #C53030;
-    border: 1px solid #E4BEBA;
+    background: #F8FAFC;
+    color: #334155;
+    border: 1px solid #CBD5E1;
   }
 
   &.round-status-pending {
@@ -499,9 +499,9 @@ export default {
   gap: 12px;
   margin-bottom: 16px;
   padding: 16px;
-  background: #fcf9f8;
-  border-radius: 8px;
-  border: 1px solid rgba(228, 190, 186, 0.3);
+  background: #F8FAFC;
+  border-radius: 3px;
+  border: 1px solid rgba(51, 65, 85, 0.08);
 }
 
 .summary-item {
@@ -522,9 +522,9 @@ export default {
   font-weight: bold;
   color: #1b1c1c;
 
-  &.summary-green { color: #166534; }
-  &.summary-orange { color: #e65100; }
-  &.summary-red { color: #a20513; }
+  &.summary-green { color: #15803D; }
+  &.summary-orange { color: #EA580C; }
+  &.summary-red { color: #334155; }
 }
 
 .person-tip {
@@ -532,10 +532,10 @@ export default {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #a20513;
-  background: rgba(162, 5, 19, 0.05);
+  color: #334155;
+  background: rgba(51, 65, 85, 0.05);
   padding: 8px 12px;
-  border-radius: 6px;
+  border-radius: 2px;
   margin-bottom: 16px;
 
   i {
@@ -551,12 +551,12 @@ export default {
 }
 
 .person-card-wrapper {
-  border-radius: 8px;
+  border-radius: 3px;
   overflow: hidden;
   transition: box-shadow 0.2s;
 
   &:hover {
-    box-shadow: 0 2px 8px rgba(162, 5, 19, 0.08);
+    box-shadow: 0 2px 8px rgba(51, 65, 85, 0.08);
   }
 }
 
@@ -566,19 +566,19 @@ export default {
   gap: 12px;
   padding: 12px;
   background: white;
-  border: 1px solid #e4beba;
-  border-radius: 8px;
+  border: 1px solid #CBD5E1;
+  border-radius: 3px;
   cursor: pointer;
   transition: all 0.2s;
 
   &.expanded {
-    border-color: #a20513;
+    border-color: #334155;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
   }
 
   &:hover {
-    border-color: #a20513;
+    border-color: #334155;
   }
 }
 
@@ -586,13 +586,13 @@ export default {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(162, 5, 19, 0.1);
+  background: rgba(51, 65, 85, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
   font-weight: bold;
-  color: #a20513;
+  color: #334155;
   flex-shrink: 0;
 }
 
@@ -614,8 +614,8 @@ export default {
 
 .person-role-tag {
   padding: 2px 6px;
-  background: rgba(162, 5, 19, 0.08);
-  color: #a20513;
+  background: rgba(51, 65, 85, 0.08);
+  color: #334155;
   border-radius: 4px;
   font-size: 11px;
   font-weight: bold;
@@ -643,8 +643,8 @@ export default {
 
 /* 人员各期次整改情况 */
 .person-rounds-detail {
-  background: #fcf9f8;
-  border: 1px solid #a20513;
+  background: #F8FAFC;
+  border: 1px solid #334155;
   border-top: none;
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
@@ -657,7 +657,7 @@ export default {
   gap: 6px;
   font-size: 13px;
   font-weight: bold;
-  color: #a20513;
+  color: #334155;
   margin-bottom: 12px;
 
   i {
@@ -666,8 +666,8 @@ export default {
 }
 
 .detail-table {
-  border: 1px solid rgba(228, 190, 186, 0.4);
-  border-radius: 6px;
+  border: 1px solid rgba(51, 65, 85, 0.1);
+  border-radius: 2px;
   overflow: hidden;
   background: white;
 }
@@ -677,10 +677,10 @@ export default {
   grid-template-columns: 0.7fr 1fr 1fr 0.9fr 1.8fr 1.2fr 0.8fr;
   gap: 8px;
   padding: 8px 12px;
-  background: #f6f3f2;
+  background: #F1F5F9;
   font-size: 12px;
   font-weight: bold;
-  color: #5b403d;
+  color: #334155;
 }
 
 .detail-table-row {
@@ -688,18 +688,18 @@ export default {
   grid-template-columns: 0.7fr 1fr 1fr 0.9fr 1.8fr 1.2fr 0.8fr;
   gap: 8px;
   padding: 8px 12px;
-  border-top: 1px solid rgba(228, 190, 186, 0.3);
+  border-top: 1px solid rgba(51, 65, 85, 0.08);
   font-size: 12px;
   color: #1b1c1c;
   align-items: center;
   transition: background 0.2s;
 
   &:hover {
-    background: #fcf9f8;
+    background: #F8FAFC;
   }
 
   &.selected {
-    background: #a20513;
+    background: #334155;
     color: white;
 
     .d-publish,
@@ -720,7 +720,7 @@ export default {
 
     .btn-detail {
       background: white;
-      color: #a20513;
+      color: #334155;
       border-color: white;
 
       &:hover {
@@ -747,7 +747,7 @@ export default {
 }
 
 .d-publish, .d-deadline {
-  color: #5b403d;
+  color: #334155;
 }
 
 .d-remark {
@@ -770,14 +770,14 @@ export default {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #a20513;
+  color: #334155;
   text-decoration: none;
   font-size: 11px;
   transition: color 0.2s;
 
   &:hover {
     text-decoration: underline;
-    color: #8a0410;
+    color: #1E293B;
   }
 
   i {
@@ -798,7 +798,7 @@ export default {
 }
 
 .no-attachment {
-  color: #c8b3b0;
+  color: #94A3B8;
   font-size: 12px;
 }
 
@@ -809,11 +809,11 @@ export default {
 
 .btn-detail {
   padding: 4px 10px;
-  background: rgba(162, 5, 19, 0.05);
-  border: 1px solid #e4beba;
+  background: rgba(51, 65, 85, 0.05);
+  border: 1px solid #CBD5E1;
   border-radius: 4px;
   font-size: 12px;
-  color: #a20513;
+  color: #334155;
   cursor: pointer;
   transition: all 0.2s;
   display: inline-flex;
@@ -821,8 +821,8 @@ export default {
   gap: 4px;
 
   &:hover {
-    background: rgba(162, 5, 19, 0.1);
-    border-color: #a20513;
+    background: rgba(51, 65, 85, 0.1);
+    border-color: #334155;
   }
 
   i {
@@ -840,14 +840,14 @@ export default {
 
   &.submit-verified {
     background: #f0fdf4;
-    color: #166534;
+    color: #15803D;
     border: 1px solid #bbf7d0;
   }
 
   &.submit-processing {
-    background: #fff3e0;
-    color: #e65100;
-    border: 1px solid #ffab91;
+    background: #FFFBEB;
+    color: #EA580C;
+    border: 1px solid #FED7AA;
   }
 
   &.submit-pending {
@@ -864,25 +864,25 @@ export default {
 
 .modal-footer {
   padding: 16px 24px;
-  border-top: 1px solid #e4beba;
+  border-top: 1px solid #CBD5E1;
   display: flex;
   justify-content: flex-end;
 }
 
 .btn-modal-close {
   padding: 8px 24px;
-  border: 1px solid #e4beba;
+  border: 1px solid #CBD5E1;
   border-radius: 4px;
   font-size: 14px;
-  color: #5b403d;
+  color: #334155;
   background: white;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: #f6f3f2;
-    color: #a20513;
-    border-color: #a20513;
+    background: #F1F5F9;
+    color: #334155;
+    border-color: #334155;
   }
 }
 </style>

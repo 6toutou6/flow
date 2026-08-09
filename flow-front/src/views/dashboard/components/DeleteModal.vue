@@ -68,7 +68,7 @@ export default {
 
 .modal-content {
   background-color: white;
-  border-radius: 8px;
+  border-radius: 3px;
   width: 90%;
   max-width: 400px;
   max-height: 90vh;
@@ -96,7 +96,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #e4beba;
+  border-bottom: 1px solid #CBD5E1;
   background-color: #faf9f9;
 }
 
@@ -130,7 +130,7 @@ export default {
   width: 64px;
   height: 64px;
   margin: 0 auto 20px;
-  background-color: rgba(186, 26, 26, 0.1);
+  background-color: rgba(220, 38, 38, 0.08);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -138,7 +138,7 @@ export default {
 
   .el-icon-delete {
     font-size: 36px;
-    color: #ba1a1a;
+    color: #DC2626;
   }
 }
 
@@ -162,7 +162,7 @@ export default {
   justify-content: center;
   gap: 12px;
   padding: 20px 24px;
-  border-top: 1px solid #e4beba;
+  border-top: 1px solid #CBD5E1;
   background-color: #faf9f9;
 }
 
@@ -170,9 +170,9 @@ export default {
   padding: 10px 24px;
   background-color: #faf9f9;
   color: #414755;
-  border-radius: 8px;
+  border-radius: 3px;
   font-weight: 600;
-  border: 1px solid #e4beba;
+  border: 1px solid #CBD5E1;
   cursor: pointer;
   transition: all 0.2s;
 
@@ -183,9 +183,9 @@ export default {
 
 .btn-danger {
   padding: 10px 24px;
-  background-color: #ba1a1a;
+  background-color: #DC2626;
   color: white;
-  border-radius: 8px;
+  border-radius: 3px;
   font-weight: 600;
   border: none;
   cursor: pointer;

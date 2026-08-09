@@ -92,12 +92,12 @@ export default {
   .ver-empty-tip { font-size: 12px; color: #bbb; }
 }
 .ver-list { display: flex; flex-direction: column; gap: 12px; }
-.ver-card { border: 1px solid #e4e7ed; border-radius: 8px; padding: 14px 16px;
-  &.current { border-color: rgba(197,48,48,0.5); background: #FFF5F5; }
+.ver-card { border: 1px solid #e4e7ed; border-radius: 3px; padding: 14px 16px;
+  &.current { border-color: rgba(51,65,85,0.5); background: #F1F5F9; }
 }
 .ver-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
 .ver-tag { font-size: 11px; font-weight: 700; color: #fff; background: #909399; padding: 2px 8px; border-radius: 3px;
-  .current & { background: #C53030; }
+  .current & { background: #334155; }
 }
 .ver-no { font-size: 15px; font-weight: 700; color: #1b1c1c; }
 .ver-time { font-size: 12px; color: #999; display: inline-flex; align-items: center; gap: 3px; }

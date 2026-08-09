@@ -276,7 +276,7 @@
 <script>
 import { getDashboard } from '@/api/data'
 
-const STATUS_COLORS = ['#C53030', '#266D00', '#B7791F', '#2B6CB0', '#6B46C1', '#B83280']
+const STATUS_COLORS = ['#334155', '#15803D', '#B45309', '#2B6CB0', '#6B46C1', '#6366F1']
 // 字段类型 → 中文名
 const FIELD_TYPE_NAMES = {
   text: '单行文本',
@@ -575,19 +575,19 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #C53030;
-$border: #e4beba;
-.dashboard-container { display: flex; min-height: 100vh; background: #F5F7FA; font-family: 'Inter', sans-serif; color: #1b1c1c; }
+$primary: #334155;
+$border: #CBD5E1;
+.dashboard-container { display: flex; min-height: 100vh; background: #F8FAFC;  color: #1b1c1c; }
 .main-content { width: 100%; display: flex; flex-direction: column; min-height: 100vh; }
 .page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; }
 .breadcrumb { display: flex; gap: 8px; font-size: 12px; color: #414755; margin-bottom: 8px; align-items: center;
   .active { color: $primary; font-weight: 600; }
 }
-.page-heading { font-size: 30px; line-height: 38px; font-weight: 600; color: #1b1c1c; }
+.page-heading { font-size: 24px; line-height: 32px; font-weight: 600; color: #1b1c1c; }
 .header-actions { display: flex; gap: 8px; align-items: center; }
-.btn-refresh { display: flex; align-items: center; gap: 4px; padding: 8px 16px; background: #fff; border: 1px solid $border; border-radius: 6px; color: #5b403d; cursor: pointer; font-size: 13px;
-  &:hover { background: #f6f3f2; }
+.btn-refresh { display: flex; align-items: center; gap: 4px; padding: 8px 16px; background: #fff; border: 1px solid $border; border-radius: 2px; color: #334155; cursor: pointer; font-size: 13px;
+  &:hover { background: #F1F5F9; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
@@ -596,13 +596,13 @@ $border: #e4beba;
   @media (max-width: 1200px) { grid-template-columns: repeat(3, 1fr); }
   @media (max-width: 700px) { grid-template-columns: repeat(2, 1fr); }
 }
-.stat-card { display: flex; align-items: center; gap: 14px; background: #fff; border: 1px solid $border; border-radius: 8px; padding: 16px 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-.stat-icon { width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #fff; flex-shrink: 0;
+.stat-card { display: flex; align-items: center; gap: 14px; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 16px 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.stat-icon { width: 44px; height: 44px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #fff; flex-shrink: 0;
   &.icon-task { background: $primary; }
-  &.icon-period { background: #8f1d1d; }
-  &.icon-running { background: #B7791F; }
+  &.icon-period { background: #475569; }
+  &.icon-running { background: #B45309; }
   &.icon-person { background: #2B6CB0; }
-  &.icon-submit { background: #266D00; }
+  &.icon-submit { background: #15803D; }
   &.icon-todo { background: #6B46C1; }
 }
 .stat-body { flex: 1; min-width: 0; }
@@ -610,7 +610,7 @@ $border: #e4beba;
 .stat-value { font-size: 26px; font-weight: 700; color: #1b1c1c; line-height: 1.1; }
 
 // 图表卡
-.chart-card { background: #fff; border: 1px solid $border; border-radius: 8px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.chart-card { background: #fff; border: 1px solid $border; border-radius: 3px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
 .chart-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 .chart-title { font-size: 15px; font-weight: 700; color: #414755; display: flex; align-items: center; gap: 6px;
   i { color: $primary; }
@@ -623,29 +623,29 @@ $border: #e4beba;
 
 // 趋势控制区：粒度切换 + 时间范围
 .trend-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.trend-tabs { display: flex; background: #F5F1F0; border: 1px solid $border; border-radius: 8px; padding: 2px;
-  .trend-tab { padding: 5px 14px; font-size: 12px; color: #8a6a66; cursor: pointer; border-radius: 6px; user-select: none; transition: all .2s;
+.trend-tabs { display: flex; background: #F1F5F9; border: 1px solid $border; border-radius: 3px; padding: 2px;
+  .trend-tab { padding: 5px 14px; font-size: 12px; color: #64748B; cursor: pointer; border-radius: 2px; user-select: none; transition: all .2s;
     &:hover { color: $primary; }
     &.active { background: $primary; color: #fff; font-weight: 600; }
   }
 }
 .range-picker { display: flex; align-items: center; gap: 6px;
-  ::v-deep .el-range-editor { height: 30px; border-color: $border; border-radius: 6px; }
-  ::v-deep .el-select .el-input__inner { border-color: $border; border-radius: 6px; }
+  ::v-deep .el-range-editor { height: 30px; border-color: $border; border-radius: 2px; }
+  ::v-deep .el-select .el-input__inner { border-color: $border; border-radius: 2px; }
 }
 .range-select { width: 120px; }
 .range-sep { font-size: 12px; color: #909399; }
-.range-clear { display: flex; align-items: center; gap: 3px; padding: 5px 10px; font-size: 12px; color: #8a6a66; background: #fff; border: 1px solid $border; border-radius: 6px; cursor: pointer;
+.range-clear { display: flex; align-items: center; gap: 3px; padding: 5px 10px; font-size: 12px; color: #64748B; background: #fff; border: 1px solid $border; border-radius: 2px; cursor: pointer;
   &:hover { color: $primary; border-color: $primary; }
 }
 
 // 柱状趋势图
-.bar-chart { display: flex; align-items: flex-end; gap: 3px; height: 220px; padding: 8px 4px 0; border-bottom: 1px solid #f0e3e1; overflow-x: auto; }
+.bar-chart { display: flex; align-items: flex-end; gap: 3px; height: 220px; padding: 8px 4px 0; border-bottom: 1px solid #E2E8F0; overflow-x: auto; }
 .bar-col { flex: 1; min-width: 18px; display: flex; flex-direction: column; align-items: center; height: 100%; }
 .bar-track { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
-.bar-fill { width: 60%; max-width: 22px; min-height: 2px; background: rgba(197,48,48,0.35); border-radius: 3px 3px 0 0; transition: height .4s;
+.bar-fill { width: 60%; max-width: 22px; min-height: 2px; background: rgba(51,65,85,0.35); border-radius: 3px 3px 0 0; transition: height .4s;
   &:hover { background: $primary; }
-  &.hot { background: $primary; box-shadow: 0 0 6px rgba(197,48,48,0.5); }
+  &.hot { background: $primary; box-shadow: 0 0 6px rgba(51,65,85,0.5); }
 }
 .bar-val { font-size: 10px; color: $primary; font-weight: 700; height: 14px; line-height: 14px; }
 .bar-date { font-size: 9px; color: #bbb; height: 16px; line-height: 16px; transform: scale(0.92); white-space: nowrap; }
@@ -678,11 +678,11 @@ $border: #e4beba;
   &.top { background: $primary; color: #fff; }
 }
 .rank-name { width: 140px; color: #414755; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
-.rank-bar-track { flex: 1; height: 10px; background: #f5f5f5; border-radius: 5px; overflow: hidden; min-width: 40px; }
-.rank-bar-fill { height: 100%; border-radius: 5px; transition: width .4s; }
+.rank-bar-track { flex: 1; height: 10px; background: #f5f5f5; border-radius: 2px; overflow: hidden; min-width: 40px; }
+.rank-bar-fill { height: 100%; border-radius: 2px; transition: width .4s; }
 .rank-value { width: 62px; text-align: right; font-weight: 700; color: #1b1c1c; flex-shrink: 0; }
 .rank-unit { font-size: 10px; color: #aaa; font-weight: 400; }
-.rank-toggle { text-align: center; padding: 4px 0; margin-top: 2px; font-size: 12px; color: $primary; cursor: pointer; user-select: none; border-top: 1px dashed #f0e3e1;
-  &:hover { color: #8f1d1d; }
+.rank-toggle { text-align: center; padding: 4px 0; margin-top: 2px; font-size: 12px; color: $primary; cursor: pointer; user-select: none; border-top: 1px dashed #E2E8F0;
+  &:hover { color: #475569; }
 }
 </style>
