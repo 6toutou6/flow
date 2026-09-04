@@ -28,6 +28,9 @@ public class MyTodoVO {
 
     /** 待办状态 0待处理 1已处理（仅查看） */
     private Integer todoStatus;
+    /** 该节点处理时间（已处理时回填，用于与期次截止时间比较展示「超期完成」） */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private Date handleTime;
 
     /** 所属期次ID flow_task_dispatch.id（存量无期次任务为 null） */
     private String dispatchId;

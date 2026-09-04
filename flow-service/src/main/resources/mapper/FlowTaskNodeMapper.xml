@@ -26,7 +26,7 @@
 
     <sql id="myTodoSelectColumns">
         tn.id AS task_node_id, tn.task_id, tn.node_id AS current_node_id,
-        tn.node_name, tn.node_type,
+        tn.node_name, tn.node_type, tn.handle_time AS handle_time,
         t.task_name, t.template_id, t.create_time AS task_create_time,
         tpl.template_name,
         <!-- 节点提示/下一步提示：期次快照优先，存量任务降级模板节点 -->

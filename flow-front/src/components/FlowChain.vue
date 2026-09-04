@@ -247,7 +247,7 @@ export default {
     }
   },
   computed: {
-    /** 流程链：展示该任务从开始到当前节点的完整流转；节点有多个处理人时全部展示（高亮选中人员） */
+    /** 流程链：展示任务模板的全部阶段节点（含未走到的阶段灰显 pending，便于查看完整流程与当前位置）；节点有多个处理人时全部展示（高亮选中人员） */
     flowChain() {
       if (!this.taskDetail) return []
       const tplNodes = this.taskDetail.templateNodes || []
@@ -259,12 +259,8 @@ export default {
         if (!byNode[tn.nodeId]) byNode[tn.nodeId] = []
         byNode[tn.nodeId].push(tn)
       })
-      // 任务走到的最远节点（决定流程链显示到哪）
-      let maxSort = -Infinity
-      taskNodes.forEach(tn => { if (tn.sortNum != null && tn.sortNum > maxSort) maxSort = tn.sortNum })
-      if (maxSort === -Infinity) return []
+      if (tplNodes.length === 0) return []
       return tplNodes
-        .filter(tpl => tpl.sortNum != null && tpl.sortNum <= maxSort)
         .map(tpl => {
           const nodes = byNode[tpl.id] || []
           const pendingNodes = nodes.filter(tn => tn.submitStatus === 0)

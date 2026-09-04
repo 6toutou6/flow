@@ -23,7 +23,7 @@
           <template v-if="task && task.taskName">任务：{{ task.taskName }}</template>
           <template v-if="periodName"> · 期次：{{ periodName }}</template>
           <template v-if="todo && todo.nodeName"> · 当前节点：<b>{{ todo.nodeName }}</b></template>
-          <template v-if="isTaskOverdue"><span class="sep">·</span><span class="overdue-tag"><i class="el-icon-alarm-clock" /> 已超期</span></template>
+          <template v-if="overdueTag"><span class="sep">·</span><span class="overdue-tag"><i class="el-icon-alarm-clock" /> {{ overdueTag }}</span></template>
         </section>
 
         <!-- 主体：左(任务信息+流程链+办理表单) + 右(操作历史) -->
@@ -56,6 +56,7 @@
                       <span class="info-value">
                         {{ taskEndTime || '—' }}
                         <span v-if="isTaskOverdue" class="pd-overdue"><i class="el-icon-alarm-clock" /> 已超期</span>
+                        <span v-else-if="overdueFinished" class="pd-overdue"><i class="el-icon-alarm-clock" /> 超期完成</span>
                       </span>
                     </div>
                   </div>
@@ -266,8 +267,8 @@
               </div>
             </div>
 
-            <!-- 底部操作条（仅办理中展示；只读查看时顶部返回/完成提示即可） -->
-            <div v-if="!isReadonly" class="operate-bar">
+            <!-- 悬浮操作区（固定在右下角；页面底部留白，滚到底时不遮挡内容） -->
+            <div v-if="!isReadonly" class="operate-float">
               <span class="operate-tip"><i class="el-icon-edit-outline" /> 填写完成后点击「通过并流转」提交至下一节点</span>
               <div class="operate-actions">
                 <el-button :loading="drafting" @click="onDraftClick">
@@ -288,6 +289,9 @@
             <p>任务数据加载失败，请返回后重试</p>
           </div>
         </div>
+
+        <!-- 悬浮操作区占位（预留同等高度，保证滚动到底时悬浮按钮不遮挡最后的内容） -->
+        <div v-if="!isReadonly" class="operate-spacer" />
 
         <!-- 退回目标选择弹窗 -->
         <RejectTargetModal
@@ -397,11 +401,31 @@ export default {
     taskEndTime() {
       return (this.task && this.task.endTime) || (this.todo && this.todo.endTime) || ''
     },
-    /** 当前任务是否已超过截止时间（仅软性标识，不影响正常处理） */
+    /** 任务完成时间：任务已结束时取最后一个已处理节点时间，缺失时兜底任务更新时间 */
+    taskFinishTime() {
+      if (!this.taskFinished || !this.detail) return null
+      const handled = (this.detail.taskNodes || []).filter(n => n.submitStatus === 1 && n.handleTime)
+      if (handled.length === 0) return (this.task && this.task.updateTime) || null
+      return handled.reduce((m, n) => (new Date(n.handleTime) > new Date(m) ? n.handleTime : m), handled[0].handleTime)
+    },
+    /** 办理中是否已超过截止时间（仅未结束任务软性标识：仍可正常处理，提交后节点标「超期处理」） */
     isTaskOverdue() {
-      if (!this.taskEndTime) return false
+      if (this.taskFinished || !this.taskEndTime) return false
       const end = new Date(String(this.taskEndTime).replace(/-/g, '/'))
       return !isNaN(end.getTime()) && new Date() > end
+    },
+    /** 已完成任务是否「超期完成」：完成时间晚于截止时间 */
+    overdueFinished() {
+      if (!this.taskFinished || !this.taskEndTime || !this.taskFinishTime) return false
+      const end = new Date(String(this.taskEndTime).replace(/-/g, '/'))
+      const fin = new Date(String(this.taskFinishTime).replace(/-/g, '/'))
+      return !isNaN(end.getTime()) && !isNaN(fin.getTime()) && fin.getTime() > end.getTime()
+    },
+    /** 超期标签文案：办理中已超期 → 已超期；已完成且完成晚于截止 → 超期完成；否则空 */
+    overdueTag() {
+      if (this.isTaskOverdue) return '已超期'
+      if (this.overdueFinished) return '超期完成'
+      return ''
     },
     /** 是否回填了上次表单数据（仅「被退回后重做」场景显示：当前节点存在退回记录 action=1） */
     isRefill() {
@@ -899,12 +923,14 @@ $border: #CBD5E1;
 .role-hint-icon { width: 18px; height: 18px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: help; font-size: 12px;
   &.role-handler { background: rgba(180, 83, 9,0.12); color: #B45309; }
 }
-// 底部操作条
-.operate-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 12px 18px; position: sticky; bottom: 0; z-index: 5; box-shadow: 0 -2px 8px rgba(0,0,0,0.04); }
-.operate-tip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #757575;
-  i { font-size: 15px; color: $primary; }
+// 悬浮操作区（固定在底部居中）
+.operate-float { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 30; display: flex; flex-direction: row; align-items: center; gap: 18px; background: #fff; border: 1px solid $border; border-radius: 6px; padding: 10px 16px; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.14); max-width: calc(100vw - 40px); }
+.operate-tip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #8a93a5; line-height: 1.4; white-space: nowrap;
+  i { font-size: 14px; color: $primary; }
 }
 .operate-actions { display: flex; gap: 8px; }
+// 悬浮操作区占位：高度对齐悬浮面板，保证滚动到底时最后的内容不被遮挡
+.operate-spacer { height: 88px; }
 // 完成提示（整任务已完成，展示在流程链旁）
 .task-done-banner { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: #E8F5EC; border: 1px solid rgba(21,128,61,0.4); border-radius: 3px; font-size: 13px; color: #146C3A; line-height: 1.5;
   i { font-size: 16px; color: #15803D; }

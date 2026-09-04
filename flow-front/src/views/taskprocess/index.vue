@@ -133,10 +133,10 @@
                           </td>
                           <td>
                             {{ per.startTime ? per.startTime + ' ~ ' + (per.endTime || '—') : '—' }}
-                            <span v-if="periodOverdue(per)" class="overdue-tag"><i class="el-icon-alarm-clock" /> 已超期</span>
                           </td>
                           <td class="text-center">
                             <span class="status-badge" :class="td.todoStatus === 0 ? 'st-todo' : 'st-done'">{{ td.todoStatus === 0 ? '待处理' : '已处理' }}</span>
+                            <span v-if="rowOverdueTag(td, per)" class="overdue-tag"><i class="el-icon-alarm-clock" /> {{ rowOverdueTag(td, per) }}</span>
                           </td>
                           <td>
                             <!-- 该待办所属任务实例的流程进度（不同子任务各自展示） -->
@@ -212,28 +212,26 @@ export default {
   methods: {
     nodeTypeText(t) { return { 1: '开始', 2: '', 3: '结束' }[t] || '' },
     nodeTypeClass(t) { return { 1: 'badge-start', 3: 'badge-end' }[t] || 'badge-mid' },
-    /** 期次下待处理的节点（第一条未处理） */
-    periodPending(per) { return (per.todos || []).find(t => t.todoStatus === 0) || null },
-    /** 期次下全部待办（同一期次可能有多条不同子任务的待办节点） */
-    periodTodos(per) { return (per.todos || []).filter(t => t.todoStatus === 0) },
-    /** 期次下展示的当前节点：待处理优先，否则取最后一条已处理记录 */
-    periodCurrentTodo(per) {
-      const pending = this.periodPending(per)
-      if (pending) return pending
-      const todos = per.todos || []
-      return todos.length ? todos[todos.length - 1] : null
-    },
-    periodStatusText(per) { return this.periodPending(per) ? '待处理' : '已完成' },
-    periodStatusClass(per) { return this.periodPending(per) ? 'st-todo' : 'st-done' },
     /** 节点状态→chip 样式：1已完成 / 2进行中(当前) / 0未开始 */
     nodeChipClass(s) {
       return { 1: 'chip-done', 2: 'chip-current', 0: 'chip-pending' }[s] || 'chip-pending'
     },
-    /** 期次是否已超期（当前时间超过截止时间，且仍有待处理节点）；超期仅作标识，仍可正常处理 */
-    periodOverdue(per) {
-      if (!per.endTime || !this.periodPending(per)) return false
+    /**
+     * 行级超期标：待处理行 → 当前已超截止显示「已超期」；已处理行 → 处理时间晚于截止显示「超期完成」；否则不显示
+     */
+    rowOverdueTag(td, per) {
+      if (!per || !per.endTime) return ''
       const end = new Date(String(per.endTime).replace(/-/g, '/'))
-      return !isNaN(end.getTime()) && new Date() > end
+      if (isNaN(end.getTime())) return ''
+      if (td.todoStatus === 0) {
+        // 待处理：仍可正常处理，仅标识超期
+        return new Date() > end ? '已超期' : ''
+      }
+      // 已处理：与截止时间对比是否为超期完成
+      if (!td.handleTime) return ''
+      const fin = new Date(String(td.handleTime).replace(/-/g, '/'))
+      if (isNaN(fin.getTime())) return ''
+      return fin.getTime() > end.getTime() ? '超期完成' : ''
     },
     isTaskOpen(id) { return this.openTaskIds.indexOf(id) >= 0 },
     toggleTask(g) {
