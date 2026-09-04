@@ -73,6 +73,12 @@ export const constantRoutes = [
         name: 'TaskProcess',
         component: () => import('@/views/taskprocess/index'),
         meta: { title: '任务处理', icon: 'el-icon-s-claim' }
+      },
+      {
+        path: 'detail',
+        name: 'TaskProcessDetail',
+        component: () => import('@/views/taskprocess/ProcessDetail'),
+        hidden: true
       }
     ]
   },

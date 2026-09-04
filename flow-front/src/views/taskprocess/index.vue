@@ -71,7 +71,7 @@
         <!-- 提示条 -->
         <section class="tip-bar">
           <i class="el-icon-info" />
-          展开任务可查看各期次待办节点；点「处理」进入办理，点「查看详情」回看历史提交。
+          展开任务可查看各期次待办节点；点「处理」进入办理页，点「查看详情」回看历史提交与完整流程。
         </section>
 
         <!-- 任务 → 期次 两级折叠面板（卡片式，同任务管理） -->
@@ -153,8 +153,8 @@
                             </div>
                           </td>
                           <td class="text-right">
-                            <button v-if="td.todoStatus === 0" class="btn-process" @click="openProcess(td)"><i class="el-icon-s-claim" /> 处理</button>
-                            <button v-else class="btn-view" @click="openProcess(td)"><i class="el-icon-view" /> 查看详情</button>
+                            <button v-if="td.todoStatus === 0" class="btn-process" @click="openProcess(td, per, g)"><i class="el-icon-s-claim" /> 处理</button>
+                            <button v-else class="btn-view" @click="openProcess(td, per, g)"><i class="el-icon-view" /> 查看详情</button>
                           </td>
                         </tr>
                       </template>
@@ -181,33 +181,17 @@
         </div>
       </section>
     </main>
-
-    <!-- 处理弹窗（独立组件） -->
-    <ProcessDialog
-      :visible="processVisible"
-      :todo="currentTodo"
-      :detail="taskDetail"
-      :submitting="submitting"
-      :drafting="drafting"
-      @close="onCloseProcess"
-      @submit="handleSubmit"
-      @draft="handleDraft"
-    />
   </div>
 </template>
 
 <script>
-import { getMyTodoGrouped, getMyTodoStats, getTaskDetail, submitTask, saveDraftTask } from '@/service/sys/TaskService'
-import ProcessDialog from './components/ProcessDialog.vue'
+import { getMyTodoGrouped, getMyTodoStats } from '@/service/sys/TaskService'
 
 export default {
   name: 'TaskProcess',
-  components: { ProcessDialog },
   data() {
     return {
       loading: false,
-      submitting: false,
-      drafting: false,
       list: [],
       total: 0,
       currentPage: 1,
@@ -218,11 +202,7 @@ export default {
       // 筛选条件
       filters: { taskName: '', status: '' },
       // 展开的任务（可多个同时展开）
-      openTaskIds: [],
-      // 处理弹窗
-      processVisible: false,
-      currentTodo: null,
-      taskDetail: null
+      openTaskIds: []
     }
   },
   mounted() {
@@ -307,48 +287,19 @@ export default {
       this.fetchData()
       this.fetchStats()
     },
-    async openProcess(todo) {
-      this.currentTodo = todo
-      this.processVisible = true
-      this.taskDetail = null
-      try {
-        const res = await getTaskDetail(todo.taskId)
-        this.taskDetail = res.data
-      } catch (e) {
-        console.error(e)
-      }
-    },
-    onCloseProcess() {
-      this.processVisible = false
-      this.currentTodo = null
-      this.taskDetail = null
-    },
-    async handleSubmit(payload) {
-      this.submitting = true
-      try {
-        await submitTask(payload)
-        const isReject = payload.action === 'reject'
-        const isEnd = this.currentTodo && this.currentTodo.nodeType === 3
-        this.$message.success(isReject ? '已退回到目标节点，表单已回填上次数据' : (isEnd ? '已提交，任务已完成' : '提交成功，已流转至下一节点'))
-        this.processVisible = false
-        this.fetchData()
-      } catch (e) {
-        console.error(e)
-      } finally {
-        this.submitting = false
-      }
-    },
-    /** 暂存（保存草稿，不流转） */
-    async handleDraft(payload) {
-      this.drafting = true
-      try {
-        await saveDraftTask(payload)
-        this.$message.success('已暂存，可随时继续填写')
-      } catch (e) {
-        console.error(e)
-      } finally {
-        this.drafting = false
-      }
+    /** 打开办理/查看详情（整页）：携带待办节点与上下文参数 */
+    openProcess(todo, per, g) {
+      this.$router.push({
+        path: '/task-process/detail',
+        query: {
+          taskId: todo.taskId,
+          tn: todo.taskNodeId || '',
+          mode: todo.todoStatus === 0 ? 'process' : 'view',
+          taskName: todo.taskName || (g && g.taskName) || '',
+          templateName: todo.templateName || (g && g.templateName) || '',
+          periodName: (per && per.periodName) || ''
+        }
+      })
     }
   }
 }
