@@ -22,65 +22,45 @@
           <i class="el-icon-s-claim" />
           <template v-if="task && task.taskName">任务：{{ task.taskName }}</template>
           <template v-if="periodName"> · 期次：{{ periodName }}</template>
+          <template v-if="templateName"> · 模板：{{ templateName }}</template>
           <template v-if="todo && todo.nodeName"> · 当前节点：<b>{{ todo.nodeName }}</b></template>
+          <template v-if="taskEndTime"> · 截止：{{ taskEndTime }}</template>
           <template v-if="overdueTag"><span class="sep">·</span><span class="overdue-tag"><i class="el-icon-alarm-clock" /> {{ overdueTag }}</span></template>
         </section>
 
         <!-- 主体：左(任务信息+流程链+办理表单) + 右(操作历史) -->
         <div v-loading="loading" class="detail-body">
           <template v-if="!loading && detail">
+            <!-- 顶部通栏：任务说明 / 超期提示 / 任务基础信息（对齐「期次人员-流程详情」：信息横贯顶部，两栏留给流程链+表单与操作历史） -->
+            <div class="pd-top">
+              <!-- 任务说明（下发时填写，处理人可见） -->
+              <div v-if="taskDesc" class="pd-desc">
+                <span class="pd-desc-label">任务说明</span>
+                <span class="pd-desc-text">{{ taskDesc }}</span>
+              </div>
+              <!-- 超期提示（软性标记：仅提示，仍可正常处理） -->
+              <div v-if="isTaskOverdue" class="pd-overdue-bar">
+                <i class="el-icon-warning-outline" />
+                <span>该任务已超过期次截止时间，<b>仍可正常处理</b>，提交后节点将标注「超期处理」。</span>
+              </div>
+              <!-- 任务基础信息（模板级字段，创建人下发时赋值，处理人可见） -->
+              <div v-if="templateFieldRows.length > 0" class="pd-tpl">
+                <div class="tpl-header"><i class="el-icon-collection" /> 任务基础信息 <span class="chain-hint">创建人下发时赋值，处理人节点填写同步展示</span></div>
+                <div class="tpl-grid">
+                  <div v-for="r in templateFieldRows" :key="r.id" class="tpl-item">
+                    <span class="tpl-label">
+                      {{ r.label }}
+                      <span v-if="r.role === 2" class="tpl-handler-note"><i class="el-icon-user" /> {{ r.roleTip || '处理人填写' }}</span>
+                      <span v-else class="tpl-creator-note"><i class="el-icon-s-custom" /> 创建人填写</span>
+                    </span>
+                    <span class="tpl-value">{{ r.value || '—' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="process-wrap">
               <div class="pd-left">
-                <!-- 任务信息 -->
-                <div class="info-section">
-                  <div class="section-title"><i class="el-icon-document" /> 任务信息</div>
-                  <div class="info-grid">
-                    <div class="info-item">
-                      <span class="info-label">任务名称</span>
-                      <span class="info-value">{{ todo && todo.taskName }}</span>
-                    </div>
-                    <div class="info-item">
-                      <span class="info-label">所属模板</span>
-                      <span class="info-value">{{ todo && todo.templateName || '—' }}</span>
-                    </div>
-                    <div class="info-item">
-                      <span class="info-label">当前节点</span>
-                      <span class="info-value">{{ todo && todo.nodeName }}</span>
-                    </div>
-                    <div v-if="taskDesc" class="info-item info-item-full">
-                      <span class="info-label">任务说明</span>
-                      <span class="info-value">{{ taskDesc }}</span>
-                    </div>
-                    <div class="info-item">
-                      <span class="info-label">截止时间</span>
-                      <span class="info-value">
-                        {{ taskEndTime || '—' }}
-                        <span v-if="isTaskOverdue" class="pd-overdue"><i class="el-icon-alarm-clock" /> 已超期</span>
-                        <span v-else-if="overdueFinished" class="pd-overdue"><i class="el-icon-alarm-clock" /> 超期完成</span>
-                      </span>
-                    </div>
-                  </div>
-                  <!-- 超期提示（软性标记：仅提示，仍可正常处理） -->
-                  <div v-if="isTaskOverdue" class="pd-overdue-bar">
-                    <i class="el-icon-warning-outline" />
-                    <span>该任务已超过期次截止时间，<b>仍可正常处理</b>，提交后节点将标注「超期处理」。</span>
-                  </div>
-                  <!-- 任务基础信息（模板级字段，创建人下发时赋值，处理人可见） -->
-                  <template v-if="templateFieldRows.length > 0">
-                    <div class="tpl-header"><i class="el-icon-collection" /> 任务基础信息</div>
-                    <div class="tpl-grid">
-                      <div v-for="r in templateFieldRows" :key="r.id" class="tpl-item">
-                        <span class="tpl-label">
-                          {{ r.label }}
-                          <span v-if="r.role === 2" class="tpl-handler-note"><i class="el-icon-user" /> {{ r.roleTip || '处理人填写' }}</span>
-                          <span v-else class="tpl-creator-note"><i class="el-icon-s-custom" /> 创建人填写</span>
-                        </span>
-                        <span class="tpl-value">{{ r.value || '—' }}</span>
-                      </div>
-                    </div>
-                  </template>
-                </div>
-
                 <!-- 完整流程链（统一组件：横/竖切换，点击节点查看表单与操作记录） -->
                 <!-- 整任务已完成：完成提示紧跟流程链展示 -->
                 <div v-if="isReadonly && taskFinished" class="task-done-banner">
@@ -364,6 +344,13 @@ export default {
     periodName() {
       return this.$route.query.periodName || ''
     },
+    /** 流程模板名称（详情数据优先，兼容路由带参） */
+    templateName() {
+      return (this.task && this.task.templateName) ||
+        (this.todo && this.todo.templateName) ||
+        this.$route.query.templateName ||
+        ''
+    },
     currentFields() {
       return this.detail && this.detail.currentNodeFields ? this.detail.currentNodeFields : []
     },
@@ -480,28 +467,44 @@ export default {
         }
       })
     },
-    /** 当前登录用户ID（用于按处理人定位待办节点） */
-    currentUserId() {
-      const ui = this.$store.getters.userInfo || {}
-      return ui.id != null ? ui.id : null
-    },
-    /** 可退回的目标节点：当前处理人已 done 且 sortNum < 当前节点的节点（按 nodeId 去重） */
+    /** 可退回的目标节点：sortNum < 当前节点的已处理节点（按 nodeId 聚合，节点内全部处理人都展示，实际处理人高亮） */
     processedNodes() {
       if (!this.detail || !this.todo) return []
       const taskNodes = this.detail.taskNodes || []
-      const myUserId = this.currentUserId
       const currentSort = this.todo.currentNodeId ? this.findSortNum(this.todo.currentNodeId) : null
-      const map = {}
+      // 按 nodeId 聚合（不去重用户，所有 task_node 都计入）
+      const groups = {}
       taskNodes.forEach(tn => {
-        if (myUserId != null && tn.handlerUserId !== myUserId) return
         if (tn.submitStatus !== 1) return // 仅已处理节点
         if (tn.nodeId === this.todo.currentNodeId) return // 排除当前节点
-        if (currentSort !== null && tn.sortNum !== null && tn.sortNum >= currentSort) return // 仅前置节点
-        if (!map[tn.nodeId] || tn.taskNodeId > map[tn.nodeId].taskNodeId) {
-          map[tn.nodeId] = tn
-        }
+        if (currentSort != null && tn.sortNum != null && tn.sortNum >= currentSort) return // 仅前置节点
+        if (!groups[tn.nodeId]) groups[tn.nodeId] = []
+        groups[tn.nodeId].push(tn)
       })
-      return Object.values(map).sort((a, b) => (a.sortNum || 0) - (b.sortNum || 0))
+      return Object.keys(groups)
+        .map(nodeId => {
+          const records = groups[nodeId]
+          // 实际处理人：nextHandlerUserId/formRecordId 任一非空者为真正点击提交的人
+          // 兄弟节点同步标记完成时这两个字段均不动，只有当前处理人记录保留原值
+          const actualRecord = records.find(r => r.formRecordId || r.nextHandlerUserId) ||
+            records.reduce((a, b) => (a.taskNodeId > b.taskNodeId ? a : b))
+          const allHandlerNames = records.map(r => r.handlerName).filter(Boolean)
+          return {
+            nodeId,
+            nodeName: records[0].nodeName,
+            nodeType: records[0].nodeType,
+            sortNum: records[0].sortNum,
+            taskNodeId: actualRecord.taskNodeId,
+            // 实际处理人（展示时高亮）
+            handlerName: actualRecord.handlerName,
+            handlerUserId: actualRecord.handlerUserId,
+            handleTime: actualRecord.handleTime,
+            // 全部处理人（按「、」连接）
+            allHandlerNames,
+            handlerCount: allHandlerNames.length
+          }
+        })
+        .sort((a, b) => (a.sortNum || 0) - (b.sortNum || 0))
     },
     /** 任务是否已全部完成（操作历史时间线末尾补完成节点） */
     taskFinished() {
@@ -877,27 +880,29 @@ $border: #CBD5E1;
   p { font-size: 14px; margin: 0; }
 }
 .detail-body { min-height: 300px; }
-// 左右布局
+// 顶部通栏：任务说明 / 超期提示 / 任务基础信息（对齐「期次人员-流程详情」页顶部横条结构）
+.pd-top { display: flex; flex-direction: column; gap: 12px; }
+.pd-top + .process-wrap { margin-top: 16px; }
+.pd-desc { display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; background: var(--color-primary-light); border: 1px dashed rgba(var(--color-primary-rgb), 0.4); border-radius: 3px; font-size: 13px;
+  .pd-desc-label { width: 90px; color: #757575; flex-shrink: 0; line-height: 1.6; }
+  .pd-desc-text { flex: 1; color: var(--color-primary); line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
+}
+.pd-tpl { background: #fff; border: 1px solid $border; border-radius: 3px; padding: 16px 18px; }
+// 左右布局：左(流程链+办理表单)宽 3 / 右(操作历史)窄 1，参考期次人员-流程详情
 .process-wrap { display: flex; gap: 16px; align-items: flex-start; }
-.pd-left { flex: 1.5; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-.pd-right { flex: 1; min-width: 0; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 20px; position: sticky; top: 16px; }
+.pd-left { flex: 3; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.pd-right { flex: 1; min-width: 0; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 20px; position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
 // 卡片与标题
-.info-section, .form-section, .next-section { background: #fff; border: 1px solid $border; border-radius: 3px; padding: 16px 18px; }
+.form-section, .next-section { background: #fff; border: 1px solid $border; border-radius: 3px; padding: 16px 18px; }
 .section-title { font-size: 15px; font-weight: 700; color: $primary; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .chain-hint { font-size: 12px; color: #999; font-weight: 400; margin-left: 0; }
-.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 32px; }
-.info-item { display: flex; flex-direction: column; gap: 6px; min-width: 0;
-  &.info-item-full { grid-column: 1 / -1; }
-}
-.info-label { font-size: 12px; color: #999; }
-.info-value { font-size: 14px; color: #1b1c1c; font-weight: 500; word-break: break-all; line-height: 1.5; white-space: pre-wrap; }
 // 超期软性标记
 .pd-overdue { display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px; border-radius: 3px; font-size: 11px; font-weight: 700; color: #fff; background: #D97706; vertical-align: 1px; white-space: nowrap; }
-.pd-overdue-bar { display: flex; align-items: center; gap: 6px; margin-top: 12px; padding: 8px 12px; background: #FEF3C7; border: 1px dashed #D97706; border-radius: 3px; font-size: 13px; color: #64748B; line-height: 1.5;
+.pd-overdue-bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #FEF3C7; border: 1px dashed #D97706; border-radius: 3px; font-size: 13px; color: #64748B; line-height: 1.5;
   i { color: #D97706; font-size: 15px; }
   b { color: #D97706; font-weight: 700; }
 }
-.tpl-header { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: $primary; margin: 18px 0 10px; padding-top: 14px; border-top: 1px dashed $border; }
+.tpl-header { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: $primary; margin: 0 0 12px; }
 .tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 32px; }
 .tpl-item { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .tpl-label { font-size: 12px; color: #999; display: inline-flex; align-items: center; gap: 4px; }

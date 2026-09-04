@@ -631,6 +631,18 @@ public class FlowTaskService {
            .eq(FlowTaskNode::getSubmitStatus, 1)
            .orderByDesc(FlowTaskNode::getId).last("LIMIT 1");
         FlowTaskNode lastDone = flowTaskNodeMapper.selectOne(tnw);
+        // 退回重做场景：本人未填过（任一完成即可时被自动关单）→ 取该节点最近一次任何人的提交
+        if (lastDone == null || lastDone.getBaseData() == null || lastDone.getBaseData().trim().isEmpty()) {
+            LambdaQueryWrapper<FlowTaskNode> anyw = new LambdaQueryWrapper<>();
+            anyw.eq(FlowTaskNode::getTaskId, task.getId())
+                .eq(FlowTaskNode::getNodeId, task.getCurrentNodeId())
+                .eq(FlowTaskNode::getSubmitStatus, 1)
+                .orderByDesc(FlowTaskNode::getId).last("LIMIT 1");
+            FlowTaskNode anyDone = flowTaskNodeMapper.selectOne(anyw);
+            if (anyDone != null && anyDone.getBaseData() != null && !anyDone.getBaseData().trim().isEmpty()) {
+                lastDone = anyDone;
+            }
+        }
         if (lastDone == null || lastDone.getBaseData() == null || lastDone.getBaseData().trim().isEmpty()) return null;
         Map<String, String> map = deserializeTemplateData(lastDone.getBaseData());
         return map.isEmpty() ? null : map;
@@ -713,6 +725,17 @@ public class FlowTaskService {
            .eq(FlowTaskNode::getSubmitStatus, 1)
            .orderByDesc(FlowTaskNode::getId).last("LIMIT 1");
         FlowTaskNode lastDone = flowTaskNodeMapper.selectOne(tnw);
+        // 退回重做场景：本人未填过（任一完成即可时被自动关单，无表单记录）→ 取该节点最近一次任何人的提交，
+        // 保证重做人能看到节点上已有的表单数据（一份表单，多人入口）
+        if (lastDone == null || lastDone.getFormRecordId() == null) {
+            LambdaQueryWrapper<FlowTaskNode> anyw = new LambdaQueryWrapper<>();
+            anyw.eq(FlowTaskNode::getTaskId, task.getId())
+                .eq(FlowTaskNode::getNodeId, task.getCurrentNodeId())
+                .eq(FlowTaskNode::getSubmitStatus, 1)
+                .isNotNull(FlowTaskNode::getFormRecordId)
+                .orderByDesc(FlowTaskNode::getId).last("LIMIT 1");
+            lastDone = flowTaskNodeMapper.selectOne(anyw);
+        }
         if (lastDone == null || lastDone.getFormRecordId() == null) return null;
         LambdaQueryWrapper<FlowFormData> fdw = new LambdaQueryWrapper<>();
         fdw.eq(FlowFormData::getRecordId, lastDone.getFormRecordId());
@@ -979,6 +1002,19 @@ public class FlowTaskService {
             currentTaskNode.setFormRecordId(recordId);
             currentTaskNode.setRejectReason(dto.getRejectReason());
             flowTaskNodeMapper.updateById(currentTaskNode);
+            // 同一节点其他 pending 分支：因退回而一并结束，避免残留他人待办（统计虚高/阻塞完成判定）
+            LambdaQueryWrapper<FlowTaskNode> rejectSiblingW = new LambdaQueryWrapper<>();
+            rejectSiblingW.eq(FlowTaskNode::getTaskId, task.getId())
+                    .eq(FlowTaskNode::getNodeId, currentTaskNode.getNodeId())
+                    .eq(FlowTaskNode::getSubmitStatus, 0)
+                    .ne(FlowTaskNode::getId, currentTaskNode.getId());
+            for (FlowTaskNode sib : flowTaskNodeMapper.selectList(rejectSiblingW)) {
+                sib.setSubmitStatus(1);
+                sib.setAction(1);
+                sib.setHandleTime(new Date());
+                sib.setRejectReason(dto.getRejectReason());
+                flowTaskNodeMapper.updateById(sib);
+            }
             // 查退回目标节点（快照优先，降级模板；须 sortNum < 当前）
             FlowTemplateNode targetNode = resolveNodeFor(task,
                     dto.getRejectToNodeId());

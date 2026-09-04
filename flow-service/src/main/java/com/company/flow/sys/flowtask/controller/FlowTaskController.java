@@ -122,7 +122,11 @@ public class FlowTaskController {
     /** 我的任务（任务→期次 两级展示）：任务级分页，任务下按期次分组待办节点 */
     @PostMapping("/my-todo-grouped")
     public Result<PageResult<MyTodoTaskVO>> myTodoGrouped(@RequestBody FlowTaskQueryForm form) {
-        return Result.success("获取成功", flowTaskService.myTodoGrouped(form.getPage(), form.getLimit(), form.getTaskName(), form.getStatus() == null ? null : Integer.valueOf(form.getStatus())));
+        Integer status = null;
+        if (form.getStatus() != null && !form.getStatus().trim().isEmpty()) {
+            status = Integer.valueOf(form.getStatus());
+        }
+        return Result.success("获取成功", flowTaskService.myTodoGrouped(form.getPage(), form.getLimit(), form.getTaskName(), status));
     }
 
     /** 我的任务统计（统计卡） */

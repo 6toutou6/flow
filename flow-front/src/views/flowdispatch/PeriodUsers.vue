@@ -25,7 +25,7 @@
           <template v-if="periodInfo && periodInfo.endTime"> · 截止：{{ periodInfo.endTime }}</template>
           <template v-if="periodInfo && periodInfo.urgeTime"> · 催办：{{ periodInfo.urgeTime }}</template>
           <template v-if="!periodName && !taskName">期次人员查看</template>
-          <span class="tip-sub">· 点击人员卡片可查看其流程</span>
+          <span class="tip-sub">· 每张卡片为一个员工任务（首个节点处理人启动后仍会继续流转）；点击卡片可查看完整流程</span>
         </section>
 
         <!-- 成员筛选 -->
@@ -89,14 +89,24 @@
                 <el-checkbox :value="selected.includes(m.taskId)" @change="v => toggleSelect(m.taskId, v)" />
               </div>
               <div class="mi-left">
-                <div class="mi-avatar">{{ memberName(m).charAt(0) }}</div>
+                <div class="mi-badge" :class="{ 'is-done': isTaskDone(m) }">
+                  <i v-if="isTaskDone(m)" class="el-icon-check" />
+                  <span v-else-if="badgeNodeText(m)" class="badge-node-text">{{ badgeNodeText(m) }}</span>
+                  <i v-else class="el-icon-s-operation" />
+                </div>
                 <div class="mi-info">
-                  <div class="mi-name">
-                    {{ memberName(m) }}
-                    <span class="mi-emp">{{ m.ownerEmpNo || '—' }}</span>
+                  <!-- 主标题：员工任务名称（流程主体；首个节点处理人只是启动它的人，后面还有多个节点继续流转） -->
+                  <div class="mi-name" :title="m.taskName">
+                    <span class="mi-task-text">{{ m.taskName || '未命名任务' }}</span>
                     <span class="status-chip" :class="statusClass(m.status)">{{ statusText(m.status) }}</span>
                   </div>
-                  <div class="mi-dept">{{ m.ownerDept || '—' }}</div>
+                  <!-- 首个节点处理人信息（弱于任务名，仅说明本任务由谁启动） -->
+                  <div class="mi-owner">
+                    <span class="mi-owner-label">首个节点处理人</span>
+                    <span class="mi-owner-name">{{ memberName(m) }}</span>
+                    <span class="mi-emp">{{ m.ownerEmpNo || '—' }}</span>
+                    <span class="mi-dept"><i class="el-icon-office-building" /> {{ m.ownerDept || '—' }}</span>
+                  </div>
                   <div class="mi-meta">
                     <span><i class="el-icon-user" /> 当前处理人：{{ m.currentHandlerName || '—' }}</span>
                     <span><i class="el-icon-s-claim" /> 当前节点：{{ m.currentNodeName || '—' }}</span>
@@ -278,6 +288,13 @@ export default {
       }
     },
     memberName(m) { return m.ownerName || '—' },
+    /** 卡片左标：任务已完成（状态码 2）时显示绿色勾 */
+    isTaskDone(m) { return m.status === 2 || m.status === '已完成' },
+    /** 卡片左标：未完成时取当前节点名的首字（如「整」=整改审核） */
+    badgeNodeText(m) {
+      const name = m.currentNodeName || ''
+      return name ? name.charAt(0) : ''
+    },
     statusText(s) { return ({ 进行中: '进行中', 已完成: '已完成', 已作废: '已作废', 1: '进行中', 2: '已完成', 3: '已作废' })[s] || '—' },
     statusClass(s) { return ({ 进行中: 'status-running', 已完成: 'status-done', 已作废: 'status-cancel', 1: 'status-running', 2: 'status-done', 3: 'status-cancel' })[s] || '' },
     memberProgress(m) {
@@ -429,12 +446,23 @@ $border: #CBD5E1;
 }
 .mi-check { flex-shrink: 0; margin-right: 10px; display: flex; align-items: center; }
 .mi-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
-.mi-avatar { width: 42px; height: 42px; border-radius: 50%; background: $primary; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 19px; font-weight: 600; flex-shrink: 0; }
+.mi-badge { width: 40px; height: 40px; border-radius: 8px; background: rgba(var(--color-primary-rgb), 0.1); color: $primary; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+// 当前节点首字 / 已完成绿勾
+.mi-badge .badge-node-text { font-size: 16px; font-weight: 700; line-height: 1; }
+.mi-badge.is-done { background: rgba(21, 128, 61, 0.12); color: #15803D; }
+.mi-badge.is-done i { font-size: 20px; }
 .mi-info { flex: 1; min-width: 0; }
-.mi-name { font-size: 14px; font-weight: 700; color: #1b1c1c; }
-.mi-emp { font-size: 12px; color: #757575; font-weight: 400; margin-left: 6px; font-family: monospace; }
-.mi-dept { font-size: 12px; color: #757575; margin-top: 2px; }
-.mi-name .status-chip { margin-left: 8px; }
+// 员工任务名称为主标题（流程主体）
+.mi-name { display: flex; align-items: center; gap: 10px; min-width: 0; margin-top: 1px; }
+.mi-task-text { font-size: 15px; font-weight: 700; color: #1b1c1c; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mi-name .status-chip { flex-shrink: 0; }
+// 首个节点处理人信息（弱于任务名，仅作任务启动人的说明）
+.mi-owner { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 13px; min-width: 0; }
+.mi-owner-label { flex-shrink: 0; padding: 1px 6px; border-radius: 3px; background: #EFF6FF; color: var(--color-primary-hover); font-size: 11px; line-height: 1.6; }
+.mi-owner-name { color: #1b1c1c; font-weight: 600; white-space: nowrap; }
+.mi-emp { font-size: 12px; color: #909399; font-weight: 400; font-family: monospace; white-space: nowrap; }
+.mi-dept { display: inline-flex; align-items: center; gap: 3px; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: #757575; white-space: nowrap; }
+.mi-owner .mi-emp, .mi-owner .mi-dept { flex-shrink: 0; }
 .status-chip { padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; display: inline-flex; border: 1px solid transparent; }
 .status-running { background: rgba(var(--color-primary-rgb),0.1); border-color: $primary; color: $primary; }
 .status-done { background: rgba(21, 128, 61,0.1); border-color: #15803D; color: #15803D; }

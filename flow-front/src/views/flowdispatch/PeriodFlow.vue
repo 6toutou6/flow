@@ -24,6 +24,7 @@
           <i class="el-icon-tickets" />
           <template v-if="taskName">任务：{{ taskName }}</template>
           <template v-if="periodName"> · 期次：{{ periodName }}</template>
+          <template v-if="empTaskName"> · 成员任务：{{ empTaskName }}</template>
         </section>
 
         <!-- 流程详情 -->
@@ -63,6 +64,10 @@ export default {
       return this.selectedHandler && this.selectedHandler.userName
         ? this.selectedHandler.userName + ' 的流程'
         : '流程详情'
+    },
+    /** 员工任务名称（成员任务实例 flow_task.task_name，生成期次时可单独命名） */
+    empTaskName() {
+      return (this.taskDetail && this.taskDetail.task && this.taskDetail.task.taskName) || ''
     }
   },
   created() {

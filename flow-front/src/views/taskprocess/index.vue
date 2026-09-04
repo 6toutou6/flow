@@ -107,6 +107,7 @@
                     <thead>
                       <tr>
                         <th>期次</th>
+                        <th>任务名称</th>
                         <th>起止时间</th>
                         <th class="text-center">状态</th>
                         <th>流程进度</th>
@@ -117,8 +118,9 @@
                       <template v-for="per in g.periods">
                         <tr v-if="per.todos && per.todos.length === 0" :key="(per.dispatchId || per.periodName || 'none') + '-empty'" class="hover-row">
                           <td class="font-bold">{{ per.periodName || '无期次' }}</td>
+                          <td class="text-muted">—</td>
                           <td>{{ per.startTime ? per.startTime + ' ~ ' + (per.endTime || '—') : '—' }}</td>
-                          <td colspan="3" class="text-muted">该期次无待办任务</td>
+                          <td colspan="4" class="text-muted">该期次无待办任务</td>
                         </tr>
                         <!-- 每条待办 = 完完整整独立一行（不合并单元格），各自进度链与操作 -->
                         <tr
@@ -130,6 +132,10 @@
                           <td class="font-bold">
                             {{ per.periodName || '无期次' }}
                             <span v-if="per.periodNo" class="period-no">第 {{ per.periodNo }} 期</span>
+                          </td>
+                          <td>
+                            <!-- 员工任务名称（该待办所属成员任务实例名，如「技术部-张三的问题整改处理」） -->
+                            <span class="emp-task-name" :title="td.taskName">{{ td.taskName || '—' }}</span>
                           </td>
                           <td>
                             {{ per.startTime ? per.startTime + ' ~ ' + (per.endTime || '—') : '—' }}
@@ -386,6 +392,8 @@ $border: #CBD5E1;
 }
 .sec-sub { font-size: 12px; color: #999; font-weight: 400; }
 .period-no { font-size: 11px; color: $primary; background: rgba(var(--color-primary-rgb),0.1); border-radius: 3px; padding: 1px 8px; font-weight: 600; margin-left: 6px; }
+// 员工任务名称列：长名省略，hover 以 title 查看完整
+.emp-task-name { display: inline-block; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; color: #1b1c1c; }
 .period-empty { text-align: center; padding: 24px; color: #bbb; font-size: 13px;
   i { margin-right: 4px; }
 }

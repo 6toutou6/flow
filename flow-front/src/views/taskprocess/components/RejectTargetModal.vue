@@ -18,7 +18,11 @@
             {{ n.nodeName }}
           </div>
           <div class="target-meta">
-            <span><i class="el-icon-user" /> {{ n.handlerName || '—' }}</span>
+            <span class="target-handler">
+              <i class="el-icon-user" />
+              <span class="actual-handler">{{ n.handlerName || '—' }}</span>
+              <template v-if="n.handlerCount > 1">、{{ n.allHandlerNames.filter(h => h !== n.handlerName).join('、') }}</template>
+            </span>
             <span><i class="el-icon-time" /> {{ n.handleTime || '—' }}</span>
           </div>
         </div>
@@ -52,7 +56,7 @@ export default {
   name: 'RejectTargetModal',
   props: {
     visible: { type: Boolean, default: false },
-    /** 已处理过的节点列表（不含当前节点），每项含 { nodeId, nodeName, nodeType, handlerName, handleTime, sortNum } */
+    /** 已处理过的节点列表（不含当前节点），每项含 { nodeId, nodeName, nodeType, handlerName, handlerUserId, handleTime, sortNum, allHandlerNames, handlerCount } */
     processedNodes: { type: Array, default: () => [] }
   },
   data() {
@@ -108,9 +112,12 @@ $border: #CBD5E1;
 .target-radio { font-size: 22px; color: $primary; flex-shrink: 0; }
 .target-info { flex: 1; }
 .target-name { font-size: 14px; font-weight: 600; color: #1b1c1c; display: flex; align-items: center; gap: 6px; }
-.target-meta { display: flex; gap: 16px; margin-top: 4px; font-size: 12px; color: #757575;
+.target-meta { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 4px; font-size: 12px; color: #757575; align-items: center;
   i { margin-right: 3px; }
 }
+.target-handler { display: inline-flex; align-items: center; gap: 3px; }
+// 实际处理人（绿色高亮，与 FlowChain 一致）
+.actual-handler { display: inline-block; padding: 1px 8px; border-radius: 4px; font-weight: 600; color: #fff; background: #15803D; font-size: 12px; line-height: 1.7; }
 .node-type-badge { padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: 600; }
 .badge-start { background: rgba(21, 128, 61,0.1); color: #15803D; }
 .badge-mid { background: #f0f3ff; color: #545f72; }
