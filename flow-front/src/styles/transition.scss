@@ -11,26 +11,26 @@
   opacity: 0;
 }
 
-/* fade-transform */
+/* fade-transform：前进方向感（新页从右侧滑入淡入，旧页向左侧滑出淡出） */
 .fade-transform-leave-active,
 .fade-transform-enter-active {
-  transition: all .5s;
+  transition: all .35s cubic-bezier(.55, .06, .25, .95);
 }
 
 .fade-transform-enter {
   opacity: 0;
-  transform: translateX(-30px);
+  transform: translateX(30px);
 }
 
 .fade-transform-leave-to {
   opacity: 0;
-  transform: translateX(30px);
+  transform: translateX(-30px);
 }
 
 /* breadcrumb transition */
 .breadcrumb-enter-active,
 .breadcrumb-leave-active {
-  transition: all .5s;
+  transition: all .35s cubic-bezier(.55, .06, .25, .95);
 }
 
 .breadcrumb-enter,
@@ -40,7 +40,7 @@
 }
 
 .breadcrumb-move {
-  transition: all .5s;
+  transition: all .35s;
 }
 
 .breadcrumb-leave-active {

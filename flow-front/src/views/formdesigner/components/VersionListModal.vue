@@ -37,13 +37,13 @@
 </template>
 
 <script>
-import { getTemplateVersions } from '@/api/template'
+import { getTemplateVersions } from '@/service/sys/TemplateService'
 
 export default {
   name: 'VersionListModal',
   props: {
     visible: { type: Boolean, default: false },
-    templateId: { type: Number, default: null },
+    templateId: { type: [String, Number], default: null },
     /** 当前版本信息（模板行，含 version/versionDesc/updateTime） */
     currentVersion: { type: Object, default: null }
   },

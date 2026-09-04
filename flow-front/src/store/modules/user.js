@@ -1,13 +1,10 @@
-import { login, logout, getInfo } from '@/api/user'
-import { getToken, setToken, removeToken } from '@/utils/auth'
+import { login, logout } from '@/service/base/UserService'
+import { getUserInfo, setUserInfo, removeUserInfo } from '@/utils/auth'
 import { resetRouter } from '@/router'
 
 const getDefaultState = () => {
   return {
-    token: getToken(),
-    name: '',
-    avatar: '',
-    userInfo: {}
+    userInfo: getUserInfo()
   }
 }
 
@@ -17,52 +14,20 @@ const mutations = {
   RESET_STATE: (state) => {
     Object.assign(state, getDefaultState())
   },
-  SET_TOKEN: (state, token) => {
-    state.token = token
-  },
-  SET_NAME: (state, name) => {
-    state.name = name
-  },
-  SET_AVATAR: (state, avatar) => {
-    state.avatar = avatar
-  },
   SET_USER_INFO: (state, userInfo) => {
     state.userInfo = userInfo || {}
   }
 }
 
 const actions = {
-  // user login
+  // 登录：后端校验并写入会话，前端仅保存返回的用户信息快照（yyytId/userName/deptId/deptName）
   login({ commit }, userInfo) {
     const { username, password } = userInfo
     return new Promise((resolve, reject) => {
       login({ username: username.trim(), password: password }).then(response => {
         const { data } = response
-        commit('SET_TOKEN', data.token)
-        setToken(data.token)
-        resolve()
-      }).catch(error => {
-        reject(error)
-      })
-    })
-  },
-
-  // get user info
-  getInfo({ commit, state }) {
-    return new Promise((resolve, reject) => {
-      getInfo(state.token).then(response => {
-        const { data } = response
-
-        if (!data) {
-          return reject('Verification failed, please Login again.')
-        }
-
-        const name = data.realName || data.username
-        const avatar = data.avatar || 'https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif'
-
-        commit('SET_NAME', name)
-        commit('SET_AVATAR', avatar)
         commit('SET_USER_INFO', data)
+        setUserInfo(data)
         resolve(data)
       }).catch(error => {
         reject(error)
@@ -70,11 +35,11 @@ const actions = {
     })
   },
 
-  // user logout
-  logout({ commit, state }) {
+  // 退出：清本地快照
+  logout({ commit }) {
     return new Promise((resolve, reject) => {
-      logout(state.token).then(() => {
-        removeToken() // must remove  token  first
+      logout().then(() => {
+        removeUserInfo()
         resetRouter()
         commit('RESET_STATE')
         resolve()
@@ -84,10 +49,10 @@ const actions = {
     })
   },
 
-  // remove token
+  // 清除登录态
   resetToken({ commit }) {
     return new Promise(resolve => {
-      removeToken() // must remove  token  first
+      removeUserInfo()
       commit('RESET_STATE')
       resolve()
     })

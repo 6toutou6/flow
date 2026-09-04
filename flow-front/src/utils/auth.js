@@ -1,15 +1,18 @@
-import Cookies from 'js-cookie'
+// 登录用户信息本地快照（localStorage，仅展示用；权限/身份判断一律由后端返回）
+const UserInfoKey = 'flow_user_info'
 
-const TokenKey = 'vue_admin_template_token'
-
-export function getToken() {
-  return Cookies.get(TokenKey)
+export function getUserInfo() {
+  try {
+    return JSON.parse(localStorage.getItem(UserInfoKey) || '{}')
+  } catch (e) {
+    return {}
+  }
 }
 
-export function setToken(token) {
-  return Cookies.set(TokenKey, token)
+export function setUserInfo(info) {
+  localStorage.setItem(UserInfoKey, JSON.stringify(info || {}))
 }
 
-export function removeToken() {
-  return Cookies.remove(TokenKey)
+export function removeUserInfo() {
+  localStorage.removeItem(UserInfoKey)
 }

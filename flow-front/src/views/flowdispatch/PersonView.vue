@@ -4,16 +4,18 @@
       <section class="page-content">
         <!-- 页头 -->
         <div class="page-header">
-          <div>
+          <div class="header-left">
+            <div class="hl-row1">
+            <button class="btn-back" @click="$router.push('/flow-dispatch/index')"><i class="el-icon-back" /> 返回任务管理</button>
             <nav class="breadcrumb">
               <span>任务管理</span>
               <span>/</span>
               <span class="active">按人员查看</span>
             </nav>
-            <h3 class="page-heading">按人员查看</h3>
+          </div>
+          <h3 class="page-heading">按人员查看</h3>
           </div>
           <div class="header-actions">
-            <button class="btn-back" @click="$router.push('/flow-dispatch/index')"><i class="el-icon-back" /> 返回任务管理</button>
             <button class="btn-refresh" :disabled="loading" @click="fetchPersons"><i class="el-icon-refresh" /> 刷新</button>
           </div>
         </div>
@@ -27,7 +29,7 @@
           <span class="tip-sep">·</span>
           <span>累计提交 <b>{{ submitTotal }}</b> 次</span>
           <span class="tip-sep">·</span>
-          <span>展示结构：<b>人员 → 期次 → 节点</b></span>
+          <span>展示结构：<b>人员 → 任务链 → 节点</b></span>
         </section>
 
         <!-- 搜索 -->
@@ -66,53 +68,104 @@
               <i class="el-icon-arrow-down pp-arrow" />
             </div>
 
-            <!-- 展开：期次折叠列表 -->
+            <!-- 展开：任务链列表（每条链 = 该人员参与的一次完整流转，展示其全部节点） -->
             <div v-show="isPersonOpen(p.userId)" class="pp-body">
-              <div v-if="personData[p.userId] && personData[p.userId].loading" class="pp-loading"><i class="el-icon-loading" /> 正在加载提交记录...</div>
+              <div v-if="personData[p.userId] && personData[p.userId].loading" class="pp-loading"><i class="el-icon-loading" /> 正在加载任务链...</div>
               <template v-else-if="personData[p.userId]">
-                <template v-if="personData[p.userId].periods.length > 0">
-                  <div v-for="(period, pi) in personData[p.userId].periods" :key="pi" class="period-panel" :class="{ 'is-open': isPeriodOpen(p.userId, period.key) }">
-                    <!-- 二级：期次 -->
-                    <div class="pdp-head" @click="togglePeriod(p.userId, period.key)">
-                      <span class="pdp-icon"><i class="el-icon-tickets" /></span>
+                <template v-if="personData[p.userId].chains.length > 0">
+                  <div v-for="chain in personData[p.userId].chains" :key="chain.taskId" class="period-panel" :class="{ 'is-open': isChainOpen(p.userId, chain.taskId) }">
+                    <!-- 二级：任务链 -->
+                    <div class="pdp-head" @click="toggleChain(p.userId, chain.taskId)">
+                      <span class="pdp-icon"><i class="el-icon-s-operation" /></span>
                       <div class="pdp-main">
-                        <span class="pdp-name">{{ period.name }}</span>
-                        <span v-if="period.periodNo" class="pdp-no">第 {{ period.periodNo }} 期</span>
+                        <span class="pdp-name">{{ chain.taskName }}</span>
+                        <span v-if="chain.periodName" class="pdp-no" :title="'期次：' + chain.periodName">{{ chain.periodName }}<template v-if="chain.periodNo"> · 第{{ chain.periodNo }}期</template></span>
+                        <span :class="taskStatusClass(chain.taskStatus)">{{ chain.taskStatus || '—' }}</span>
                       </div>
-                      <span class="pdp-count">提交 {{ period.list.length }} 次</span>
+                      <span class="pdp-count">节点 {{ chainDoneCount(chain) }}/{{ chain.nodes.length }} 已处理</span>
                       <i class="el-icon-arrow-down pdp-arrow" />
                     </div>
 
-                    <!-- 展开：节点提交列表 -->
-                    <div v-show="isPeriodOpen(p.userId, period.key)" class="pdp-body">
-                      <div v-for="rec in period.list" :key="rec.id" class="rec-panel" :class="{ 'is-open': expandedRecIds.indexOf(rec.id) >= 0 }">
-                        <!-- 三级：节点提交行 -->
-                        <div class="rec-head" @click="toggleRec(rec)">
-                          <span class="rec-icon"><i :class="recIcon(rec.nodeName)" /></span>
-                          <span class="rec-node">{{ rec.nodeName || '未知节点' }}</span>
-                          <span class="rec-time"><i class="el-icon-time" /> {{ rec.submitTime || '—' }}</span>
-                          <span class="rec-toggle"><i class="el-icon-arrow-down" /></span>
-                        </div>
-                        <!-- 节点提交表单 -->
-                        <div v-show="expandedRecIds.indexOf(rec.id) >= 0" class="rec-body" v-loading="recDetailLoading[rec.id]">
-                          <template v-if="recDetailMap[rec.id]">
-                            <template v-if="recDetailMap[rec.id].formDataItems && recDetailMap[rec.id].formDataItems.length > 0">
-                              <div v-for="(item, fi) in recDetailMap[rec.id].formDataItems" :key="fi" class="rf-row">
-                                <span class="rf-label">{{ item.fieldLabel }}</span>
-                                <AttachField v-if="item.fieldType === 'file' || item.fieldType === 'image'" :value="item.fieldValue" :field-type="item.fieldType" readonly class="rf-value" />
-                                <span v-else class="rf-value">{{ item.fieldValue || '—' }}</span>
-                              </div>
-                            </template>
-                            <div v-else class="rf-empty">该次提交未填写表单数据</div>
-                          </template>
-                          <div v-else class="rf-empty"><i class="el-icon-loading" /> 表单加载中...</div>
-                        </div>
+                    <!-- 展开：该任务链全部节点（按流程顺序，含待处理；点击已处理节点查看表单） -->
+                    <div v-show="isChainOpen(p.userId, chain.taskId)" class="pdp-body">
+                      <div v-if="chain.nodes.length > 1" class="orient-toggle">
+                        <span class="orient-btn" :class="{ active: chainView(p.userId, chain.taskId) === 'vertical' }" @click="setChainView(p.userId, chain.taskId, 'vertical')"><i class="el-icon-s-unfold" /> 竖向</span>
+                        <span class="orient-btn" :class="{ active: chainView(p.userId, chain.taskId) === 'horizontal' }" @click="setChainView(p.userId, chain.taskId, 'horizontal')"><i class="el-icon-s-fold" /> 横向</span>
                       </div>
-                      <div v-if="period.list.length === 0" class="pp-empty">该期次下无提交记录</div>
+
+                      <!-- 竖向模式：每节点一行，按流程顺序 -->
+                      <template v-if="chainView(p.userId, chain.taskId) === 'vertical'">
+                        <div v-for="nd in chain.nodes" :key="nd.taskNodeId" class="rec-panel" :class="{ 'is-open': expandedNodeIds.indexOf(nd.taskNodeId) >= 0 }">
+                          <div class="rec-head" @click="toggleNode(p.userId, chain, nd)">
+                            <span class="rec-icon"><i :class="recIcon(nd.nodeName)" /></span>
+                            <span class="rec-node">{{ nd.nodeName || '未知节点' }}<i class="rec-handler">处理人：{{ nd.handlerName || '—' }}<template v-if="nd.handlerUserId === p.userId">（本人）</template></i></span>
+                            <span :class="nodeBadgeClass(nd)">{{ nodeBadgeText(nd) }}</span>
+                            <span class="rec-time"><i class="el-icon-time" /> {{ nd.handleTime || (nd.submitStatus === 1 ? '—' : '未处理') }}</span>
+                            <span class="rec-toggle"><i class="el-icon-arrow-down" /></span>
+                          </div>
+                          <div v-show="expandedNodeIds.indexOf(nd.taskNodeId) >= 0" class="rec-body">
+                            <div v-if="nd.rejectReason" class="rec-note reject"><i class="el-icon-warning-outline" /> 退回原因：{{ nd.rejectReason }}</div>
+                            <div v-else-if="nd.passComment" class="rec-note pass"><i class="el-icon-chat-dot-round" /> 通过意见：{{ nd.passComment }}</div>
+                            <!-- 详情懒加载 -->
+                            <div v-if="recDetailMap[nd.taskNodeId]" class="rec-detail-wrap">
+                              <template v-if="recDetailMap[nd.taskNodeId].loading">
+                                <div class="rf-empty"><i class="el-icon-loading" /> 表单加载中...</div>
+                              </template>
+                              <template v-else-if="recDetailMap[nd.taskNodeId].formDataItems && recDetailMap[nd.taskNodeId].formDataItems.length > 0">
+                                <div v-for="(item, fi) in recDetailMap[nd.taskNodeId].formDataItems" :key="fi" class="rf-row">
+                                  <span class="rf-label">{{ item.fieldLabel }}</span>
+                                  <AttachField v-if="item.fieldType === 'file' || item.fieldType === 'image'" :value="item.fieldValue" :field-type="item.fieldType" readonly class="rf-value" />
+                                  <span v-else class="rf-value">{{ item.fieldValue || '—' }}</span>
+                                </div>
+                              </template>
+                              <div v-else class="rf-empty">该节点提交时未填写表单数据</div>
+                            </div>
+                            <div v-else class="rf-empty">
+                              <template v-if="nd.recordId"><i class="el-icon-loading" /> 表单加载中...</template>
+                              <template v-else>该节点{{ nd.submitStatus === 1 ? '已处理但无表单记录' : '尚未处理，暂无表单内容' }}</template>
+                            </div>
+                          </div>
+                        </div>
+                      </template>
+
+                      <!-- 横向模式：节点链 chip，点击已处理节点查看表单 -->
+                      <template v-else>
+                        <div class="chain-track-h">
+                          <template v-for="(nd, ri) in chain.nodes">
+                            <div :key="nd.taskNodeId" class="chain-chip clickable" :class="{ expanded: hNodeKey === nd.taskNodeId }" :title="nd.nodeName" @click="clickChainNode(nd)">
+                              <span class="cc-no" :class="{ pend: nd.submitStatus === 0 }">{{ ri + 1 }}</span>
+                              <span class="cc-name">{{ nd.nodeName || '未知节点' }}<i class="cc-handler">{{ nd.handlerName || '—' }}</i></span>
+                              <span v-if="nd.submitStatus === 0" class="cc-pend">待处理</span>
+                            </div>
+                            <span v-if="ri < chain.nodes.length - 1" :key="'a' + ri" class="chain-arrow"><i class="el-icon-right" /></span>
+                          </template>
+                        </div>
+                        <div v-if="hNodeKey" class="rec-body h-rec-body">
+                          <div v-if="hNode.rejectReason" class="rec-note reject"><i class="el-icon-warning-outline" /> 退回原因：{{ hNode.rejectReason }}</div>
+                          <div v-else-if="hNode.passComment" class="rec-note pass"><i class="el-icon-chat-dot-round" /> 通过意见：{{ hNode.passComment }}</div>
+                          <template v-if="hNode.recordId">
+                            <template v-if="recDetailMap[hNode.taskNodeId]">
+                              <template v-if="recDetailMap[hNode.taskNodeId].loading">
+                                <div class="rf-empty"><i class="el-icon-loading" /> 表单加载中...</div>
+                              </template>
+                              <template v-else-if="recDetailMap[hNode.taskNodeId].formDataItems && recDetailMap[hNode.taskNodeId].formDataItems.length > 0">
+                                <div v-for="(item, fi) in recDetailMap[hNode.taskNodeId].formDataItems" :key="fi" class="rf-row">
+                                  <span class="rf-label">{{ item.fieldLabel }}</span>
+                                  <AttachField v-if="item.fieldType === 'file' || item.fieldType === 'image'" :value="item.fieldValue" :field-type="item.fieldType" readonly class="rf-value" />
+                                  <span v-else class="rf-value">{{ item.fieldValue || '—' }}</span>
+                                </div>
+                              </template>
+                              <div v-else class="rf-empty">该节点提交时未填写表单数据</div>
+                            </template>
+                            <div v-else class="rf-empty"><i class="el-icon-loading" /> 表单加载中...</div>
+                          </template>
+                          <div v-else class="rf-empty">{{ hNode.submitStatus === 1 ? '该节点已处理但无表单记录' : '该节点尚未处理，暂无表单内容' }}</div>
+                        </div>
+                      </template>
                     </div>
                   </div>
                 </template>
-                <div v-else class="pp-empty">该人员在该任务下暂无提交记录</div>
+                <div v-else class="pp-empty">该人员在该任务下暂无参与的任务链</div>
               </template>
               <div v-else class="pp-loading"><i class="el-icon-loading" /> 加载中...</div>
             </div>
@@ -142,7 +195,7 @@
 </template>
 
 <script>
-import { getPersonList, getPersonRecords, getRecordDetail } from '@/api/data'
+import { getPersonList, getPersonRecords, getRecordDetail } from '@/service/sys/DataService'
 import AttachField from '@/components/AttachField.vue'
 
 const AVATAR_COLORS = ['var(--color-primary)', '#B45309', '#15803D', '#2B6CB0', '#6B46C1', '#6366F1', '#047857', '#D97706']
@@ -163,12 +216,16 @@ export default {
       pageSize: 5,
       // 展开状态
       openPersonIds: [],
-      openPeriodKeys: [],
-      expandedRecIds: [],
-      // 每人提交记录（按期次分组）
+      // 每人任务链数据与视图状态
       personData: {},
+      openChainKeys: [],
+      chainViews: {},
+      // 节点详情（key = taskNodeId；展开后懒加载表单）
+      expandedNodeIds: [],
       recDetailMap: {},
-      recDetailLoading: {}
+      // 横向模式当前选中的节点
+      hNodeKey: null,
+      hNode: null
     }
   },
   computed: {
@@ -180,14 +237,18 @@ export default {
     }
   },
   created() {
-    this.taskId = this.$route.query.taskId ? Number(this.$route.query.taskId) : null
+    this.taskId = this.$route.query.taskId || null
     this.taskName = this.$route.query.taskName || ''
     this.fetchPersons()
   },
   methods: {
     avatarColor(id) {
       if (!id) return AVATAR_COLORS[0]
-      return AVATAR_COLORS[Math.abs(Number(id)) % AVATAR_COLORS.length]
+      // 32 位主键为字符串：改用字符串 hash 取色（Number() 会变 NaN）
+      const str = String(id)
+      let hash = 0
+      for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) >>> 0
+      return AVATAR_COLORS[hash % AVATAR_COLORS.length]
     },
     recIcon(nodeName) {
       const n = nodeName || ''
@@ -197,7 +258,9 @@ export default {
       return 'el-icon-position'
     },
     isPersonOpen(id) { return this.openPersonIds.indexOf(id) >= 0 },
-    isPeriodOpen(personId, key) { return this.openPeriodKeys.indexOf(personId + '|' + key) >= 0 },
+    chainKey(personId, taskId) { return personId + '|' + taskId },
+    isChainOpen(personId, taskId) { return this.openChainKeys.indexOf(this.chainKey(personId, taskId)) >= 0 },
+    chainView(personId, taskId) { return this.chainViews[this.chainKey(personId, taskId)] || 'vertical' },
     async fetchPersons() {
       this.loading = true
       try {
@@ -214,8 +277,9 @@ export default {
         const ids = this.persons.map(p => p.userId)
         this.openPersonIds = this.openPersonIds.filter(id => ids.indexOf(id) >= 0)
         Object.keys(this.personData).forEach(id => {
-          if (ids.indexOf(Number(id)) < 0) this.$delete(this.personData, id)
+          if (ids.indexOf(id) < 0) this.$delete(this.personData, id)
         })
+        this.openChainKeys = this.openChainKeys.filter(k => ids.indexOf(k.split('|')[0]) >= 0)
       } catch (e) {
         console.error(e)
         this.$message.error((e && e.message) || '人员列表加载失败')
@@ -228,18 +292,18 @@ export default {
     onPageSizeChange() { this.page = 1; this.fetchPersons() },
     prevPage() { if (this.page > 1) { this.page--; this.fetchPersons() } },
     nextPage() { if (this.page < this.totalPages) { this.page++; this.fetchPersons() } },
-    /** 展开/收起人员：展开时懒加载该人员记录并按期次分组 */
+    /** 展开/收起人员：展开时懒加载该人员参与的任务链（每条链含全部节点） */
     togglePerson(p) {
       const idx = this.openPersonIds.indexOf(p.userId)
       if (idx >= 0) {
         this.openPersonIds = this.openPersonIds.filter(id => id !== p.userId)
       } else {
         this.openPersonIds = this.openPersonIds.concat(p.userId)
-        if (!this.personData[p.userId]) this.loadPersonRecords(p)
+        if (!this.personData[p.userId]) this.loadPersonChains(p)
       }
     },
-    async loadPersonRecords(p) {
-      this.$set(this.personData, p.userId, { loading: true, periods: [] })
+    async loadPersonChains(p) {
+      this.$set(this.personData, p.userId, { loading: true, chains: [] })
       try {
         const res = await getPersonRecords({
           userId: p.userId,
@@ -247,61 +311,100 @@ export default {
           page: 1,
           limit: 500
         })
-        const records = (res.data && res.data.records) || []
-        this.$set(this.personData, p.userId, { loading: false, periods: this.groupPeriods(records) })
+        const rows = (res.data && res.data.records) || []
+        const chains = this.groupChains(rows)
+        // 默认展开全部任务链（链头可再折叠），便于一次看到所有节点
+        chains.forEach(c => {
+          const key = this.chainKey(p.userId, c.taskId)
+          if (this.openChainKeys.indexOf(key) < 0) this.openChainKeys.push(key)
+          if (!this.chainViews[key]) this.$set(this.chainViews, key, 'vertical')
+        })
+        this.$set(this.personData, p.userId, { loading: false, chains })
       } catch (e) {
         console.error(e)
-        this.$set(this.personData, p.userId, { loading: false, periods: [] })
-        this.$message.error((e && e.message) || '提交记录加载失败')
+        this.$set(this.personData, p.userId, { loading: false, chains: [] })
+        this.$message.error((e && e.message) || '任务链加载失败')
       }
     },
-    /** 提交记录按「期次名称」分组（保持提交时间倒序） */
-    groupPeriods(records) {
+    /** 节点行按 taskId 归组成任务链（后端已按 期次倒序 + 链创建顺序 + 链内 sort 升序 返回） */
+    groupChains(rows) {
+      const chains = []
       const map = {}
-      const first = {}
-      records.forEach(r => {
-        const key = r.periodName || '未知期次'
+      rows.forEach(nd => {
+        const key = nd.taskId
         if (!map[key]) {
-          map[key] = []
-          first[key] = r
+          map[key] = {
+            taskId: key,
+            taskName: nd.taskName || '未命名任务',
+            taskStatus: nd.taskStatus || '',
+            dispatchId: nd.dispatchId,
+            periodName: nd.periodName,
+            periodNo: nd.periodNo,
+            nodes: []
+          }
+          chains.push(map[key])
         }
-        map[key].push(r)
+        map[key].nodes.push(nd)
       })
-      return Object.keys(map).map(key => ({
-        key,
-        name: key,
-        periodNo: first[key].periodNo,
-        list: map[key]
-      }))
+      return chains
     },
-    togglePeriod(personId, key) {
-      const full = personId + '|' + key
-      const idx = this.openPeriodKeys.indexOf(full)
-      this.openPeriodKeys = idx >= 0
-        ? this.openPeriodKeys.filter(k => k !== full)
-        : this.openPeriodKeys.concat(full)
+    chainDoneCount(chain) {
+      return chain.nodes.reduce((s, nd) => s + (nd.submitStatus === 1 ? 1 : 0), 0)
     },
-    /** 展开节点提交：懒加载表单内容 */
-    toggleRec(rec) {
-      const idx = this.expandedRecIds.indexOf(rec.id)
+    toggleChain(personId, taskId) {
+      const key = this.chainKey(personId, taskId)
+      const idx = this.openChainKeys.indexOf(key)
+      this.openChainKeys = idx >= 0
+        ? this.openChainKeys.filter(k => k !== key)
+        : this.openChainKeys.concat(key)
+    },
+    setChainView(personId, taskId, view) {
+      this.$set(this.chainViews, this.chainKey(personId, taskId), view)
+    },
+    taskStatusClass(status) {
+      if (status === '进行中') return 'tstatus run'
+      if (status === '已结束') return 'tstatus done'
+      return 'tstatus'
+    },
+    /** 节点处理状态徽标 */
+    nodeBadgeText(nd) {
+      if (nd.submitStatus === 0) return '待处理'
+      return nd.action === 1 ? '已退回' : '已通过'
+    },
+    nodeBadgeClass(nd) {
+      if (nd.submitStatus === 0) return 'rec-badge pend'
+      return nd.action === 1 ? 'rec-badge back' : 'rec-badge pass'
+    },
+    /** 竖向：展开/收起节点，展开时懒加载该节点提交的表单 */
+    toggleNode(personId, chain, nd) {
+      const idx = this.expandedNodeIds.indexOf(nd.taskNodeId)
       if (idx >= 0) {
-        this.expandedRecIds = this.expandedRecIds.filter(id => id !== rec.id)
+        this.expandedNodeIds = this.expandedNodeIds.filter(id => id !== nd.taskNodeId)
       } else {
-        this.expandedRecIds = this.expandedRecIds.concat(rec.id)
-        if (!this.recDetailMap[rec.id]) this.loadRecDetail(rec)
+        this.expandedNodeIds = this.expandedNodeIds.concat(nd.taskNodeId)
+        if (nd.recordId && !this.recDetailMap[nd.taskNodeId]) this.loadNodeDetail(nd)
       }
     },
-    async loadRecDetail(rec) {
-      this.$set(this.recDetailLoading, rec.id, true)
+    /** 横向：点击节点 chip（含待处理节点，选中展示状态说明） */
+    clickChainNode(nd) {
+      if (this.hNodeKey === nd.taskNodeId) {
+        this.hNodeKey = null
+        this.hNode = null
+      } else {
+        this.hNodeKey = nd.taskNodeId
+        this.hNode = nd
+        if (nd.recordId && !this.recDetailMap[nd.taskNodeId]) this.loadNodeDetail(nd)
+      }
+    },
+    async loadNodeDetail(nd) {
+      this.$set(this.recDetailMap, nd.taskNodeId, { loading: true })
       try {
-        const res = await getRecordDetail(rec.id)
-        this.$set(this.recDetailMap, rec.id, res.data || {})
+        const res = await getRecordDetail(nd.recordId)
+        this.$set(this.recDetailMap, nd.taskNodeId, { loading: false, ...(res.data || {}) })
       } catch (e) {
         console.error(e)
+        this.$set(this.recDetailMap, nd.taskNodeId, { loading: false })
         this.$message.error((e && e.message) || '表单内容加载失败')
-        this.$set(this.recDetailMap, rec.id, {})
-      } finally {
-        this.$set(this.recDetailLoading, rec.id, false)
       }
     }
   }
@@ -315,6 +418,9 @@ $border: #CBD5E1;
 .main-content { width: 100%; display: flex; flex-direction: column; min-height: 100vh; }
 .page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; }
+.header-left { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.hl-row1 { display: flex; align-items: center; gap: 14px; }
+.hl-row1 .breadcrumb { margin-bottom: 0; }
 .breadcrumb { display: flex; gap: 8px; font-size: 12px; line-height: 20px; color: #414755; margin-bottom: 8px;
   .active { color: $primary; font-weight: 600; }
 }
@@ -373,7 +479,7 @@ $border: #CBD5E1;
 .pp-body { border-top: 1px solid $border; padding: 12px 14px 14px; }
 .pp-loading { display: flex; align-items: center; gap: 6px; padding: 18px 4px; color: $primary; font-size: 13px; justify-content: center; }
 .pp-empty { text-align: center; padding: 16px; color: #bbb; font-size: 13px; }
-// 二级：期次
+// 二级：任务链
 .period-panel { border: 1px solid rgba(228,190,186,0.6); border-radius: 3px; margin-bottom: 10px; overflow: hidden;
   &:last-child { margin-bottom: 0; }
 }
@@ -388,7 +494,32 @@ $border: #CBD5E1;
 .pdp-arrow { color: #909399; font-size: 13px; flex-shrink: 0; transition: transform .25s; }
 .period-panel.is-open .pdp-arrow { transform: rotate(180deg); }
 .pdp-body { padding: 10px 12px; border-top: 1px solid #E2E8F0; background: #fff; }
-// 三级：节点提交
+// 任务链状态徽标
+.tstatus { font-size: 11px; border-radius: 3px; padding: 1px 8px; font-weight: 600; flex-shrink: 0; background: #F0F0F0; color: #909399;
+  &.run { background: rgba(#15803D,0.1); color: #15803D; }
+  &.done { background: rgba(#2B6CB0,0.1); color: #2B6CB0; }
+}
+// 三级：节点
+.orient-toggle { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 8px; background: #f5f5f5; border: 1px solid #e8e8e8; border-radius: 2px; padding: 2px; }
+.orient-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 2px; font-size: 12px; color: #757575; cursor: pointer; transition: all .2s; user-select: none;
+  &:hover { color: var(--color-primary); }
+  &.active { background: var(--color-primary); color: #fff; font-weight: 600; box-shadow: 0 2px 6px rgba(var(--color-primary-rgb),0.3); }
+}
+// 横向模式：节点 chip 轨道（可换行）
+.chain-track-h { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 0; padding: 6px 0 14px; }
+.chain-chip { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px 8px 8px; border-radius: 2px; border: 1px solid #CBD5E1; background: #fff; font-size: 13px; cursor: default; transition: all .2s; white-space: nowrap;
+  &.clickable { cursor: pointer; &:hover { border-color: var(--color-primary); box-shadow: 0 1px 4px rgba(var(--color-primary-rgb),0.18); } }
+  &.expanded { border-color: var(--color-primary); background: var(--color-primary-surface); box-shadow: 0 1px 5px rgba(var(--color-primary-rgb),0.22); }
+}
+.cc-no { width: 20px; height: 20px; border-radius: 50%; background: #CBD5E1; color: var(--color-primary); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0;
+  &.pend { background: #FDE8B5; color: #B45309; }
+}
+.cc-name { font-weight: 600; color: #1b1c1c; display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 1.2;
+  .cc-handler { font-style: normal; font-weight: 400; font-size: 10px; color: #999; }
+}
+.cc-pend { font-size: 10px; color: #B45309; background: #FEF3E2; border-radius: 2px; padding: 0 5px; flex-shrink: 0; }
+.chain-arrow { margin: 0 2px; color: #94A3B8; font-size: 14px; flex-shrink: 0; }
+.h-rec-body { margin-top: 2px; }
 .rec-panel { border: 1px solid #E2E8F0; border-radius: 2px; margin-bottom: 8px; overflow: hidden;
   &:last-child { margin-bottom: 0; }
 }
@@ -396,13 +527,25 @@ $border: #CBD5E1;
   &:hover { background: var(--color-primary-surface); }
 }
 .rec-icon { color: #15803D; font-size: 14px; flex-shrink: 0; }
-.rec-node { font-size: 13px; font-weight: 600; color: #1b1c1c; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rec-node { font-size: 13px; font-weight: 600; color: #1b1c1c; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  .rec-handler { font-style: normal; font-weight: 400; font-size: 11px; color: #909399; margin-left: 10px; }
+}
+// 节点状态徽标
+.rec-badge { font-size: 11px; border-radius: 2px; padding: 1px 7px; font-weight: 600; flex-shrink: 0;
+  &.pend { color: #B45309; background: #FEF3E2; }
+  &.pass { color: #15803D; background: #E8F5EC; }
+  &.back { color: #DC2626; background: #FDEBEB; }
+}
 .rec-time { font-size: 12px; color: #909399; display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0;
   i { color: #B45309; }
 }
 .rec-toggle { color: #909399; font-size: 12px; flex-shrink: 0; transition: transform .25s; }
 .rec-panel.is-open .rec-toggle { transform: rotate(180deg); }
 .rec-body { padding: 10px 12px 12px; border-top: 1px dashed #E2E8F0; background: #FCFCFD; }
+.rec-note { display: flex; align-items: flex-start; gap: 5px; font-size: 12px; padding: 6px 10px; border-radius: 3px; margin-bottom: 8px; line-height: 1.5; word-break: break-all;
+  &.pass { background: #E8F5EC; color: #146C3A; }
+  &.reject { background: #FDEBEB; color: #B91C1C; }
+}
 .rf-row { display: flex; gap: 10px; padding: 7px 10px; font-size: 13px; background: #fff; border: 1px solid #E2E8F0; border-radius: 4px; margin-bottom: 6px;
   &:last-child { margin-bottom: 0; }
 }

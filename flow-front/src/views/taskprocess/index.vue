@@ -97,12 +97,12 @@
               <i class="el-icon-arrow-down tp-arrow" />
             </div>
 
-            <!-- 展开内容：期次（一行一期次，未完成可处理 / 已完成查看详情） -->
+            <!-- 展开内容：期次 → 待办（沿用原表格样式；同一期次多条不同子任务待办各自独立一行，流程进度各按自己任务展示） -->
             <div v-show="isTaskOpen(g.taskId)" class="tp-body">
               <div class="task-detail">
                 <div v-if="g.periods.length === 0" class="period-empty"><i class="el-icon-tickets" /> 暂无期次任务</div>
                 <section v-else class="period-section">
-                  <div class="sec-title"><i class="el-icon-tickets" /> 期次列表 <span class="sec-sub">共 {{ g.periods.length }} 期</span></div>
+                  <div class="sec-title"><i class="el-icon-tickets" /> 期次列表 <span class="sec-sub">共 {{ g.periods.length }} 期 · {{ g.pendingCount }} 待处理</span></div>
                   <table class="period-table">
                     <thead>
                       <tr>
@@ -114,36 +114,50 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="per in g.periods" :key="per.dispatchId || per.periodName || 'none'" class="hover-row">
-                        <td class="font-bold">
-                          {{ per.periodName || '无期次' }}
-                          <span v-if="per.periodNo" class="period-no">第 {{ per.periodNo }} 期</span>
-                        </td>
-                        <td>{{ per.startTime ? per.startTime + ' ~ ' + (per.endTime || '—') : '—' }}</td>
-                        <td class="text-center">
-                          <span class="status-badge" :class="periodStatusClass(per)">{{ periodStatusText(per) }}</span>
-                          <span v-if="periodOverdue(per)" class="overdue-tag"><i class="el-icon-alarm-clock" /> 已超期</span>
-                        </td>
-                        <td>
-                          <!-- 完整流程节点链（chip 样式，同期次人员查看） -->
-                          <div class="node-chain">
-                            <template v-for="(nd, i) in (per.nodes || [])">
-                              <span
-                                :key="'n' + i"
-                                class="node-chip"
-                                :class="nodeChipClass(nd.status)"
-                                :title="nd.nodeName + '（' + (nd.status === 1 ? '已完成' : (nd.status === 2 ? '进行中' : '未开始')) + '）'"
-                              >{{ i + 1 }}.{{ nd.nodeName }}</span>
-                            </template>
-                            <span v-if="!per.nodes || per.nodes.length === 0" class="text-muted">—</span>
-                          </div>
-                        </td>
-                        <td class="text-right">
-                          <button v-if="periodPending(per)" class="btn-process" @click="openProcess(periodPending(per))"><i class="el-icon-s-claim" /> 处理</button>
-                          <button v-else-if="periodCurrentTodo(per)" class="btn-view" @click="openProcess(periodCurrentTodo(per))"><i class="el-icon-view" /> 查看详情</button>
-                          <span v-else class="text-muted">—</span>
-                        </td>
-                      </tr>
+                      <template v-for="per in g.periods">
+                        <tr v-if="per.todos && per.todos.length === 0" :key="(per.dispatchId || per.periodName || 'none') + '-empty'" class="hover-row">
+                          <td class="font-bold">{{ per.periodName || '无期次' }}</td>
+                          <td>{{ per.startTime ? per.startTime + ' ~ ' + (per.endTime || '—') : '—' }}</td>
+                          <td colspan="3" class="text-muted">该期次无待办任务</td>
+                        </tr>
+                        <!-- 每条待办 = 完完整整独立一行（不合并单元格），各自进度链与操作 -->
+                        <tr
+                          v-for="(td, tdi) in per.todos"
+                          v-else
+                          :key="td.taskNodeId || ((per.dispatchId || per.periodName || 'none') + '-' + tdi)"
+                          class="hover-row"
+                        >
+                          <td class="font-bold">
+                            {{ per.periodName || '无期次' }}
+                            <span v-if="per.periodNo" class="period-no">第 {{ per.periodNo }} 期</span>
+                          </td>
+                          <td>
+                            {{ per.startTime ? per.startTime + ' ~ ' + (per.endTime || '—') : '—' }}
+                            <span v-if="periodOverdue(per)" class="overdue-tag"><i class="el-icon-alarm-clock" /> 已超期</span>
+                          </td>
+                          <td class="text-center">
+                            <span class="status-badge" :class="td.todoStatus === 0 ? 'st-todo' : 'st-done'">{{ td.todoStatus === 0 ? '待处理' : '已处理' }}</span>
+                          </td>
+                          <td>
+                            <!-- 该待办所属任务实例的流程进度（不同子任务各自展示） -->
+                            <div class="node-chain">
+                              <template v-for="(nd, i) in (td.chains || per.nodes || [])">
+                                <span
+                                  :key="'n' + i"
+                                  class="node-chip"
+                                  :class="nodeChipClass(nd.status)"
+                                  :title="nd.nodeName + '（' + (nd.status === 1 ? '已完成' : (nd.status === 2 ? '进行中' : '未开始')) + '）'"
+                                >{{ i + 1 }}.{{ nd.nodeName }}</span>
+                              </template>
+                              <span v-if="!(td.chains || []).length && !(per.nodes || []).length" class="text-muted">—</span>
+                            </div>
+                          </td>
+                          <td class="text-right">
+                            <button v-if="td.todoStatus === 0" class="btn-process" @click="openProcess(td)"><i class="el-icon-s-claim" /> 处理</button>
+                            <button v-else class="btn-view" @click="openProcess(td)"><i class="el-icon-view" /> 查看详情</button>
+                          </td>
+                        </tr>
+                      </template>
                     </tbody>
                   </table>
                 </section>
@@ -183,7 +197,7 @@
 </template>
 
 <script>
-import { getMyTodoGrouped, getMyTodoStats, getTaskDetail, submitTask, saveDraftTask } from '@/api/task'
+import { getMyTodoGrouped, getMyTodoStats, getTaskDetail, submitTask, saveDraftTask } from '@/service/sys/TaskService'
 import ProcessDialog from './components/ProcessDialog.vue'
 
 export default {
@@ -220,6 +234,8 @@ export default {
     nodeTypeClass(t) { return { 1: 'badge-start', 3: 'badge-end' }[t] || 'badge-mid' },
     /** 期次下待处理的节点（第一条未处理） */
     periodPending(per) { return (per.todos || []).find(t => t.todoStatus === 0) || null },
+    /** 期次下全部待办（同一期次可能有多条不同子任务的待办节点） */
+    periodTodos(per) { return (per.todos || []).filter(t => t.todoStatus === 0) },
     /** 期次下展示的当前节点：待处理优先，否则取最后一条已处理记录 */
     periodCurrentTodo(per) {
       const pending = this.periodPending(per)
@@ -441,6 +457,8 @@ $border: #CBD5E1;
 .badge-end { background: rgba(var(--color-primary-rgb),0.1); color: $primary; }
 .btn-process { display: flex; align-items: center; gap: 4px; padding: 6px 14px; background: $primary; color: #fff; border: none; border-radius: 2px; cursor: pointer; font-size: 13px; font-weight: 600;
   &:hover { opacity: 0.9; }
+
+
 }
 .btn-view { display: flex; align-items: center; gap: 4px; padding: 6px 14px; background: #fff; color: #545f72; border: 1px solid #d8dee9; border-radius: 2px; cursor: pointer; font-size: 13px; font-weight: 600;
   &:hover { background: #f0f3ff; border-color: #b7c3d8; }

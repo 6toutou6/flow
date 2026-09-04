@@ -12,11 +12,8 @@
         <div v-for="r in templateFieldRows" :key="r.id" class="tpl-item">
           <span class="tpl-label">
             {{ r.label }}
-            <el-tooltip v-if="r.roleTip" :content="r.roleTip" placement="top">
-              <span class="role-hint-icon" :class="r.role === 2 ? 'role-handler' : 'role-creator'">
-                <i :class="r.role === 2 ? 'el-icon-user' : 'el-icon-s-custom'" />
-              </span>
-            </el-tooltip>
+            <span v-if="r.role === 2" class="tpl-handler-note"><i class="el-icon-user" /> {{ r.roleTip || '处理人填写' }}</span>
+            <span v-else class="tpl-creator-note"><i class="el-icon-s-custom" /> 创建人填写</span>
           </span>
           <span class="tpl-value">{{ r.value || '—' }}</span>
         </div>
@@ -41,7 +38,7 @@
               :key="idx"
               class="chain-chip"
               :class="['chip-' + item.status, { clickable: item.status === 'done', expanded: hExpandedNodeId === item.nodeId, mine: item.isMine }]"
-              :title="`${idx + 1}. ${item.nodeName}（${statusLabel(item.status)}）`"
+              :title="`${idx + 1}. ${item.nodeName}（${statusLabel(item.status)}）${item.assignedText ? '\n处理人：' + item.assignedText : ''}${item.handledText && item.assignedText !== item.handledText ? '\n实际处理：' + item.handledText : ''}`"
               @click="toggleNodeForm(item)"
             >
               <span class="cc-no">{{ idx + 1 }}</span>
@@ -57,12 +54,16 @@
           <div class="sd-head">
             <span class="sd-no">{{ hExpandedIndex + 1 }}</span>
             <span class="sd-name">{{ hExpandedItem.nodeName }}</span>
+            <span v-if="hExpandedItem.latestDone && hExpandedItem.latestDone.handleTime" class="step-time"><i class="el-icon-time" /> {{ hExpandedItem.latestDone.handleTime }}</span>
             <span class="step-badge" :class="'badge-' + hExpandedItem.status">{{ statusLabel(hExpandedItem.status) }}</span>
             <span v-if="hExpandedItem.status === 'current'" class="cur-stage-tag">当前阶段</span>
-            <span v-if="hExpandedItem.latestDone" class="sd-meta"><i class="el-icon-user" /> {{ hExpandedItem.latestDone.handlerName || '—' }}</span>
-            <span v-if="hExpandedItem.latestDone" class="sd-meta"><i class="el-icon-time" /> {{ hExpandedItem.latestDone.handleTime || '—' }}</span>
-            <span v-if="hExpandedItem.latestDone && nodeOverdue(hExpandedItem.latestDone.handleTime)" class="sd-overdue"><i class="el-icon-alarm-clock" /> 超期处理</span>
-            <span v-if="hExpandedItem.rejectReason" class="meta-reason" :title="hExpandedItem.rejectReason"><i class="el-icon-warning-outline" /> 退回建议：{{ hExpandedItem.rejectReason }}</span>
+            <div class="sd-handlers">
+              <span v-if="hExpandedItem.hasPending" class="sd-meta"><i class="el-icon-user" /> 处理人：{{ hExpandedItem.pendingHandlersText || '—' }}</span>
+              <span v-if="hExpandedItem.latestDone" class="actual-handler"><i class="el-icon-user" /> 实际处理：{{ hExpandedItem.handledText || hExpandedItem.latestDone.handlerName || '—' }}</span>
+              <span v-if="hExpandedItem.latestDone && hExpandedItem.assignedText !== hExpandedItem.handledText" class="sd-meta"><i class="el-icon-s-custom" /> 当时分配：{{ hExpandedItem.assignedText }}</span>
+              <span v-if="hExpandedItem.latestDone && nodeOverdue(hExpandedItem.latestDone.handleTime)" class="sd-overdue"><i class="el-icon-alarm-clock" /> 超期处理</span>
+              <span v-if="hExpandedItem.rejectReason" class="meta-reason" :title="hExpandedItem.rejectReason"><i class="el-icon-warning-outline" /> 退回建议：{{ hExpandedItem.rejectReason }}</span>
+            </div>
           </div>
           <div class="step-expanded">
             <div class="expanded-left">
@@ -83,6 +84,18 @@
                   </div>
                 </div>
               </div>
+              <!-- 该节点处理人填写的任务基础字段（fieldRole=2）置顶展示 -->
+              <div v-if="hExpandedItem.latestDone && hExpandedItem.latestDone.baseDataList && hExpandedItem.latestDone.baseDataList.length > 0" class="bd-block">
+                <div class="expanded-sub-title bd-sub-title">
+                  任务基础信息
+                  <span class="bd-handler-note"><i class="el-icon-user" /> 「{{ hExpandedItem.nodeName }}」节点由 {{ hExpandedItem.latestDone.handlerName }}{{ hExpandedItem.latestDone.handlerUserId ? ' ' + hExpandedItem.latestDone.handlerUserId : '' }} 填写</span>
+                </div>
+                <div v-for="(bd, bi) in hExpandedItem.latestDone.baseDataList" :key="bi" class="form-row">
+                  <span class="fr-label">{{ bd.fieldLabel }}</span>
+                  <AttachField v-if="bd.fieldType === 'file' || bd.fieldType === 'image'" :value="bd.fieldValue" :field-type="bd.fieldType" readonly class="fr-value" />
+                  <span v-else class="fr-value">{{ bd.fieldValue || '—' }}</span>
+                </div>
+              </div>
               <div class="expanded-sub-title">表单数据（最近一次提交）</div>
               <div v-if="hExpandedItem.latestDone && hExpandedItem.latestDone.formDataList && hExpandedItem.latestDone.formDataList.length > 0" class="form-rows">
                 <div v-for="(fd, fi) in hExpandedItem.latestDone.formDataList" :key="fi" class="form-row">
@@ -92,20 +105,6 @@
                 </div>
               </div>
               <div v-else class="form-empty">该节点未填写表单数据</div>
-              <!-- 该节点处理人填写的任务基础字段（fieldRole=2） -->
-              <div v-if="hExpandedItem.latestDone && hExpandedItem.latestDone.baseDataList && hExpandedItem.latestDone.baseDataList.length > 0" class="bd-block">
-                <div class="expanded-sub-title bd-sub-title">
-                  任务基础信息
-                  <el-tooltip :content="`在「${hExpandedItem.nodeName}」节点由处理人填写`" placement="top">
-                    <span class="role-hint-icon role-handler"><i class="el-icon-user" /></span>
-                  </el-tooltip>
-                </div>
-                <div v-for="(bd, bi) in hExpandedItem.latestDone.baseDataList" :key="bi" class="form-row">
-                  <span class="fr-label">{{ bd.fieldLabel }}</span>
-                  <AttachField v-if="bd.fieldType === 'file' || bd.fieldType === 'image'" :value="bd.fieldValue" :field-type="bd.fieldType" readonly class="fr-value" />
-                  <span v-else class="fr-value">{{ bd.fieldValue || '—' }}</span>
-                </div>
-              </div>
             </div>
             <div class="expanded-right">
               <div class="expanded-sub-title">操作记录</div>
@@ -139,6 +138,7 @@
           <div class="step-head">
             <span class="step-no">{{ idx + 1 }}</span>
             <span class="step-name">{{ item.nodeName }}</span>
+            <span v-if="item.latestDone && item.latestDone.handleTime" class="step-time"><i class="el-icon-time" /> {{ item.latestDone.handleTime }}</span>
             <span class="step-badge" :class="'badge-' + item.status">{{ statusLabel(item.status) }}</span>
             <span v-if="item.status === 'current'" class="cur-stage-tag">当前阶段</span>
             <span v-if="item.latestDone" class="mine-tag">{{ item.latestDone.handlerName || '该人员' }}已处理</span>
@@ -146,12 +146,12 @@
           </div>
           <div class="step-meta">
             <template v-if="item.latestDone">
-              <span><i class="el-icon-user" /> {{ item.latestDone.handlerName || '—' }}</span>
-              <span><i class="el-icon-time" /> {{ item.latestDone.handleTime || '—' }}</span>
+              <span class="actual-handler"><i class="el-icon-user" /> 实际处理：{{ item.handledText || item.latestDone.handlerName || '—' }}</span>
+              <span v-if="item.assignedText !== item.handledText"><i class="el-icon-s-custom" /> 当时分配：{{ item.assignedText }}</span>
               <span v-if="nodeOverdue(item.latestDone.handleTime)" class="sd-overdue"><i class="el-icon-alarm-clock" /> 超期处理</span>
             </template>
             <template v-else-if="item.hasPending">
-              <span><i class="el-icon-user" /> {{ item.pendingHandlerNames || '待处理' }}</span>
+              <span><i class="el-icon-user" /> 处理人：{{ item.pendingHandlersText || '待处理' }}</span>
             </template>
             <span v-if="item.rejectReason" class="step-reject-reason"><i class="el-icon-warning-outline" /> 退回建议：{{ item.rejectReason }}</span>
           </div>
@@ -175,6 +175,18 @@
                   </div>
                 </div>
               </div>
+              <!-- 该节点处理人填写的任务基础字段（fieldRole=2）置顶展示 -->
+              <div v-if="item.latestDone && item.latestDone.baseDataList && item.latestDone.baseDataList.length > 0" class="bd-block">
+                <div class="expanded-sub-title bd-sub-title">
+                  任务基础信息
+                  <span class="bd-handler-note"><i class="el-icon-user" /> 「{{ item.nodeName }}」节点由 {{ item.latestDone.handlerName }}{{ item.latestDone.handlerUserId ? ' ' + item.latestDone.handlerUserId : '' }} 填写</span>
+                </div>
+                <div v-for="(bd, bi) in item.latestDone.baseDataList" :key="bi" class="form-row">
+                  <span class="fr-label">{{ bd.fieldLabel }}</span>
+                  <AttachField v-if="bd.fieldType === 'file' || bd.fieldType === 'image'" :value="bd.fieldValue" :field-type="bd.fieldType" readonly class="fr-value" />
+                  <span v-else class="fr-value">{{ bd.fieldValue || '—' }}</span>
+                </div>
+              </div>
               <div class="expanded-sub-title">表单数据（最近一次提交）</div>
               <div v-if="item.latestDone && item.latestDone.formDataList && item.latestDone.formDataList.length > 0" class="form-rows">
                 <div v-for="(fd, fi) in item.latestDone.formDataList" :key="fi" class="form-row">
@@ -184,20 +196,6 @@
                 </div>
               </div>
               <div v-else class="form-empty">该节点未填写表单数据</div>
-              <!-- 该节点处理人填写的任务基础字段（fieldRole=2） -->
-              <div v-if="item.latestDone && item.latestDone.baseDataList && item.latestDone.baseDataList.length > 0" class="bd-block">
-                <div class="expanded-sub-title bd-sub-title">
-                  任务基础信息
-                  <el-tooltip :content="`在「${item.nodeName}」节点由处理人填写`" placement="top">
-                    <span class="role-hint-icon role-handler"><i class="el-icon-user" /></span>
-                  </el-tooltip>
-                </div>
-                <div v-for="(bd, bi) in item.latestDone.baseDataList" :key="bi" class="form-row">
-                  <span class="fr-label">{{ bd.fieldLabel }}</span>
-                  <AttachField v-if="bd.fieldType === 'file' || bd.fieldType === 'image'" :value="bd.fieldValue" :field-type="bd.fieldType" readonly class="fr-value" />
-                  <span v-else class="fr-value">{{ bd.fieldValue || '—' }}</span>
-                </div>
-              </div>
             </div>
             <div class="expanded-right">
               <div class="expanded-sub-title">操作记录</div>
@@ -265,6 +263,7 @@
 
 <script>
 import AttachField from '@/components/AttachField.vue'
+import { formatNodeHandlers } from '@/utils'
 
 export default {
   name: 'HandlerFlowDetail',
@@ -299,16 +298,25 @@ export default {
       const data = this.taskDetail.templateData || {}
       const hbData = this.taskDetail.handlerBaseData || {}
       const tplNodes = this.taskDetail.templateNodes || []
+      // 处理人填写字段（fieldRole=2）：回溯实际提交该字段的任务节点，标注「哪个节点由谁填写」
+      const filledNodes = (this.taskDetail.taskNodes || []).filter(tn => tn.submitStatus === 1 && Array.isArray(tn.baseDataList))
       return fields.map(f => {
-        // 处理人填写字段（fieldRole=2）值来自各节点提交汇总；创建人填写字段来自下发值
+        // 处理人填写字段值来自各节点提交汇总；创建人填写字段来自下发值
         const map = f.fieldRole === 2 ? hbData : data
         const node = f.fieldRole === 2 ? tplNodes.find(n => n.id === f.bindNodeId) : null
+        let srcText = null
+        if (f.fieldRole === 2) {
+          const hit = filledNodes.filter(tn => tn.baseDataList.some(b => String(b.fieldId) === String(f.id)))
+            .sort((a, b) => (a.taskNodeId || 0) - (b.taskNodeId || 0))
+          const src = hit[hit.length - 1]
+          if (src) srcText = `「${src.nodeName}」节点由 ${src.handlerName}${src.handlerUserId ? ' ' + src.handlerUserId : ''} 填写`
+        }
         return {
           id: f.id,
           label: f.fieldLabel,
           role: f.fieldRole === 2 ? 2 : 1,
           roleTip: f.fieldRole === 2
-            ? (node ? `在「${node.nodeName}」节点由处理人填写` : '由处理人填写')
+            ? (srcText || (node ? `在「${node.nodeName}」节点由处理人填写` : '由处理人填写'))
             : '创建人填写',
           value: map[f.id] !== undefined && map[f.id] !== null ? String(map[f.id]) : ''
         }
@@ -363,12 +371,12 @@ export default {
               rejectReason: tn.rejectReason,
               passComment: tn.passComment
             }))
-          // 待处理人名（同一节点多处理人全部展示）
-          const pendingHandlerNames = pendingNodes
-            .map(tn => tn.handlerName)
-            .filter(Boolean)
-            .filter((v, i, arr) => arr.indexOf(v) === i)
-            .join('、')
+          // 待处理人名（同一节点多处理人全部展示，带用户号）
+          const pendingHandlersText = formatNodeHandlers(nodes, true)
+          // 节点分配的全部处理人（当时选了谁就能看到谁；已完成节点也保留完整名单）
+          const assignedText = formatNodeHandlers(nodes, false)
+          // 已处理人（实际处理者，带用户号）
+          const handledText = latestDone ? formatNodeHandlers([latestDone], false) : ''
           // 退回建议：优先取重做待办携带的（退回时写入），其次取该节点历史已退回记录
           const rejectReason = (pendingNodes.find(n => n.rejectReason) || doneNodes.find(n => n.action === 1 && n.rejectReason) || {}).rejectReason
           return {
@@ -380,7 +388,9 @@ export default {
             status,
             hasPending,
             latestDone,
-            pendingHandlerNames,
+            pendingHandlersText,
+            assignedText,
+            handledText,
             rejectReason,
             branchCount: nodes.length,
             actionHistory,
@@ -630,4 +640,22 @@ $border: #CBD5E1;
   i { font-size: 48px; display: block; margin-bottom: 12px; }
   p { font-size: 14px; margin: 0; }
 }
+
+// ===== 处理人回显/字段来源增强样式 =====
+// 实际处理人（置前高亮，绿色底）
+.actual-handler { display: inline-flex; align-items: center; gap: 4px; padding: 1px 10px; border-radius: 4px; font-weight: 600; color: #fff; background: #15803D; font-size: 12px; line-height: 1.7;
+  i { color: #fff; font-size: 12px; }
+}
+// 任务基础字段来源注明（顶部汇总区）
+.tpl-handler-note { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 400; color: var(--color-primary); background: rgba(var(--color-primary-rgb), 0.08); padding: 0 6px; border-radius: 3px; vertical-align: 1px; }
+.tpl-creator-note { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 400; color: #8a93a5; background: #F1F3F6; padding: 0 6px; border-radius: 3px; vertical-align: 1px; }
+// 节点展开内「任务基础信息」注明（xx节点由谁填写）
+.bd-handler-note { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 400; color: var(--color-primary); margin-left: 6px;
+  i { color: var(--color-primary); font-size: 12px; }
+}
+
+.step-time { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 400; color: #8a93a5; margin-left: 2px;
+  i { font-size: 12px; }
+}
+.sd-handlers { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; flex-basis: 100%; margin-top: 2px; }
 </style>

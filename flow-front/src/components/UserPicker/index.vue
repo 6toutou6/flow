@@ -1,7 +1,7 @@
 <template>
   <el-dialog :title="title" :visible.sync="dialogVisible" width="760px" :close-on-click-modal="false" append-to-body @close="handleClose">
     <div class="picker-filter">
-      <input v-model="filter.realName" class="filter-input" placeholder="姓名" @keyup.enter="loadUsers">
+      <input v-model="filter.userName" class="filter-input" placeholder="姓名/用户号" @keyup.enter="loadUsers">
       <input v-model="filter.deptName" class="filter-input" placeholder="部门" @keyup.enter="loadUsers">
       <button class="btn-search" @click="loadUsers">查询</button>
     </div>
@@ -10,12 +10,12 @@
       ref="userTable"
       :data="userList"
       height="360"
-      row-key="id"
+      row-key="yyytId"
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="45" :selectable="isSelectable" />
-      <el-table-column prop="empNo" label="员工号" width="110" />
-      <el-table-column prop="realName" label="姓名" width="110" />
+      <el-table-column prop="yyytId" label="用户号" width="120" />
+      <el-table-column prop="userName" label="姓名" width="110" />
       <el-table-column prop="deptName" label="部门" />
       <el-table-column prop="phone" label="手机号" width="140" />
     </el-table>
@@ -30,7 +30,7 @@
 </template>
 
 <script>
-import { getUserList } from '@/api/sysuser'
+import { searchUsers } from '@/service/base/UserService'
 
 export default {
   name: 'UserPicker',
@@ -38,14 +38,14 @@ export default {
     visible: { type: Boolean, default: false },
     /** 弹窗标题（可选） */
     title: { type: String, default: '选择处理人（可多选）' },
-    /** 已选处理人ID列表，这些行禁用勾选避免重复 */
+    /** 已选处理人用户号列表，这些行禁用勾选避免重复 */
     excludeIds: { type: Array, default: () => [] }
   },
   data() {
     return {
       loading: false,
       userList: [],
-      filter: { realName: '', deptName: '' },
+      filter: { userName: '', deptName: '' },
       selection: []
     }
   },
@@ -59,7 +59,7 @@ export default {
     visible(val) {
       if (val) {
         this.selection = []
-        this.filter = { realName: '', deptName: '' }
+        this.filter = { userName: '', deptName: '' }
         this.$nextTick(() => {
           this.loadUsers()
         })
@@ -69,13 +69,19 @@ export default {
   methods: {
     isSelectable(row) {
       // 已在已选列表中的禁用勾选，避免重复添加
-      return !this.excludeIds.includes(row.id)
+      return !this.excludeIds.includes(row.yyytId)
     },
     async loadUsers() {
       this.loading = true
       try {
-        const res = await getUserList({ page: 1, limit: 200, status: 1, ...this.filter })
-        this.userList = res.data.records || []
+        const params = { userName: this.filter.userName || null }
+        const res = await searchUsers(params)
+        let list = res.data || []
+        // 部门过滤（searchUsers 不支持部门条件，前端过滤）
+        if (this.filter.deptName) {
+          list = list.filter(u => (u.deptName || '').indexOf(this.filter.deptName) >= 0)
+        }
+        this.userList = list
       } catch (e) {
         console.error(e)
       } finally {

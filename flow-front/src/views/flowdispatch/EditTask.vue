@@ -4,15 +4,17 @@
       <section class="page-content">
         <!-- 页头 -->
         <div class="page-header">
-          <div>
+          <div class="header-left">
+            <div class="hl-row1">
+            <button class="btn-back" @click="goBack"><i class="el-icon-arrow-left" /> 返回</button>
             <nav class="breadcrumb">
               <span class="link" @click="goBack">任务管理</span>
               <span>/</span>
               <span class="active">{{ isEdit ? '编辑任务' : '新建任务' }}</span>
             </nav>
-            <h3 class="page-heading">{{ isEdit ? '编辑任务' : '新建任务' }}</h3>
           </div>
-          <button class="btn-back" @click="goBack"><i class="el-icon-arrow-left" /> 返回</button>
+          <h3 class="page-heading">{{ isEdit ? '编辑任务' : '新建任务' }}</h3>
+          </div>
         </div>
 
         <!-- 提示条 -->
@@ -71,6 +73,20 @@
                   <el-checkbox v-for="opt in parseOptions(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-checkbox>
                 </el-checkbox-group>
                 <el-input v-else v-model="templateForm[f.id]" :placeholder="f.placeholder || '请输入' + f.fieldLabel" />
+              </div>
+              <!-- 处理人填写字段：任务配置阶段只读展示（由处理人处理节点时填写） -->
+              <div v-if="handlerFields.length" class="handler-fields-box">
+                <div class="tpl-fields-title">
+                  <i class="el-icon-user" /> 处理人填写字段
+                  <span class="tpl-fields-tip">（由处理人在对应节点处理时填写，此处仅展示）</span>
+                </div>
+                <div v-for="f in handlerFields" :key="f.id" class="form-row handler-row">
+                  <label class="form-label"><span v-if="f.required === 1" class="req">*</span> {{ f.fieldLabel }}</label>
+                  <div class="handler-field-tip">
+                    <i class="el-icon-info" />
+                    {{ handlerNodeName(f) ? '由处理人在「' + handlerNodeName(f) + '」节点处理时填写' : '由处理人处理对应节点时填写' }}
+                  </div>
+                </div>
               </div>
               <!-- 模板流程预览（横向流程链，点击节点展开查看表单字段） -->
               <div v-if="templateNodes.length > 0" class="tpl-flow-preview">
@@ -232,19 +248,38 @@
               <button class="btn-add-user" @click="pickerVisible = true"><i class="el-icon-plus" /> 添加人员</button>
             </div>
             <div v-if="firstHandlers.length > 0" class="handler-list">
-              <div v-for="(h, i) in firstHandlers" :key="h.id" class="handler-card">
-                <div class="handler-info">
-                  <div class="handler-avatar">{{ h.realName ? h.realName.charAt(0) : 'U' }}</div>
-                  <div class="handler-detail">
-                    <div class="handler-name">{{ h.realName }} <span class="handler-emp">{{ h.empNo }}</span></div>
-                    <div class="handler-dept">{{ h.deptName || '—' }}</div>
-                  </div>
-                </div>
-                <div class="handler-actions">
-                  <span class="handler-idx">#{{ i + 1 }}</span>
-                  <button class="action-link text-error" @click="removeHandler(h.id)"><i class="el-icon-close" /> 移除</button>
-                </div>
-              </div>
+              <table class="member-table">
+                <thead>
+                  <tr>
+                    <th class="col-user">人员</th>
+                    <th class="col-task">任务名称<span class="col-task-tip">下发后该成员每期任务以此名称区分</span></th>
+                    <th class="col-op">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="h in firstHandlers" :key="h.id" class="mt-row">
+                    <td>
+                      <div class="mt-user">
+                        <span class="mt-avatar">{{ h.userName ? h.userName.charAt(0) : 'U' }}</span>
+                        <span class="mt-name">{{ h.userName }}<em class="mt-emp">{{ h.yyytId }}</em></span>
+                        <span class="mt-dept">{{ h.deptName || '—' }}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <input
+                        v-model="h.taskName"
+                        class="ht-input"
+                        maxlength="100"
+                        :placeholder="defaultTaskName(h)"
+                        @blur="ensureHandlerTaskName(h)"
+                      >
+                    </td>
+                    <td class="col-op">
+                      <button class="action-link text-error" @click="removeHandler(h.id)"><i class="el-icon-close" /> 移除</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
             <div v-else class="empty-handler">
               <i class="el-icon-user" />
@@ -276,8 +311,8 @@
 </template>
 
 <script>
-import { getTemplateDetail, getTemplateList } from '@/api/template'
-import { saveDispatchPlan, updateDispatchPlan, getTaskMembers, getDispatchTask, getConfigTemplates } from '@/api/flowDispatch'
+import { getTemplateDetail, getTemplateList } from '@/service/sys/TemplateService'
+import { saveDispatchPlan, updateDispatchPlan, getTaskMembers, getDispatchTask, getConfigTemplates } from '@/service/sys/FlowDispatchService'
 import UserPicker from '@/components/UserPicker'
 import AttachField from '@/components/AttachField'
 
@@ -321,9 +356,13 @@ export default {
   },
   computed: {
     isEdit() { return !!this.$route.query.id },
-    taskId() { return this.$route.query.id ? Number(this.$route.query.id) : null },
+    taskId() { return this.$route.query.id || null },
     creatorFields() {
       return (this.templateFields || []).filter(f => f.fieldRole !== 2)
+    },
+    /** 处理人填写字段（fieldRole=2）：任务配置阶段只读展示 */
+    handlerFields() {
+      return (this.templateFields || []).filter(f => f.fieldRole === 2)
     },
     excludeUserIds() {
       return this.firstHandlers.map(h => h.id)
@@ -357,6 +396,12 @@ export default {
     hasNodeGuide() {
       const n = this.expandedNode && this.expandedNode.node
       return !!(n && (n.guideText || n.guideFiles))
+    }
+  },
+  watch: {
+    // 配置模板列表加载完成后再做一次反向匹配（initEdit 可能早于列表返回）
+    configTemplates() {
+      this.matchPickedTemplate()
     }
   },
   created() {
@@ -436,11 +481,13 @@ export default {
           }
         }
         this.firstHandlers = (memberRes.data || []).map(m => ({
-          id: m.userId,
-          realName: m.realName,
-          empNo: m.empNo,
-          deptName: m.deptName
+          id: m.yyytId,
+          yyytId: m.yyytId,
+          userName: m.userName,
+          deptName: m.deptName,
+          taskName: m.taskName || this.defaultTaskName(m)
         }))
+        this.matchPickedTemplate()
       } catch (e) {
         console.error(e)
         this.$message.error('任务加载失败')
@@ -448,6 +495,25 @@ export default {
         this.loading = false
       }
     },
+    /** 处理人填写字段绑定的节点名（bindNodeId → 模板节点链中的 nodeName） */
+    handlerNodeName(field) {
+      if (!field || !field.bindNodeId) return ''
+      const nv = (this.templateNodes || []).find(n => n.node && n.node.id === field.bindNodeId)
+      return nv && nv.node ? nv.node.nodeName : ''
+    },
+
+    /** 编辑回显：按任务当前周期配置反向匹配下发配置模板（无匹配则保持不选） */
+    matchPickedTemplate() {
+      if (!this.isEdit || !this.configTemplates.length || !this.form.cycleType) return
+      const match = this.configTemplates.find(t =>
+        t.cycleType === this.form.cycleType &&
+        (t.cycleDay === this.form.cycleDay) &&
+        (t.deadlineDays === this.form.deadlineDays) &&
+        ((t.urgeDays || 0) === (this.form.urgeDays || 0))
+      )
+      this.pickedTplId = match ? match.id : null
+    },
+
     async loadTemplateFields(templateId) {
       if (!templateId) return
       try {
@@ -508,9 +574,21 @@ export default {
     confirmPick(users) {
       const existing = new Set(this.firstHandlers.map(h => h.id))
       users.forEach(u => {
-        if (!existing.has(u.id)) this.firstHandlers.push({ ...u })
+        const uid = u.yyytId || u.id
+        if (uid && !existing.has(uid)) {
+          this.firstHandlers.push({ id: uid, yyytId: uid, userName: u.userName, deptName: u.deptName, taskName: this.defaultTaskName({ userName: u.userName }) })
+        }
       })
       this.pickerVisible = false
+    },
+    defaultTaskName(h) {
+      const n = (h && h.userName) || ''
+      return n ? '下发给' + n + '的任务' : '下发给的任务'
+    },
+    ensureHandlerTaskName(h) {
+      if (!h.taskName || !h.taskName.trim()) {
+        this.$nextTick(() => { h.taskName = this.defaultTaskName(h) })
+      }
     },
     removeHandler(id) {
       this.firstHandlers = this.firstHandlers.filter(h => h.id !== id)
@@ -518,10 +596,6 @@ export default {
     async handleSubmit() {
       if (!this.form.taskName || !this.form.taskName.trim()) {
         this.$message.warning('请填写任务名称')
-        return
-      }
-      if (!this.form.templateId) {
-        this.$message.warning('请选择流程模板')
         return
       }
       for (const f of this.creatorFields) {
@@ -534,6 +608,10 @@ export default {
           }
         }
       }
+      if (!this.form.templateId) {
+        this.$message.warning('请选择流程模板')
+        return
+      }
       if (this.form.cycleType !== 4 && !this.form.cycleDay) {
         this.$message.warning('请选择触发日')
         return
@@ -545,10 +623,10 @@ export default {
       this.saving = true
       try {
         const templateData = {}
+        // 创建人填写字段全部写入键（空值写空串），使任务固化字段集与模板创建人字段集一致（供一致性检测/同步判定）
         this.creatorFields.forEach(f => {
           const v = this.templateForm[f.id]
-          if (v === undefined || v === null || v === '') return
-          templateData[f.id] = Array.isArray(v) ? v.join(',') : String(v)
+          templateData[f.id] = Array.isArray(v) ? v.join(',') : (v === undefined || v === null ? '' : String(v))
         })
         const payload = {
           id: this.isEdit ? this.form.id : null,
@@ -561,11 +639,20 @@ export default {
           deadlineDays: this.form.deadlineDays,
           urgeDays: this.form.urgeDays,
           status: this.form.status,
-          memberIds: this.firstHandlers.map(h => h.id)
+          memberIds: this.firstHandlers.map(h => h.id),
+          memberTaskNames: this.firstHandlers.reduce((acc, h) => {
+            acc[h.id] = (h.taskName && h.taskName.trim()) ? h.taskName.trim() : this.defaultTaskName(h)
+            return acc
+          }, {})
         }
         const res = this.isEdit ? await updateDispatchPlan(payload) : await saveDispatchPlan(payload)
         this.$message.success(res.message || '保存成功')
-        this.goBack()
+        if (!this.isEdit) {
+          this.goBack()
+        } else {
+          // 编辑模式：保存后留在本页并刷新回显（成员/模板配置）
+          this.initEdit()
+        }
       } catch (e) {
         console.error(e)
         this.$message.error((e && e.message) || '保存失败')
@@ -646,6 +733,9 @@ $border: #CBD5E1;
 .main-content { width: 100%; display: flex; flex-direction: column; min-height: 100vh; }
 .page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; box-sizing: border-box; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; }
+.header-left { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.hl-row1 { display: flex; align-items: center; gap: 14px; }
+.hl-row1 .breadcrumb { margin-bottom: 0; }
 .breadcrumb { display: flex; gap: 8px; font-size: 12px; line-height: 20px; color: #414755; margin-bottom: 8px;
   .active { color: $primary; font-weight: 600; }
   .link { color: $primary; cursor: pointer;
@@ -653,7 +743,8 @@ $border: #CBD5E1;
   }
 }
 .page-heading { font-size: 24px; line-height: 32px; font-weight: 600; color: #1b1c1c; }
-.btn-back { display: flex; align-items: center; gap: 4px; padding: 8px 16px; background: #fff; border: 1px solid $border; border-radius: 2px; color: var(--color-primary); cursor: pointer; font-size: 13px;
+.btn-back { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: transparent; border: none; color: var(--color-primary); cursor: pointer; font-size: 13px; transition: background .2s;
+  &:hover { background: rgba(var(--color-primary-rgb), 0.08); }
   &:hover { background: var(--color-primary-light); }
 }
 .tip-bar { display: flex; align-items: center; gap: 8px; background: var(--color-primary-light); border: 1px solid $border; color: var(--color-primary-hover); font-size: 13px; border-radius: 3px; padding: 10px 14px;
@@ -686,6 +777,9 @@ $border: #CBD5E1;
 .field-tip { font-size: 12px; color: #909399; }
 .cycle-tip { font-size: 12px; color: var(--color-primary-hover); background: var(--color-primary-light); border-radius: 2px; padding: 7px 10px; margin-bottom: 14px; line-height: 1.6; }
 .tpl-fields-box { margin-top: 8px; padding: 16px; border: 1px dashed $border; border-radius: 3px; background: var(--color-primary-light); }
+.handler-fields-box { margin-top: 12px; padding: 12px 16px; border: 1px dashed $border; border-radius: 3px; background: rgba(114, 119, 134, 0.06); }
+.handler-row { margin-bottom: 10px; }
+.handler-field-tip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #727786; line-height: 1.6; padding: 6px 10px; background: #fff; border: 1px solid #CBD5E1; border-radius: 3px; }
 .tpl-flow-preview { margin-top: 10px; padding: 14px 16px; background: #fff; border: 1px solid rgba(var(--color-primary-rgb),0.35); border-radius: 3px; box-shadow: 0 1px 4px rgba(var(--color-primary-rgb),0.08); }
 .tpl-flow-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: #1b1c1c; margin-bottom: 10px;
   i { color: $primary; }
@@ -769,20 +863,24 @@ $border: #CBD5E1;
 .btn-add-user { display: flex; align-items: center; gap: 4px; padding: 6px 14px; background: $primary; color: #fff; border: none; border-radius: 2px; cursor: pointer; font-size: 13px; font-weight: 600;
   &:hover { opacity: 0.9; }
 }
-.handler-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
-.handler-card { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border: 1px solid $border; border-radius: 3px; background: var(--color-primary-light); }
-.handler-info { display: flex; align-items: center; gap: 12px; }
-.handler-avatar { width: 38px; height: 38px; border-radius: 50%; background: $primary; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; }
-.handler-detail { display: flex; flex-direction: column; gap: 2px; }
-.handler-name { font-size: 14px; font-weight: 700; color: #1b1c1c; }
-.handler-emp { font-size: 12px; color: #757575; font-weight: 400; margin-left: 6px; font-family: monospace; }
-.handler-dept { font-size: 12px; color: #757575; }
-.handler-actions { display: flex; gap: 12px; align-items: center; }
-.handler-idx { font-size: 12px; color: #999; }
-.action-link { color: $primary; background: none; border: none; cursor: pointer; font-size: 13px;
-  &:hover { text-decoration: underline; }
+.handler-list { border: 1px solid $border; border-radius: 3px; overflow: hidden; }
+.member-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.member-table th { text-align: left; font-size: 12px; font-weight: 500; color: #8a93a5; background: #F7F9FC; padding: 8px 14px; border-bottom: 1px solid $border; }
+.member-table td { padding: 6px 10px; border-bottom: 1px solid #F0F2F6; vertical-align: middle; }
+.member-table tbody tr:last-child td { border-bottom: none; }
+.member-table tbody tr:hover td { background: #F8FAFC; }
+.col-user { width: 34%; }
+.col-task-tip { color: #b0b4bd; font-weight: 400; margin-left: 8px; }
+.col-op { width: 100px; text-align: right; }
+.member-table .col-op .action-link { white-space: nowrap; flex-shrink: 0; }
+.mt-user { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mt-avatar { width: 26px; height: 26px; border-radius: 50%; background: $primary; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.mt-name { font-size: 13px; font-weight: 600; color: #1b1c1c; white-space: nowrap; }
+.mt-emp { font-style: normal; font-size: 12px; color: #999; margin-left: 6px; font-family: monospace; }
+.mt-dept { font-size: 12px; color: #8a93a5; margin-left: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ht-input { width: 100%; min-width: 0; height: 28px; padding: 0 10px; border: 1px solid #DCDFE6; border-radius: 3px; font-size: 13px; color: #1b1c1c; background: #fff; outline: none; transition: border-color .2s;
+  &:focus { border-color: $primary; }
 }
-.text-error { color: #DC2626; }
 .empty-handler { text-align: center; padding: 40px 20px; color: #bbb; border: 1px dashed $border; border-radius: 3px;
   i { font-size: 40px; display: block; margin-bottom: 8px; }
   p { margin: 4px 0; font-size: 14px; color: #999; }

@@ -44,8 +44,8 @@
       </div>
       <div v-if="nextHandlers.length > 0" class="handler-list">
         <div v-for="(h, i) in nextHandlers" :key="h.id" class="handler-chip">
-          <span class="hc-avatar">{{ h.realName ? h.realName.charAt(0) : 'U' }}</span>
-          <span class="hc-name">{{ h.realName }} <span class="hc-emp">{{ h.empNo }}</span></span>
+          <span class="hc-avatar">{{ h.userName ? h.userName.charAt(0) : 'U' }}</span>
+          <span class="hc-name">{{ h.userName }} <span class="hc-emp">{{ h.yyytId }}</span></span>
           <i class="el-icon-close hc-remove" @click="removeHandler(h.id)" />
         </div>
       </div>
@@ -131,11 +131,14 @@ export default {
   },
   methods: {
     onPickUsers(users) {
+      // UserPicker 返回的用户只有 yyytId 无 id，去重一律用 yyytId（兼容两种）
       const ids = this.nextHandlers.map(h => h.id)
       ;(users || []).forEach(u => {
-        if (!ids.includes(u.id)) {
-          this.nextHandlers.push({ id: u.id, realName: u.realName, empNo: u.empNo })
-          ids.push(u.id)
+        const uid = u.yyytId || u.id
+        if (!uid) return
+        if (!ids.includes(uid)) {
+          this.nextHandlers.push({ id: uid, userName: u.userName, yyytId: uid })
+          ids.push(uid)
         }
       })
       this.pickerVisible = false

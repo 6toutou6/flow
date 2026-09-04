@@ -118,16 +118,36 @@
           <p>尚未选择人员，请点击「临时增加人员」添加</p>
         </div>
         <div v-else class="gpd-members">
-          <div v-for="m in tempMembers" :key="m.userId" class="gpd-chip">
-            <span class="gpd-avatar">{{ (m.realName || 'U').charAt(0) }}</span>
-            <div class="gpd-chip-info">
-              <span class="gpd-chip-name">{{ m.realName }}<i v-if="m.empNo" class="gpd-emp">{{ m.empNo }}</i></span>
-              <span class="gpd-chip-dept">{{ m.deptName || '—' }}</span>
-            </div>
-            <i class="el-icon-close gpd-x" @click="removeMember(m.userId)" />
-          </div>
+          <table class="gpdmt">
+            <thead>
+              <tr>
+                <th class="gpdmt-col-user">人员</th>
+                <th class="gpdmt-col-name">下发任务名称<span class="gpdmt-tip">下发后展示在任务处理页/期次人员中</span></th>
+                <th class="gpdmt-col-op">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="m in tempMembers" :key="m.yyytId" class="gpdmt-row">
+                <td>
+                  <div class="gpdmt-user">
+                    <span class="gpdmt-avatar">{{ (m.userName || 'U').charAt(0) }}</span>
+                    <div class="gpdmt-uinfo">
+                      <span class="gpdmt-name">{{ m.userName }}</span>
+                      <i v-if="m.yyytId" class="gpdmt-emp">{{ m.yyytId }}</i>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <input v-model="m.taskName" class="gpdmt-input" maxlength="100" :placeholder="defaultTaskName(m)" @blur="ensureTaskName(m)">
+                </td>
+                <td class="gpdmt-col-op">
+                  <i class="el-icon-close gpdmt-x" :title="'移除 ' + (m.userName || '')" @click="removeMember(m.yyytId)" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <div class="gpd-tip"><i class="el-icon-info" /> 临时增删仅影响本期次，不改动任务配置人员</div>
+        <div class="gpd-tip"><i class="el-icon-info" /> 临时增删与修改任务名仅影响本期次，不改动任务配置人员</div>
       </div>
     </div>
 
@@ -155,7 +175,7 @@
 </template>
 
 <script>
-import { getPreviewPeriod, generatePeriod } from '@/api/flowDispatch'
+import { getPreviewPeriod, generatePeriod } from '@/service/sys/FlowDispatchService'
 import UserPicker from '@/components/UserPicker'
 
 export default {
@@ -206,7 +226,7 @@ export default {
       }
     },
     pickerExcludeIds() {
-      return this.tempMembers.map(m => m.userId)
+      return this.tempMembers.map(m => m.yyytId)
     },
     // 下发配置摘要（task 由列表接口 JOIN 配置表带出）
     cycleText() {
@@ -236,8 +256,8 @@ export default {
       const days = (this.task && this.task.deadlineDays) || 7
       this.manualStartTime = this.formatDateTime(now)
       this.manualEndTime = this.formatDateTime(new Date(now.getTime() + days * 24 * 3600 * 1000))
-      // 默认抄用任务配置人员，可临时增删（不影响任务配置）
-      this.tempMembers = (this.members || []).map(m => ({ ...m }))
+      // 默认抄用任务配置人员，可临时增删（不影响任务配置）；每人任务名默认沿用任务配置名单名/「下发给{姓名}的任务」
+      this.tempMembers = (this.members || []).map(m => ({ ...m, taskName: m.taskName || this.defaultTaskName(m) }))
       this.loadPreview()
     },
     async loadPreview() {
@@ -260,16 +280,26 @@ export default {
       }
     },
     confirmPick(users) {
-      const existing = new Set(this.tempMembers.map(m => m.userId))
-      users.forEach(u => {
-        if (!existing.has(u.id)) {
-          this.tempMembers.push({ userId: u.id, realName: u.realName, empNo: u.empNo, deptName: u.deptName })
-        }
+      const existing = new Set(this.tempMembers.map(m => m.yyytId))
+      ;(users || []).forEach(u => {
+        const uid = u.yyytId || u.id
+        if (!uid || existing.has(uid)) return
+        existing.add(uid)
+        this.tempMembers.push({ yyytId: uid, userName: u.userName, deptName: u.deptName, taskName: this.defaultTaskName({ userName: u.userName }) })
       })
       this.pickerVisible = false
     },
-    removeMember(userId) {
-      this.tempMembers = this.tempMembers.filter(m => m.userId !== userId)
+    defaultTaskName(m) {
+      const n = (m && m.userName) || ''
+      return n ? '下发给' + n + '的任务' : '下发给的任务'
+    },
+    ensureTaskName(m) {
+      if (!m.taskName || !m.taskName.trim()) {
+        this.$nextTick(() => { m.taskName = this.defaultTaskName(m) })
+      }
+    },
+    removeMember(yyytId) {
+      this.tempMembers = this.tempMembers.filter(m => m.yyytId !== yyytId)
     },
     /** 日期时间 → yyyy-MM-dd HH:mm:ss 字符串 */
     formatDateTime(d) {
@@ -301,7 +331,11 @@ export default {
           immediate: this.mode === 'auto' ? this.immediate : true,
           periodName: this.periodName.trim(),
           manual: this.mode === 'manual',
-          memberIds: this.tempMembers.map(m => m.userId)
+          memberIds: this.tempMembers.map(m => m.yyytId),
+          memberTaskNames: this.tempMembers.reduce((acc, m) => {
+            acc[m.yyytId] = (m.taskName && m.taskName.trim()) ? m.taskName.trim() : this.defaultTaskName(m)
+            return acc
+          }, {})
         }
         if (this.mode === 'manual') {
           payload.startTime = this.manualStartTime
@@ -379,19 +413,30 @@ $primary: var(--color-primary);
   i { font-size: 34px; display: block; margin-bottom: 8px; }
   p { margin: 0; font-size: 13px; }
 }
-.gpd-members { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-.gpd-chip { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #CBD5E1; border-radius: 3px; padding: 8px 10px; transition: all .2s;
-  &:hover { border-color: $primary; box-shadow: 0 2px 8px rgba(var(--color-primary-rgb),0.1); }
-}
-.gpd-avatar { width: 34px; height: 34px; border-radius: 50%; background: $primary; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; flex-shrink: 0; }
-.gpd-chip-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.gpd-chip-name { font-size: 13px; font-weight: 700; color: #1b1c1c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gpd-emp { font-style: normal; font-size: 11px; color: #909399; font-weight: 400; margin-left: 5px; font-family: monospace; }
-.gpd-chip-dept { font-size: 11px; color: #909399; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gpd-x { color: #ccc; cursor: pointer; font-size: 14px; flex-shrink: 0;
-  &:hover { color: $primary; }
-}
 .gpd-footer { display: flex; justify-content: space-between; align-items: center; }
 .gpd-sum { font-size: 12px; color: #909399; }
 .gpd-actions { display: flex; gap: 8px; }
+
+// ===== 本期人员行式列表（参考任务编辑成员表格） =====
+.gpd-members { border: 1px solid #E5EAF1; border-radius: 3px; overflow: hidden; }
+.gpdmt { width: 100%; border-collapse: collapse; table-layout: fixed; background: #fff; }
+.gpdmt th { text-align: left; font-size: 12px; font-weight: 600; color: #6b7280; background: #F7F9FC; padding: 8px 14px; border-bottom: 1px solid #E5EAF1; white-space: nowrap; }
+.gpdmt td { padding: 6px 14px; border-bottom: 1px solid #F0F2F6; vertical-align: middle; }
+.gpdmt tbody tr:last-child td { border-bottom: none; }
+.gpdmt tbody tr:hover td { background: #F8FAFC; }
+.gpdmt-col-user { width: 30%; }
+.gpdmt-col-name { }
+.gpdmt-col-op { width: 56px; text-align: right; color: #8a93a5; font-weight: 500; }
+.gpdmt-tip { font-size: 11px; color: #b0b4bd; font-weight: 400; margin-left: 8px; }
+.gpdmt-user { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.gpdmt-uinfo { display: flex; align-items: baseline; min-width: 0; overflow: hidden; }
+.gpdmt-avatar { width: 26px; height: 26px; border-radius: 50%; background: $primary; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.gpdmt-name { font-size: 13px; font-weight: 600; color: #1b1c1c; white-space: nowrap; }
+.gpdmt-emp { font-style: normal; font-size: 12px; color: #999; margin-left: 6px; font-family: monospace; white-space: nowrap; }
+.gpdmt-input { width: 100%; min-width: 0; height: 28px; padding: 0 10px; border: 1px solid #DCDFE6; border-radius: 3px; font-size: 13px; color: #1b1c1c; background: #fff; outline: none; transition: border-color .2s;
+  &:focus { border-color: $primary; }
+}
+.gpdmt-x { color: #DC2626; cursor: pointer; font-size: 15px; opacity: .8; line-height: 1;
+  &:hover { opacity: 1; }
+}
 </style>

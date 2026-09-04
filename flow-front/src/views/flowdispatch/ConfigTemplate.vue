@@ -104,7 +104,7 @@
                   <template v-if="isSuperAdmin">
                     <button class="action-link" @click="toggleSample(t)"><i :class="t.isSample === 1 ? 'el-icon-star-on star-on' : 'el-icon-star-off'" /> {{ t.isSample === 1 ? '取消样例' : '设为样例' }}</button>
                   </template>
-                  <button class="action-link" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例配置模板仅超管可修改' : ''" @click="openEdit(t)"><i class="el-icon-edit" /> 编辑</button>
+                  <button class="action-link" :title="isSampleLocked(t) ? '样例模板可查看（修改请先复制）' : '编辑'" @click="openEdit(t)"><i class="el-icon-edit" /> 编辑</button>
                   <button class="action-link text-error" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例配置模板仅超管可删除' : ''" @click="onDelete(t)"><i class="el-icon-delete" /> 删除</button>
                 </td>
               </tr>
@@ -117,7 +117,7 @@
 </template>
 
 <script>
-import { getConfigTemplates, getConfigTemplateStats, deleteConfigTemplate, toggleConfigTemplateSample } from '@/api/flowDispatch'
+import { getConfigTemplates, getConfigTemplateStats, deleteConfigTemplate, toggleConfigTemplateSample } from '@/service/sys/FlowDispatchService'
 
 export default {
   name: 'FlowDispatchConfigTemplate',
@@ -189,7 +189,9 @@ export default {
       this.$router.push('/flow-dispatch/config-template/edit')
     },
     openEdit(row) {
-      this.$router.push({ path: '/flow-dispatch/config-template/edit', query: { id: row.id }})
+      // 样例模板且非超管：进入只读查看（不可修改）
+      const readonly = this.isSampleLocked(row) ? 1 : 0
+      this.$router.push({ path: '/flow-dispatch/config-template/edit', query: { id: row.id, readonly }})
     },
     onDelete(t) {
       this.$confirm(`确定删除配置模板「${t.configName}」吗？已拉取到任务上的配置不受影响。`, '删除确认', {

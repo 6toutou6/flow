@@ -14,13 +14,20 @@
         <button class="btn-versions" @click="versionVisible = true">
           <i class="el-icon-tickets" /> 版本记录<span v-if="template.version"> v{{ template.version }}</span>
         </button>
-        <button class="btn-save" :disabled="saving" @click="onSaveClick">
-          <i v-if="saving" class="el-icon-loading" />
-          <i v-else class="el-icon-check" />
-          保存流程
-        </button>
+        <template v-if="!isReadonly">
+          <button class="btn-save" :disabled="saving" @click="onSaveClick">
+            <i v-if="saving" class="el-icon-loading" />
+            <i v-else class="el-icon-check" />
+            保存流程
+          </button>
+        </template>
+        <span v-else class="readonly-tag"><i class="el-icon-view" /> 查看模式</span>
       </div>
     </header>
+    <!-- 样例模板只读提示 -->
+    <div v-if="isReadonly" class="designer-readonly-tip">
+      <i class="el-icon-info" /> 样例模板 · 只读查看，流程/字段结构完整可见；如需修改请先在模板管理中「复制」后编辑。
+    </div>
 
     <div class="designer-body">
       <!-- 左栏：节点链 -->
@@ -267,7 +274,7 @@
     <!-- 版本记录弹窗 -->
     <VersionListModal
       :visible="versionVisible"
-      :template-id="Number(templateId)"
+      :template-id="templateId"
       :current-version="template"
       @close="versionVisible = false"
     />
@@ -275,7 +282,8 @@
 </template>
 
 <script>
-import { getTemplateDetail, getTemplateUsage, saveTemplateFlow, saveNodeGuideFiles } from '@/api/template'
+import { getTemplateDetail, getTemplateUsage, saveTemplateFlow, saveNodeGuideFiles } from '@/service/sys/TemplateService'
+import { stableBizId } from '@/utils'
 import SaveFlowModal from './components/SaveFlowModal.vue'
 import VersionListModal from './components/VersionListModal.vue'
 import AttachField from '@/components/AttachField'
@@ -291,6 +299,8 @@ export default {
       nodes: [],
       /** 模板级字段（不依附节点，如规章制度/采购说明等任务基础信息） */
       templateFields: [],
+      templateFieldsSnapshot: [],
+      // 打开模板时的创建人填写字段（fieldRole!=2）key 快照，用于保存后提示字段增删
       /** 画布模式：node=节点字段，template=任务基础字段 */
       viewMode: 'node',
       /** 右栏「节点属性」区块是否收起 */
@@ -319,6 +329,10 @@ export default {
     }
   },
   computed: {
+    /** 只读查看模式（样例模板且非超管：route.query.readonly=1） */
+    isReadonly() {
+      return Number(this.$route.query.readonly) === 1
+    },
     allFieldTypes() {
       return [...this.basicFields, ...this.advancedFields]
     },
@@ -349,9 +363,9 @@ export default {
         this.persistNodeGuideFiles(node)
       }
     },
-    /** 节点说明文件的业务 id（写入 attach.biz_id 用于关联查询） */
+    /** 节点说明文件的业务 id（attach.biz_id 仅 varchar(32)，用稳定短码；模板级说明文件统一挂靠模板） */
     guideBizId() {
-      return 'node-guide-' + (this.templateId || 'new')
+      return stableBizId('node-guide:' + (this.templateId || 'new'))
     }
   },
   watch: {
@@ -439,6 +453,7 @@ export default {
           }
           return tf
         })
+        this.templateFieldsSnapshot = this.templateFields.filter(f => f.fieldRole !== 2).map(f => ({ key: f.fieldKey || f.fieldLabel, label: f.fieldLabel }))
         if (this.$route.query.name == null && this.template.templateName) {
           this.templateName = this.template.templateName
         }
@@ -610,6 +625,10 @@ export default {
     },
     /** 保存按钮：先校验，再查询模板被使用情况并弹出保存方式（当前版本/新版本 + 改动说明） */
     async onSaveClick() {
+      if (this.isReadonly) {
+        this.$message.warning('样例模板仅可查看，修改请先复制模板')
+        return
+      }
       if (this.nodes.length < 2) {
         this.$message.warning('至少需要 2 个节点（首位自动标记为开始、末位为结束）')
         return
@@ -635,7 +654,7 @@ export default {
       }
       // 检索该模板已被哪些任务/期次使用，弹窗中明确告知修改不影响已下发期次
       try {
-        const res = await getTemplateUsage(Number(this.templateId))
+        const res = await getTemplateUsage(this.templateId)
         this.templateUsage = (res && res.data) || null
       } catch (e) {
         this.templateUsage = null
@@ -649,7 +668,7 @@ export default {
       this.saving = true
       try {
         const payload = {
-          templateId: Number(this.templateId),
+          templateId: this.templateId,
           saveMode: saveMode || 'current',
           versionDesc: versionDesc || '',
           templateFields: this.templateFields.map((f, k) => ({
@@ -682,6 +701,20 @@ export default {
         }
         await saveTemplateFlow(payload)
         this.$message.success(saveMode === 'new' ? '已保存为新版本 v' + (this.template.version + 1) : '流程保存成功')
+        // 创建人填写字段增删提示（用字段名展示，弹窗加宽，关键提示加粗）：影响已绑定未同步任务的下发
+        const beforeList = this.templateFieldsSnapshot || []
+        const afterList = (this.templateFields || []).filter(f => f.fieldRole !== 2)
+        const nameOf = f => f.label || f.fieldLabel || f.key || '未知字段'
+        const added = afterList.filter(a => !beforeList.some(b => b.key === (a.fieldKey || a.fieldLabel)))
+        const removed = beforeList.filter(b => !afterList.some(a => (a.fieldKey || a.fieldLabel) === b.key))
+        if (added.length || removed.length) {
+          const parts = []
+          if (added.length) parts.push('新增：' + added.map(nameOf).join('、'))
+          if (removed.length) parts.push('删除：' + removed.map(nameOf).join('、'))
+          const html = '<div style="font-size:14px;line-height:1.9;color:#414755">本模板<b>「创建人填写」字段</b>发生变动：<br>' + parts.join('<br>') +
+            '<br><br><b style="color:#B45309">已绑定该模板且尚未同步的任务：手动下发将被阻止、自动下发将跳过并通知创建人，直至在任务管理中打开任务核对并重新保存。</b></div>'
+          this.$alert(html, '模板字段变更提醒', { type: 'warning', confirmButtonText: '知道了', dangerouslyUseHTMLString: true, customClass: 'tpl-change-alert' })
+        }
         this.fetchDetail()
       } catch (e) {
         console.error(e)
@@ -880,4 +913,7 @@ $border: #CBD5E1;
 .enum-add { width: 100%; padding: 6px; border: 1px dashed #cbd5e0; background: transparent; border-radius: 4px; cursor: pointer; color: $primary; font-size: 12px;
   &:hover { border-color: $primary; background: var(--color-primary-light); }
 }
+
+.designer-readonly-tip { display: flex; align-items: center; gap: 6px; padding: 8px 16px; background: rgba(180, 83, 9, 0.1); color: #B45309; font-size: 13px; border-bottom: 1px solid rgba(180, 83, 9, 0.2); }
+.readonly-tag { display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px; border-radius: 3px; background: #F1F3F6; color: #8a93a5; font-size: 13px; font-weight: 600; }
 </style>

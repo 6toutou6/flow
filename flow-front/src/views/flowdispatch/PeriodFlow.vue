@@ -4,7 +4,9 @@
       <section class="page-content">
         <!-- 页头 -->
         <div class="page-header">
-          <div>
+          <div class="header-left">
+            <div class="hl-row1">
+            <button class="btn-back" @click="goBackUsers"><i class="el-icon-arrow-left" /> 返回</button>
             <nav class="breadcrumb">
               <span class="link" @click="goBack">任务管理</span>
               <span>/</span>
@@ -12,9 +14,9 @@
               <span>/</span>
               <span class="active">流程详情</span>
             </nav>
-            <h3 class="page-heading">{{ flowTitle }}</h3>
           </div>
-          <button class="btn-back" @click="goBackUsers"><i class="el-icon-arrow-left" /> 返回</button>
+          <h3 class="page-heading">{{ flowTitle }}</h3>
+          </div>
         </div>
 
         <!-- 期次上下文 -->
@@ -40,7 +42,7 @@
 </template>
 
 <script>
-import { getTaskDetail } from '@/api/task'
+import { getTaskDetail } from '@/service/sys/TaskService'
 import HandlerFlowDetail from '@/views/dataadmin/components/HandlerFlowDetail.vue'
 
 export default {
@@ -58,8 +60,8 @@ export default {
   },
   computed: {
     flowTitle() {
-      return this.selectedHandler && this.selectedHandler.realName
-        ? this.selectedHandler.realName + ' 的流程'
+      return this.selectedHandler && this.selectedHandler.userName
+        ? this.selectedHandler.userName + ' 的流程'
         : '流程详情'
     }
   },
@@ -68,9 +70,9 @@ export default {
     this.taskName = this.$route.query.taskName || ''
     this.periodName = this.$route.query.periodName || ''
     this.selectedHandler = {
-      id: this.$route.query.handlerId ? Number(this.$route.query.handlerId) : null,
-      realName: this.$route.query.realName || '',
-      empNo: this.$route.query.empNo || '',
+      id: this.$route.query.handlerId || null,
+      userName: this.$route.query.userName || '',
+      yyytId: this.$route.query.yyytId || '',
       deptName: this.$route.query.deptName || ''
     }
     this.fetchDetail()
@@ -112,6 +114,9 @@ $border: #CBD5E1;
 .main-content { width: 100%; display: flex; flex-direction: column; min-height: 100vh; }
 .page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; box-sizing: border-box; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; }
+.header-left { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.hl-row1 { display: flex; align-items: center; gap: 14px; }
+.hl-row1 .breadcrumb { margin-bottom: 0; }
 .breadcrumb { display: flex; gap: 8px; font-size: 12px; line-height: 20px; color: #414755; margin-bottom: 8px;
   .active { color: $primary; font-weight: 600; }
   .link { color: $primary; cursor: pointer;
@@ -119,7 +124,8 @@ $border: #CBD5E1;
   }
 }
 .page-heading { font-size: 24px; line-height: 32px; font-weight: 600; color: #1b1c1c; }
-.btn-back { display: flex; align-items: center; gap: 4px; padding: 8px 16px; background: #fff; border: 1px solid $border; border-radius: 2px; color: var(--color-primary); cursor: pointer; font-size: 13px;
+.btn-back { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: transparent; border: none; color: var(--color-primary); cursor: pointer; font-size: 13px; transition: background .2s;
+  &:hover { background: rgba(var(--color-primary-rgb), 0.08); }
   &:hover { background: var(--color-primary-light); }
 }
 .tip-bar { display: flex; align-items: center; gap: 8px; background: var(--color-primary-light); border: 1px solid $border; color: var(--color-primary-hover); font-size: 13px; border-radius: 3px; padding: 10px 14px;

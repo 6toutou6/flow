@@ -274,7 +274,7 @@
 </template>
 
 <script>
-import { getDashboard } from '@/api/data'
+import { getDashboard } from '@/service/sys/DataService'
 
 const STATUS_COLORS = ['#334155', '#15803D', '#B45309', '#2B6CB0', '#6B46C1', '#6366F1']
 // 字段类型 → 中文名

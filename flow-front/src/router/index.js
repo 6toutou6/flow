@@ -148,16 +148,16 @@ export const constantRoutes = [
 
   // ==================== 超管 ====================
   {
-    path: '/sysuser',
+    path: '/dept-admin',
     component: Layout,
     name: '超管',
     meta: { title: '超管', icon: 'el-icon-s-custom' },
     children: [
       {
         path: 'index',
-        name: 'SysUser',
-        component: () => import('@/views/sysuser/index'),
-        meta: { title: '用户管理', icon: 'el-icon-s-custom' }
+        name: 'DeptAdmin',
+        component: () => import('@/views/deptadmin/index'),
+        meta: { title: '系统管理员', icon: 'el-icon-s-custom' }
       }
     ]
   },

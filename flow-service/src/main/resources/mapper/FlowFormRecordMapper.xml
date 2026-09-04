@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.zqk.house.flowdata.mapper.FlowFormRecordMapper">
+<mapper namespace="com.company.flow.sys.flowdata.mapper.FlowFormRecordMapper">
 
-    <resultMap id="RecordListMap" type="com.zqk.house.flowdata.vo.FormRecordListVO">
+    <resultMap id="RecordListMap" type="com.company.flow.sys.flowdata.vo.FormRecordListVO">
         <id property="id" column="id"/>
         <result property="taskId" column="task_id"/>
         <result property="templateId" column="template_id"/>
@@ -35,11 +35,11 @@
     <select id="selectRecordList" resultMap="RecordListMap">
         SELECT r.id, r.task_id, r.template_id, r.node_id, r.task_node_id, r.user_id,
                r.record_status, r.is_draft, r.submit_time, r.create_time,
-               u.real_name AS user_name, u.emp_no AS user_emp_no,
+               u.user_name AS user_name, NULL AS user_emp_no,
                t.template_name, t.category,
                n.node_name
         FROM flow_form_record r
-        LEFT JOIN sys_user u ON r.user_id = u.id
+        LEFT JOIN aut_user u ON r.user_id = u.yyyt_id
         LEFT JOIN flow_template t ON r.template_id = t.id
         LEFT JOIN flow_template_node n ON r.node_id = n.id
         <include refid="queryWhere"/>
@@ -55,18 +55,18 @@
     <select id="selectRecordById" resultMap="RecordListMap">
         SELECT r.id, r.task_id, r.template_id, r.node_id, r.task_node_id, r.user_id,
                r.record_status, r.is_draft, r.submit_time, r.create_time,
-               u.real_name AS user_name, u.emp_no AS user_emp_no,
+               u.user_name AS user_name, NULL AS user_emp_no,
                t.template_name, t.category,
                n.node_name
         FROM flow_form_record r
-        LEFT JOIN sys_user u ON r.user_id = u.id
+        LEFT JOIN aut_user u ON r.user_id = u.yyyt_id
         LEFT JOIN flow_template t ON r.template_id = t.id
         LEFT JOIN flow_template_node n ON r.node_id = n.id
         WHERE r.id = #{id}
     </select>
 
     <!-- 数据后台统计：任务总数 / 期次总数 / 进行中期次数（有进行中成员的期次）/ 我的待办 -->
-    <select id="selectStats" resultType="com.zqk.house.flowdata.vo.DataStatsVO">
+    <select id="selectStats" resultType="com.company.flow.sys.flowdata.vo.DataStatsVO">
         SELECT
             (SELECT COUNT(*) FROM flow_dispatch) AS totalTasks,
             (SELECT COUNT(*) FROM flow_task_dispatch) AS totalPeriods,
@@ -74,16 +74,16 @@
                 SELECT d.id FROM flow_task_dispatch d
                 INNER JOIN flow_task t ON t.dispatch_id = d.id
                 GROUP BY d.id
-                HAVING SUM(CASE WHEN t.status = 1 THEN 1 ELSE 0 END) > 0
+                HAVING SUM(CASE WHEN t.status = '进行中' THEN 1 ELSE 0 END) > 0
             ) r) AS runningPeriods,
             (SELECT COUNT(*) FROM flow_task_node tn
              INNER JOIN flow_task t ON tn.task_id = t.id
              WHERE tn.handler_user_id = #{userId}
                AND tn.submit_status = 0
-               AND t.status = 1) AS myTodoCount
+               AND t.status = '进行中') AS myTodoCount
     </select>
 
-    <select id="selectTrend" resultType="com.zqk.house.flowdata.vo.TrendPointVO">
+    <select id="selectTrend" resultType="com.company.flow.sys.flowdata.vo.TrendPointVO">
         SELECT DATE_FORMAT(submit_time, '%Y-%m-%d') AS date, COUNT(*) AS count
         FROM flow_form_record
         WHERE record_status = 1
@@ -93,25 +93,25 @@
     </select>
 
     <!-- 按人员展示：人员提交汇总（分页，支持姓名/工号过滤；taskId 传入时仅统计该任务下人员） -->
-    <select id="selectPersonPage" resultType="com.zqk.house.flowdata.vo.PersonSubmitVO">
+    <select id="selectPersonPage" resultType="com.company.flow.sys.flowdata.vo.PersonSubmitVO">
         SELECT
             r.user_id AS userId,
-            u.real_name AS userName,
-            u.emp_no AS userEmpNo,
+            u.user_name AS userName,
+            NULL AS userEmpNo,
             u.dept_name AS userDept,
             COUNT(*) AS submitCount,
             COUNT(DISTINCT COALESCE(t.dispatch_id, t.id)) AS periodCount,
             MAX(r.submit_time) AS lastSubmitTime
         FROM flow_form_record r
-        LEFT JOIN sys_user u ON r.user_id = u.id
+        LEFT JOIN aut_user u ON r.user_id = u.yyyt_id
         LEFT JOIN flow_task t ON r.task_id = t.id
         LEFT JOIN flow_task_dispatch d ON COALESCE(t.dispatch_id, t.id) = d.id
         WHERE r.record_status = 1
         <if test="taskId != null">AND d.task_id = #{taskId}</if>
         <if test="name != null and name != ''">
-            AND (u.real_name LIKE CONCAT('%', #{name}, '%') OR u.emp_no LIKE CONCAT('%', #{name}, '%'))
+            AND (u.user_name LIKE CONCAT('%', #{name}, '%') OR u.yyyt_id LIKE CONCAT('%', #{name}, '%'))
         </if>
-        GROUP BY r.user_id, u.real_name, u.emp_no, u.dept_name
+        GROUP BY r.user_id, u.user_name, u.dept_name
         ORDER BY submitCount DESC, r.user_id ASC
         LIMIT #{offset}, #{limit}
     </select>
@@ -120,63 +120,68 @@
         SELECT COUNT(*) FROM (
             SELECT r.user_id
             FROM flow_form_record r
-            LEFT JOIN sys_user u ON r.user_id = u.id
+            LEFT JOIN aut_user u ON r.user_id = u.yyyt_id
             LEFT JOIN flow_task t ON r.task_id = t.id
             LEFT JOIN flow_task_dispatch d ON COALESCE(t.dispatch_id, t.id) = d.id
             WHERE r.record_status = 1
             <if test="taskId != null">AND d.task_id = #{taskId}</if>
             <if test="name != null and name != ''">
-                AND (u.real_name LIKE CONCAT('%', #{name}, '%') OR u.emp_no LIKE CONCAT('%', #{name}, '%'))
+                AND (u.user_name LIKE CONCAT('%', #{name}, '%') OR u.yyyt_id LIKE CONCAT('%', #{name}, '%'))
             </if>
             GROUP BY r.user_id
         ) p
     </select>
 
-    <!-- 按人员展示：某人历史提交记录（分页，按提交时间倒序；taskId 传入时仅统计该任务下提交） -->
-    <select id="selectPersonRecordsPage" resultType="com.zqk.house.flowdata.vo.PersonRecordVO">
+    <!-- 按人员展示：某人参与的任务链全部节点行（分页）。
+         参与判定：某条 flow_task（成员任务）下任一 flow_task_node 的处理人为该人员；
+         返回该任务链的「全部」节点（含他人处理/待处理节点），前端按 taskId 分组渲染任务链面板。 -->
+    <select id="selectPersonRecordsPage" resultType="com.company.flow.sys.flowdata.vo.PersonNodeVO">
         SELECT
-            r.id, r.task_id AS taskId,
-            t.task_name AS taskName,
-            d.id AS dispatchId,
-            d.period_name AS periodName,
-            d.period_no AS periodNo,
-            COALESCE(tn.node_name, n.node_name) AS nodeName,
-            r.record_status AS recordStatus,
-            r.is_draft AS isDraft,
-            r.submit_time AS submitTime
-        FROM flow_form_record r
-        LEFT JOIN flow_task t ON r.task_id = t.id
-        LEFT JOIN flow_task_dispatch d ON COALESCE(t.dispatch_id, t.id) = d.id
-        LEFT JOIN flow_task_node tn ON r.task_node_id = tn.id
-        LEFT JOIN flow_template_node n ON r.node_id = n.id
-        WHERE r.user_id = #{userId}
-          AND r.record_status = 1
+            t.id AS taskId, t.task_name AS taskName, t.status AS taskStatus,
+            d.id AS dispatchId, d.period_name AS periodName, d.period_no AS periodNo,
+            tn.id AS taskNodeId, tn.node_name AS nodeName, tn.sort_num AS sortNum,
+            tn.handler_user_id AS handlerUserId, u.user_name AS handlerName,
+            tn.submit_status AS submitStatus, tn.handle_time AS handleTime,
+            tn.form_record_id AS recordId,
+            tn.action AS action, tn.reject_reason AS rejectReason, tn.pass_comment AS passComment
+        FROM flow_task_node tn
+        INNER JOIN flow_task t ON tn.task_id = t.id
+        LEFT JOIN flow_task_dispatch d ON t.dispatch_id = d.id
+        LEFT JOIN aut_user u ON tn.handler_user_id = u.yyyt_id
+        WHERE tn.task_id IN (
+            SELECT DISTINCT x.task_id
+            FROM flow_task_node x
+            WHERE x.handler_user_id = #{userId}
+        )
         <if test="taskId != null">AND d.task_id = #{taskId}</if>
-        ORDER BY r.submit_time DESC, r.id DESC
+        ORDER BY d.period_no DESC, t.create_time ASC, tn.sort_num ASC, tn.id ASC
         LIMIT #{offset}, #{limit}
     </select>
 
     <select id="selectPersonRecordsCount" resultType="java.lang.Long">
         SELECT COUNT(*)
-        FROM flow_form_record r
-        LEFT JOIN flow_task t ON r.task_id = t.id
-        LEFT JOIN flow_task_dispatch d ON COALESCE(t.dispatch_id, t.id) = d.id
-        WHERE r.user_id = #{userId}
-          AND r.record_status = 1
+        FROM flow_task_node tn
+        INNER JOIN flow_task t ON tn.task_id = t.id
+        LEFT JOIN flow_task_dispatch d ON t.dispatch_id = d.id
+        WHERE tn.task_id IN (
+            SELECT DISTINCT x.task_id
+            FROM flow_task_node x
+            WHERE x.handler_user_id = #{userId}
+        )
         <if test="taskId != null">AND d.task_id = #{taskId}</if>
     </select>
 
     <!-- 数据展示页：累计提交数 / 参与人员数 -->
-    <select id="selectDashboardTotals" resultType="com.zqk.house.flowdata.vo.DashboardVO">
+    <select id="selectDashboardTotals" resultType="com.company.flow.sys.flowdata.vo.DashboardVO">
         SELECT
             (SELECT COUNT(*) FROM flow_form_record WHERE record_status = 1) AS submitTotal,
             (SELECT COUNT(DISTINCT user_id) FROM flow_form_record WHERE record_status = 1) AS personCount
     </select>
 
     <!-- 数据展示页：任务状态分布（1进行中 2已结束 3作废） -->
-    <select id="selectTaskStatusDist" resultType="com.zqk.house.flowdata.vo.NameCountVO">
+    <select id="selectTaskStatusDist" resultType="com.company.flow.sys.flowdata.vo.NameCountVO">
         SELECT
-            CASE t.status WHEN 1 THEN '进行中' WHEN 2 THEN '已结束' WHEN 3 THEN '已作废' ELSE '未知' END AS name,
+            CASE t.status WHEN '进行中' THEN '进行中' WHEN '已结束' THEN '已结束' WHEN '已作废' THEN '已作废' ELSE '未知' END AS name,
             COUNT(*) AS value
         FROM flow_task t
         GROUP BY t.status
@@ -184,7 +189,7 @@
     </select>
 
     <!-- 数据展示页：期次状态分布（由期次下成员任务推导：暂无人员/进行中/已完成/已作废） -->
-    <select id="selectPeriodStatusDist" resultType="com.zqk.house.flowdata.vo.NameCountVO">
+    <select id="selectPeriodStatusDist" resultType="com.company.flow.sys.flowdata.vo.NameCountVO">
         SELECT
             CASE
                 WHEN c.totalMembers = 0 THEN '暂无人员'
@@ -196,8 +201,8 @@
         FROM (
             SELECT d.id,
                    COUNT(t.id) AS totalMembers,
-                   SUM(CASE WHEN t.status = 1 THEN 1 ELSE 0 END) AS running,
-                   SUM(CASE WHEN t.status = 2 THEN 1 ELSE 0 END) AS done
+                   SUM(CASE WHEN t.status = '进行中' THEN 1 ELSE 0 END) AS running,
+                   SUM(CASE WHEN t.status = '已结束' THEN 1 ELSE 0 END) AS done
             FROM flow_task_dispatch d
             LEFT JOIN flow_task t ON t.dispatch_id = d.id
             GROUP BY d.id
@@ -207,7 +212,7 @@
     </select>
 
     <!-- 数据展示页：节点状态分布（待处理/已完成） -->
-    <select id="selectNodeStatusDist" resultType="com.zqk.house.flowdata.vo.NameCountVO">
+    <select id="selectNodeStatusDist" resultType="com.company.flow.sys.flowdata.vo.NameCountVO">
         SELECT CASE submit_status WHEN 0 THEN '待处理' WHEN 1 THEN '已完成' ELSE '其他' END AS name, COUNT(*) AS value
         FROM flow_task_node
         GROUP BY submit_status
@@ -215,7 +220,7 @@
     </select>
 
     <!-- 数据展示页：下发周期类型分布（每周/每月/每季度/单次） -->
-    <select id="selectPeriodCycleDist" resultType="com.zqk.house.flowdata.vo.NameCountVO">
+    <select id="selectPeriodCycleDist" resultType="com.company.flow.sys.flowdata.vo.NameCountVO">
         SELECT CASE cycle_type
             WHEN 1 THEN '每周' WHEN 2 THEN '每月' WHEN 3 THEN '每季度'
             ELSE '单次下发' END AS name,
@@ -226,28 +231,28 @@
     </select>
 
     <!-- 数据展示页：下发部门排行（按任务创建部门统计下发期次数；部门名取自创建人的部门冗余字段） -->
-    <select id="selectDispatchDeptRank" resultType="com.zqk.house.flowdata.vo.NameCountVO">
+    <select id="selectDispatchDeptRank" resultType="com.company.flow.sys.flowdata.vo.NameCountVO">
         SELECT COALESCE(u.dept_name, CONCAT('部门#', d.dept_id)) AS name, COUNT(*) AS value
         FROM flow_task_dispatch td
         INNER JOIN flow_dispatch d ON d.id = td.task_id
-        LEFT JOIN sys_user u ON u.id = d.creator_id
+        LEFT JOIN aut_user u ON u.yyyt_id = d.creator_id
         WHERE d.dept_id IS NOT NULL
         GROUP BY d.dept_id, u.dept_name
         ORDER BY value DESC, name ASC
     </select>
 
     <!-- 数据展示页：处理人部门排行（按提交人部门统计历史提交次数） -->
-    <select id="selectHandlerDeptRank" resultType="com.zqk.house.flowdata.vo.NameCountVO">
+    <select id="selectHandlerDeptRank" resultType="com.company.flow.sys.flowdata.vo.NameCountVO">
         SELECT COALESCE(u.dept_name, CONCAT('用户#', r.user_id)) AS name, COUNT(*) AS value
         FROM flow_form_record r
-        LEFT JOIN sys_user u ON r.user_id = u.id
+        LEFT JOIN aut_user u ON r.user_id = u.yyyt_id
         WHERE r.record_status = 1
         GROUP BY u.dept_id, u.dept_name, r.user_id
         ORDER BY value DESC, name ASC
     </select>
 
     <!-- 数据展示页：模板节点数分布（按节点数分档统计模板数：1个节点/2个节点/… 各有多少个模板） -->
-    <select id="selectTemplateNodeDist" resultType="com.zqk.house.flowdata.vo.NameCountVO">
+    <select id="selectTemplateNodeDist" resultType="com.company.flow.sys.flowdata.vo.NameCountVO">
         SELECT CONCAT(nc.node_count, '个节点') AS name, COUNT(*) AS value
         FROM (
             SELECT t.id, COUNT(n.id) AS node_count
@@ -260,7 +265,7 @@
     </select>
 
     <!-- 数据展示页：字段类型使用排行（各字段类型被使用的数量） -->
-    <select id="selectFieldTypeRank" resultType="com.zqk.house.flowdata.vo.NameCountVO">
+    <select id="selectFieldTypeRank" resultType="com.company.flow.sys.flowdata.vo.NameCountVO">
         SELECT f.field_type AS name, COUNT(*) AS value
         FROM flow_template_field f
         GROUP BY f.field_type
@@ -269,7 +274,7 @@
 
     <!-- 数据展示页：提交趋势（按粒度：day=近30天 / month=近12月 / quarter=近8季度 / year=近5年；
          传入 startDate/endDate 时以所选时间范围为准） -->
-    <select id="selectTrendByType" resultType="com.zqk.house.flowdata.vo.TrendPointVO">
+    <select id="selectTrendByType" resultType="com.company.flow.sys.flowdata.vo.TrendPointVO">
         <choose>
             <when test="type == 'month'">
                 SELECT DATE_FORMAT(submit_time, '%Y-%m') AS date, COUNT(*) AS count

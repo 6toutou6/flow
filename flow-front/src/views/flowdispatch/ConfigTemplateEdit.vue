@@ -4,15 +4,17 @@
       <section class="page-content">
         <!-- 页头 -->
         <div class="page-header">
-          <div>
+          <div class="header-left">
+            <div class="hl-row1">
+            <button class="btn-back" @click="goList"><i class="el-icon-arrow-left" /> 返回列表</button>
             <nav class="breadcrumb">
               <span class="link" @click="goList">下发配置模板</span>
               <span>/</span>
               <span class="active">{{ isEdit ? '编辑模板' : '新增模板' }}</span>
             </nav>
-            <h3 class="page-heading">{{ isEdit ? '编辑下发配置模板' : '新增下发配置模板' }}</h3>
           </div>
-          <button class="btn-back" @click="goList"><i class="el-icon-arrow-left" /> 返回列表</button>
+          <h3 class="page-heading">{{ isEdit ? '编辑下发配置模板' : '新增下发配置模板' }}</h3>
+          </div>
         </div>
 
         <!-- 说明条 -->
@@ -20,6 +22,9 @@
           <i class="el-icon-info" />
           模板保存后可长期复用；新建/编辑任务时选中本模板即可一键拉取下发配置，避免反复配置出错。
         </section>
+        <div v-if="isReadonly" class="readonly-tip-bar">
+          <i class="el-icon-view" /> 样例模板 · 只读查看，可完整查看配置内容；如需修改请先「复制」模板。
+        </div>
 
         <div class="form-wrap">
           <!-- 基本信息 -->
@@ -108,7 +113,7 @@
           <!-- 操作 -->
           <div class="form-actions">
             <button class="btn-prev" @click="goList"><i class="el-icon-arrow-left" /> 取消</button>
-            <button class="btn-submit" :disabled="saving" @click="handleSubmit">
+            <button class="btn-submit" :disabled="saving || isReadonly" @click="handleSubmit">
               <i v-if="saving" class="el-icon-loading" />
               <i v-else class="el-icon-check" /> {{ isEdit ? '保存修改' : '保存模板' }}
             </button>
@@ -120,7 +125,7 @@
 </template>
 
 <script>
-import { getConfigTemplate, saveConfigTemplate } from '@/api/flowDispatch'
+import { getConfigTemplate, saveConfigTemplate } from '@/service/sys/FlowDispatchService'
 
 export default {
   name: 'ConfigTemplateEdit',
@@ -144,7 +149,9 @@ export default {
   },
   computed: {
     isEdit() { return !!this.$route.query.id },
-    templateId() { return this.$route.query.id ? Number(this.$route.query.id) : null },
+    /** 只读查看（样例模板且非超管） */
+    isReadonly() { return Number(this.$route.query.readonly) === 1 },
+    templateId() { return this.$route.query.id || null },
     /** 下期触发时间（与后端周期窗口计算口径一致） */
     triggerDate() {
       const d = calcTrigger(this.form.cycleType, this.form.cycleDay)
@@ -197,6 +204,7 @@ export default {
       else if (!this.form.cycleDay) this.form.cycleDay = 1
     },
     async handleSubmit() {
+      if (this.isReadonly) { this.$message.warning('样例模板仅可查看'); return }
       if (!this.form.configName || !this.form.configName.trim()) {
         this.$message.warning('请填写配置名称')
         return
@@ -222,7 +230,12 @@ export default {
         }
         const res = await saveConfigTemplate(payload)
         this.$message.success(res.message || '保存成功')
-        this.goList()
+        if (!this.isEdit) {
+          this.goList()
+        } else {
+          // 编辑模式：保存后留在本页（回写返回的最新配置）
+          if (res && res.data) this.form = { ...this.form, ...res.data }
+        }
       } catch (e) {
         console.error(e)
         this.$message.error((e && e.message) || '保存失败')
@@ -304,6 +317,9 @@ $border: #CBD5E1;
 .main-content { width: 100%; display: flex; flex-direction: column; min-height: 100vh; }
 .page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; box-sizing: border-box; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; }
+.header-left { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.hl-row1 { display: flex; align-items: center; gap: 14px; }
+.hl-row1 .breadcrumb { margin-bottom: 0; }
 .breadcrumb { display: flex; gap: 8px; font-size: 12px; line-height: 20px; color: #414755; margin-bottom: 8px;
   .active { color: $primary; font-weight: 600; }
   .link { color: $primary; cursor: pointer;
@@ -311,7 +327,8 @@ $border: #CBD5E1;
   }
 }
 .page-heading { font-size: 24px; line-height: 32px; font-weight: 600; color: #1b1c1c; }
-.btn-back { display: flex; align-items: center; gap: 4px; padding: 8px 16px; background: #fff; border: 1px solid $border; border-radius: 2px; color: var(--color-primary); cursor: pointer; font-size: 13px;
+.btn-back { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: transparent; border: none; color: var(--color-primary); cursor: pointer; font-size: 13px; transition: background .2s;
+  &:hover { background: rgba(var(--color-primary-rgb), 0.08); }
   &:hover { background: var(--color-primary-light); }
 }
 .tip-bar { display: flex; align-items: center; gap: 8px; background: var(--color-primary-light); border: 1px solid $border; color: var(--color-primary-hover); font-size: 13px; border-radius: 3px; padding: 10px 14px;
@@ -352,4 +369,6 @@ $border: #CBD5E1;
   &:hover { opacity: 0.9; }
   &:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 }
+
+.readonly-tip-bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; margin-top: 10px; background: rgba(180, 83, 9, 0.1); color: #B45309; border-radius: 3px; font-size: 13px; }
 </style>

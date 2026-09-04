@@ -4,15 +4,17 @@
       <section class="page-content">
         <!-- 页头 -->
         <div class="page-header">
-          <div>
+          <div class="header-left">
+            <div class="hl-row1">
+            <button class="btn-back" @click="goBack"><i class="el-icon-arrow-left" /> 返回</button>
             <nav class="breadcrumb">
               <span class="link" @click="goBack">任务管理</span>
               <span>/</span>
               <span class="active">期次人员</span>
             </nav>
-            <h3 class="page-heading">期次人员</h3>
           </div>
-          <button class="btn-back" @click="goBack"><i class="el-icon-arrow-left" /> 返回</button>
+          <h3 class="page-heading">期次人员</h3>
+          </div>
         </div>
 
         <!-- 期次信息 -->
@@ -41,9 +43,9 @@
               <label class="filter-label">状态</label>
               <select v-model="filters.status" class="filter-select">
                 <option value="">全部</option>
-                <option :value="1">进行中</option>
-                <option :value="2">已完成</option>
-                <option :value="3">已作废</option>
+                <option value="进行中">进行中</option>
+                <option value="已完成">已完成</option>
+                <option value="已作废">已作废</option>
               </select>
             </div>
           </div>
@@ -150,8 +152,8 @@
 </template>
 
 <script>
-import { getTaskMembers, urgeTask, urgeTaskBatch, deleteTaskBatch } from '@/api/task'
-import { addPeriodMembers, getPeriodInfo } from '@/api/flowDispatch'
+import { getTaskMembers, urgeTask, urgeTaskBatch, deleteTaskBatch } from '@/service/sys/TaskService'
+import { addPeriodMembers, getPeriodInfo } from '@/service/sys/FlowDispatchService'
 import UserPicker from '@/components/UserPicker/index.vue'
 
 export default {
@@ -228,7 +230,7 @@ export default {
       if (!users || users.length === 0 || this.adding) return
       this.adding = true
       try {
-        const res = await addPeriodMembers(this.dispatchId, users.map(u => u.id))
+        const res = await addPeriodMembers(this.dispatchId, users.map(u => u.yyytId || u.id).filter(Boolean))
         const count = res.data != null ? res.data : users.length
         this.$message.success(`已新增 ${count} 位人员`)
         this.pickerVisible = false
@@ -276,8 +278,8 @@ export default {
       }
     },
     memberName(m) { return m.ownerName || '—' },
-    statusText(s) { return { 1: '进行中', 2: '已完成', 3: '已作废', 0: '空' }[s] || '—' },
-    statusClass(s) { return { 1: 'status-running', 2: 'status-done', 3: 'status-cancel', 0: 'status-empty' }[s] || '' },
+    statusText(s) { return ({ 进行中: '进行中', 已完成: '已完成', 已作废: '已作废', 1: '进行中', 2: '已完成', 3: '已作废' })[s] || '—' },
+    statusClass(s) { return ({ 进行中: 'status-running', 已完成: 'status-done', 已作废: 'status-cancel', 1: 'status-running', 2: 'status-done', 3: 'status-cancel' })[s] || '' },
     memberProgress(m) {
       if (!m.totalNodeCount) return 0
       return Math.round(((m.finishedNodeCount || 0) / m.totalNodeCount) * 100)
@@ -289,7 +291,7 @@ export default {
         const params = { page: this.page, limit: this.limit }
         if (this.filters.name && this.filters.name.trim()) params.name = this.filters.name.trim()
         if (this.filters.dept && this.filters.dept.trim()) params.dept = this.filters.dept.trim()
-        if (this.filters.status !== '') params.status = Number(this.filters.status)
+        if (this.filters.status !== '') params.status = this.filters.status
         const res = await getTaskMembers(this.dispatchId, params)
         this.members = (res.data && res.data.records) || []
         this.total = (res.data && res.data.total) || 0
@@ -361,6 +363,9 @@ $border: #CBD5E1;
 .main-content { width: 100%; display: flex; flex-direction: column; min-height: 100vh; }
 .page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; box-sizing: border-box; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; }
+.header-left { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.hl-row1 { display: flex; align-items: center; gap: 14px; }
+.hl-row1 .breadcrumb { margin-bottom: 0; }
 .breadcrumb { display: flex; gap: 8px; font-size: 12px; line-height: 20px; color: #414755; margin-bottom: 8px;
   .active { color: $primary; font-weight: 600; }
   .link { color: $primary; cursor: pointer;
@@ -368,7 +373,8 @@ $border: #CBD5E1;
   }
 }
 .page-heading { font-size: 24px; line-height: 32px; font-weight: 600; color: #1b1c1c; }
-.btn-back { display: flex; align-items: center; gap: 4px; padding: 8px 16px; background: #fff; border: 1px solid $border; border-radius: 2px; color: var(--color-primary); cursor: pointer; font-size: 13px;
+.btn-back { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: transparent; border: none; color: var(--color-primary); cursor: pointer; font-size: 13px; transition: background .2s;
+  &:hover { background: rgba(var(--color-primary-rgb), 0.08); }
   &:hover { background: var(--color-primary-light); }
 }
 .tip-bar { display: flex; align-items: center; gap: 8px; background: var(--color-primary-light); border: 1px solid $border; color: var(--color-primary-hover); font-size: 13px; border-radius: 3px; padding: 10px 14px;

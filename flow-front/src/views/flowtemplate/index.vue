@@ -54,8 +54,8 @@
               <label class="filter-label">状态</label>
               <select v-model="filters.status" class="filter-select">
                 <option value="">全部状态</option>
-                <option :value="1">启用</option>
-                <option :value="0">停用</option>
+                <option value="启用">启用</option>
+                <option value="停用">停用</option>
               </select>
             </div>
           </div>
@@ -108,7 +108,7 @@
                 <td>{{ row.deptName || '—' }}</td>
                 <td class="text-center">
                   <el-switch
-                    :value="row.status === 1"
+                    :value="row.status === '启用'"
                     :disabled="isSampleLocked(row)"
                     active-color="var(--color-primary)"
                     inactive-color="#dcdfe6"
@@ -120,8 +120,8 @@
                   <template v-if="isSuperAdmin">
                     <button class="action-link" @click="handleToggleSample(row)"><i :class="row.isSample === 1 ? 'el-icon-star-on star-on' : 'el-icon-star-off'" /> {{ row.isSample === 1 ? '取消样例' : '设为样例' }}</button>
                   </template>
-                  <button class="action-link" :disabled="isSampleLocked(row)" :title="isSampleLocked(row) ? '样例模板不可修改，可复制后使用' : ''" @click="goDesigner(row)">设计流程</button>
-                  <button class="action-link" :disabled="isSampleLocked(row)" :title="isSampleLocked(row) ? '样例模板不可修改，可复制后使用' : ''" @click="openEditModal(row)">编辑</button>
+                  <button class="action-link" :title="isSampleLocked(row) ? '样例模板可查看（修改请先复制）' : '设计流程'" @click="goDesigner(row)">设计流程</button>
+                  <button class="action-link" :title="isSampleLocked(row) ? '样例模板可查看（修改请先复制）' : '编辑'" @click="openEditModal(row)">编辑</button>
                   <button class="action-link" @click="handleCopy(row)">复制</button>
                   <button class="action-link text-error" :disabled="isSampleLocked(row)" :title="isSampleLocked(row) ? '样例模板不可删除' : ''" @click="handleDelete(row)">删除</button>
                 </td>
@@ -153,13 +153,14 @@
       :visible.sync="modalVisible"
       :is-edit="isEdit"
       :form-data="formData"
+      :readonly="modalReadonly"
       @submit="handleFormSubmit"
     />
   </div>
 </template>
 
 <script>
-import { getTemplateList, addTemplate, updateTemplate, toggleTemplateStatus, toggleTemplateSample, copyTemplate, deleteTemplate, getTemplateStats } from '@/api/template'
+import { getTemplateList, addTemplate, updateTemplate, toggleTemplateStatus, toggleTemplateSample, copyTemplate, deleteTemplate, getTemplateStats } from '@/service/sys/TemplateService'
 import TemplateFormModal from './components/TemplateFormModal.vue'
 
 export default {
@@ -177,7 +178,9 @@ export default {
       filters: { templateName: '', category: '', status: '' },
       modalVisible: false,
       isEdit: false,
-      formData: {}
+      formData: {},
+      // 编辑弹窗只读（样例模板且非超管）
+      modalReadonly: false
     }
   },
   computed: {
@@ -258,6 +261,8 @@ export default {
     openEditModal(row) {
       this.isEdit = true
       this.formData = { ...row }
+      // 样例模板且非超管：只读查看（样例不可修改，复制后可编辑）
+      this.modalReadonly = !!this.isSampleLocked(row)
       this.modalVisible = true
     },
     async handleFormSubmit(formData, stopLoading, close) {
@@ -287,7 +292,8 @@ export default {
       }
     },
     goDesigner(row) {
-      this.$router.push({ path: '/form-designer/index', query: { templateId: row.id, name: row.templateName }})
+      const readonly = this.isSampleLocked(row) ? 1 : 0
+      this.$router.push({ path: '/form-designer/index', query: { templateId: row.id, name: row.templateName, readonly }})
     },
     async handleCopy(row) {
       try {

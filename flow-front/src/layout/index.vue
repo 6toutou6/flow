@@ -96,7 +96,8 @@ export default {
     margin-left: #{$sideBarWidth};
     transition: margin-left 0.28s;
     min-height: 100vh;
-    padding-top: 56px;
+    /* Navbar 为 fixed 悬浮，由 .app-main 的 padding-top 让位即可，这里不再重复让位（避免双重 56px 空隙） */
+    padding-top: 0;
   }
 
   .hideSidebar .main-container {

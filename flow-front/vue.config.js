@@ -38,12 +38,11 @@ module.exports = {
     },
     before: require('./mock/mock-server.js'),
     proxy: {
-      '/dev-api': {
+      // 前端以 /api 前缀请求，代理时剥掉前缀转发到后端（后端无 context-path）
+      '/api': {
         target: 'http://localhost:9000',
         changeOrigin: true,
-        pathRewrite: {
-          '^/dev-api': '/house-service'
-        }
+        pathRewrite: { '^/api': '' }
       }
     }
   },

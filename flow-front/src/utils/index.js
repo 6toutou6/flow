@@ -115,3 +115,39 @@ export function param2Obj(url) {
   })
   return obj
 }
+
+// 附件 biz_id 生成：stableBizId —— 输入任意业务串，输出 ≤32 位稳定字母数字（适配 attach.biz_id varchar(32)）
+export function stableBizId(key) {
+  if (!key) return ''
+  const s = String(key)
+  if (s.length <= 32 && /^[A-Za-z0-9]+$/.test(s)) return s
+  // 64 位哈希（cyrb53），转 16 位十六进制（16 字符），保证 ≤32 且碰撞概率极低
+  let h1 = 0xdeadbeef ^ 0
+  let h2 = 0x41c6ce57 ^ 0
+  for (let i = 0; i < s.length; i++) {
+    const ch = s.charCodeAt(i)
+    h1 = Math.imul(h1 ^ ch, 2654435761)
+    h2 = Math.imul(h2 ^ ch, 1597334677)
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909)
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909)
+  const n1 = (h2 >>> 0).toString(16).padStart(8, '0')
+  const n2 = (h1 >>> 0).toString(16).padStart(8, '0')
+  return ('a' + n1 + n2).slice(0, 32)
+}
+
+// 节点处理人格式化：输入 task_node 数组（含 handlerName/handlerUserId/submitStatus），
+// 输出「姓名 用户号」并列串（按 userId 去重）。pendingOnly=true 只取待办（可处理人），否则取全部（含已处理）
+export function formatNodeHandlers(nodes, pendingOnly) {
+  const arr = (nodes || []).filter(n => n && n.handlerName)
+    .filter(n => (pendingOnly ? n.submitStatus === 0 : true))
+  const seen = new Set()
+  const out = []
+  arr.forEach(n => {
+    const key = n.handlerUserId || n.handlerName
+    if (seen.has(key)) return
+    seen.add(key)
+    out.push(n.handlerName + (n.handlerUserId ? ' ' + n.handlerUserId : ''))
+  })
+  return out.join('、')
+}

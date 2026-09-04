@@ -34,18 +34,22 @@
         <p class="card-desc">请输入您的账号信息登录系统</p>
       </div>
 
-      <el-form-item prop="username" label="用户名">
-        <el-input
+      <el-form-item prop="username" label="用户">
+        <el-select
           ref="username"
           v-model="loginForm.username"
-          placeholder="请输入用户名"
-          name="username"
-          type="text"
-          tabindex="1"
-          auto-complete="on"
-          prefix-icon="el-icon-user"
+          placeholder="请选择用户"
+          filterable
           size="medium"
-        />
+          style="width: 100%"
+        >
+          <el-option
+            v-for="u in userOptions"
+            :key="u.yyytId"
+            :label="u.userName + '（' + u.yyytId + '）'"
+            :value="u.yyytId"
+          />
+        </el-select>
       </el-form-item>
 
       <el-form-item prop="password" label="密码">
@@ -92,28 +96,29 @@
 </template>
 
 <script>
-import { validUsername } from '@/utils/validate'
+import { listActiveUsers } from '@/service/base/UserService'
 
 export default {
   name: 'Login',
   data() {
     const validateUsername = (rule, value, callback) => {
-      if (!validUsername(value)) {
-        callback(new Error('请输入正确的用户名'))
+      if (!value) {
+        callback(new Error('请选择用户'))
       } else {
         callback()
       }
     }
     const validatePassword = (rule, value, callback) => {
-      if (value.length < 6) {
-        callback(new Error('密码不能少于6位'))
+      if (!value) {
+        callback(new Error('请输入密码'))
       } else {
         callback()
       }
     }
     return {
+      userOptions: [],
       loginForm: {
-        username: 'zhangsan',
+        username: '',
         password: '123456'
       },
       loginRules: {
@@ -125,6 +130,9 @@ export default {
       redirect: undefined
     }
   },
+  created() {
+    this.loadUsers()
+  },
   watch: {
     $route: {
       handler: function(route) {
@@ -134,6 +142,17 @@ export default {
     }
   },
   methods: {
+    loadUsers() {
+      listActiveUsers().then(res => {
+        this.userOptions = (res.data || []).map(u => ({
+          yyytId: u.yyytId,
+          userName: u.userName
+        }))
+        if (this.userOptions.length > 0) {
+          this.loginForm.username = this.userOptions[0].yyytId
+        }
+      }).catch(() => {})
+    },
     showPwd() {
       if (this.passwordType === 'password') {
         this.passwordType = ''
@@ -218,6 +237,23 @@ export default {
         color: var(--color-primary);
       }
       &.pwd-visible { opacity: 0.55; }
+    }
+  }
+
+  // 用户下拉框样式与输入框保持一致
+  .el-select .el-input__inner {
+    height: 44px;
+    background: var(--color-primary-light);
+    border: 1.5px solid #E2E8F0;
+    border-radius: 3px;
+    font-size: 14px;
+    color: #0F172A;
+    transition: all 0.2s;
+
+    &:focus {
+      background: #fff;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.08);
     }
   }
 }

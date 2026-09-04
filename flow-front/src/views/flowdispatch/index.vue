@@ -79,8 +79,8 @@
               <label class="filter-label">状态</label>
               <select v-model="filters.status" class="filter-select">
                 <option value="">全部状态</option>
-                <option :value="1">启用</option>
-                <option :value="0">停用</option>
+                <option value="启用">启用</option>
+                <option value="停用">停用</option>
               </select>
             </div>
           </div>
@@ -101,14 +101,14 @@
         </div>
         <div v-else class="task-collapse">
           <div v-if="loading" class="loading-bar"><i class="el-icon-loading" /> 加载中...</div>
-          <div v-for="t in taskList" :key="t.id" class="task-panel" :class="{ 'is-open': isTaskOpen(t.id), 'is-disabled': t.status !== 1, 'flash-open': flashTasks.indexOf(t.id) >= 0 }">
+          <div v-for="t in taskList" :key="t.id" class="task-panel" :class="{ 'is-open': isTaskOpen(t.id), 'is-disabled': t.status !== '启用', 'flash-open': flashTasks.indexOf(t.id) >= 0 }">
             <div class="tp-head" @click="toggleTask(t.id)">
               <div class="ct-icon"><i class="el-icon-s-order" /></div>
               <div class="ct-main">
                 <div class="ct-name-row">
                   <span class="ct-name">{{ t.taskName }}</span>
                   <span v-if="t.isSample === 1" class="sample-tag">样例</span>
-                  <span :class="t.status === 1 ? 'ct-status on' : 'ct-status off'">{{ t.status === 1 ? '启用' : '停用' }}</span>
+                  <span :class="t.status === '启用' ? 'ct-status on' : 'ct-status off'">{{ t.status === '启用' ? '启用' : '停用' }}</span>
                 </div>
                 <div class="ct-sub">{{ cycleText(t) }}<template v-if="t.cycleType !== 4"> · {{ cycleDayText(t) }}</template> · 已下发 {{ t.periodCount || 0 }} 期 · {{ t.memberCount || 0 }} 人 · 创建人 {{ t.creatorName || '—' }}（{{ t.deptName || '—' }}）</div>
               </div>
@@ -119,7 +119,7 @@
             <div v-show="isTaskOpen(t.id)" class="tp-body">
               <div class="task-detail">
                 <!-- 概览 -->
-                <div v-if="t.status !== 1" class="disabled-tip">
+                <div v-if="t.status !== '启用'" class="disabled-tip">
                   <i class="el-icon-warning-outline" />
                   <span><b>该任务已停用</b>：不能生成新期次，自动下发暂停；已下发的期次与处理进度不受影响，点击「启用」可恢复。</span>
                 </div>
@@ -173,12 +173,12 @@
                   <template v-if="isSuperAdmin">
                     <button class="btn-ghost" @click="toggleSample(t)"><i :class="t.isSample === 1 ? 'el-icon-star-on star-on' : 'el-icon-star-off'" /> {{ t.isSample === 1 ? '取消样例' : '设为样例' }}</button>
                   </template>
-                  <button class="btn-gen" :disabled="t.status !== 1 || isSampleLocked(t)" :title="t.status !== 1 ? '请先启用任务' : (isSampleLocked(t) ? '样例任务仅超管可操作' : '生成期次')" @click="openGen(t)">
+                  <button class="btn-gen" :disabled="t.status !== '启用' || isSampleLocked(t)" :title="t.status !== '启用' ? '请先启用任务' : (isSampleLocked(t) ? '样例任务仅超管可操作' : '生成期次')" @click="openGen(t)">
                     <i class="el-icon-s-promotion" /> 生成期次
                   </button>
                   <button class="btn-ghost btn-person" @click="openPersonView(t)"><i class="el-icon-user" /> 按人员查看</button>
                   <button class="btn-ghost" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例任务仅超管可修改' : ''" @click="openEdit(t)"><i class="el-icon-edit" /> 编辑</button>
-                  <button class="btn-ghost" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例任务仅超管可操作' : ''" @click="toggleStatus(t)"><i class="el-icon-refresh" /> {{ t.status === 1 ? '停用' : '启用' }}</button>
+                  <button class="btn-ghost" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例任务仅超管可操作' : ''" @click="toggleStatus(t)"><i class="el-icon-refresh" /> {{ t.status === '启用' ? '停用' : '启用' }}</button>
                   <button class="btn-ghost text-error" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例任务仅超管可删除' : ''" @click="onDelete(t)"><i class="el-icon-delete" /> 删除</button>
                 </div>
 
@@ -311,9 +311,9 @@
 </template>
 
 <script>
-import { getDispatchTaskList, getDispatchStats, toggleDispatchPlanStatus, toggleDispatchSample, deleteDispatchPlan, getTaskMembers, getPreviewPeriod, checkDueDispatches, autoDispatchDuePeriods, updatePeriodEndTime } from '@/api/flowDispatch'
-import { getTaskList, deleteTaskGroup } from '@/api/task'
-import { getTemplateList } from '@/api/template'
+import { getDispatchTaskList, getDispatchStats, toggleDispatchPlanStatus, toggleDispatchSample, deleteDispatchPlan, getTaskMembers, getPreviewPeriod, checkDueDispatches, autoDispatchDuePeriods, updatePeriodEndTime } from '@/service/sys/FlowDispatchService'
+import { getTaskList, deleteTaskGroup } from '@/service/sys/TaskService'
+import { getTemplateList } from '@/service/sys/TemplateService'
 import GeneratePeriodModal from './components/GeneratePeriodModal.vue'
 
 export default {
@@ -410,13 +410,13 @@ export default {
           if (Array.isArray(ids) && ids.length) this.activeTasks = ids
         }
         // 双闪跳转来源任务面板
-        const flashId = Number(sessionStorage.getItem('flowDispatchFlash'))
+        const flashId = sessionStorage.getItem('flowDispatchFlash')
         if (Number.isInteger(flashId) && this.activeTasks.indexOf(flashId) >= 0) {
           this.flashTasks = [flashId]
           setTimeout(() => { this.flashTasks = [] }, 2200)
         }
         // 高亮跳转来源期次（如点「查看人员」跳转，返回时定位到该期次行）
-        const flashPeriod = Number(sessionStorage.getItem('flowDispatchFlashPeriod'))
+        const flashPeriod = sessionStorage.getItem('flowDispatchFlashPeriod')
         if (Number.isInteger(flashPeriod)) {
           this.flashPeriod = flashPeriod
           setTimeout(() => { this.flashPeriod = null }, 2200)
@@ -476,7 +476,7 @@ export default {
     nextPeriodText(t) {
       const d = this.taskData[t.id]
       if (!d) return '展开查看'
-      if (t.status !== 1) return '任务已停用'
+      if (t.status !== '启用') return '任务已停用'
       if (t.cycleType === 4) return '单次下发，生成时自定期次名'
       if (d.nextPreview && d.nextPreview.periodName) {
         return `${d.nextPreview.periodName} · ${d.nextPreview.startTime || '—'} 下发`
@@ -737,7 +737,7 @@ export default {
       }
     },
     toggleStatus(t) {
-      const toDisable = t.status === 1
+      const toDisable = t.status === '启用'
       this.$confirm(
         toDisable
           ? '停用后：不能生成新期次，自动下发将暂停；已下发的期次与处理进度不受影响，可随时重新启用。确定停用「' + t.taskName + '」吗？'

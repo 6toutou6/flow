@@ -26,12 +26,12 @@
         <div class="user-info">
         <span class="user-item">
           <i class="el-icon-user" />
-          <span class="user-label">{{ realName || username }}</span>
+          <span class="user-label">{{ userName }}</span>
         </span>
         <span class="user-divider">|</span>
         <span class="user-item">
           <i class="el-icon-postcard" />
-          <span class="user-label">{{ empNo }}</span>
+          <span class="user-label">{{ yyytId }}</span>
         </span>
         <span class="user-divider">|</span>
         <span class="user-item">
@@ -43,7 +43,7 @@
       <el-dropdown class="avatar-container" trigger="click" @command="handleCommand">
         <div class="avatar-wrapper">
           <div class="avatar-placeholder">
-            {{ (realName || username || '?').charAt(0).toUpperCase() }}
+            {{ (userName || '?').charAt(0).toUpperCase() }}
           </div>
           <i class="el-icon-arrow-down" />
         </div>
@@ -74,8 +74,7 @@ export default {
   },
   computed: {
     ...mapGetters([
-      'sidebar', 'avatar', 'username',
-      'empNo', 'realName', 'deptId', 'deptName'
+      'sidebar', 'yyytId', 'userName', 'deptId', 'deptName'
     ]),
     themeLabel() {
       return this.theme === 'red' ? '中国红' : '石板蓝'

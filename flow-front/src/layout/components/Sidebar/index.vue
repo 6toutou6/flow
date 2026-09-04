@@ -28,9 +28,9 @@
     </el-scrollbar>
 
     <div class="sidebar-footer">
-      <button class="btn-new-task" @click="handleAddIssue">
-        <i class="el-icon-plus" />
-        <span>新建任务</span>
+      <button class="btn-new-task" @click="handleLogout">
+        <i class="el-icon-switch-button" />
+        <span>退出登录</span>
       </button>
       <div class="footer-meta">
         <span class="meta-version">v2.0</span>
@@ -61,8 +61,10 @@ export default {
     }
   },
   methods: {
-    handleAddIssue() {
-      this.$router.push('/task-process/index')
+    handleLogout() {
+      this.$store.dispatch('user/logout').then(() => {
+        this.$router.push('/login')
+      })
     }
   }
 }
