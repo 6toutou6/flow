@@ -105,6 +105,7 @@
                     <button class="action-link" @click="toggleSample(t)"><i :class="t.isSample === 1 ? 'el-icon-star-on star-on' : 'el-icon-star-off'" /> {{ t.isSample === 1 ? '取消样例' : '设为样例' }}</button>
                   </template>
                   <button class="action-link" :title="isSampleLocked(t) ? '样例模板可查看（修改请先复制）' : '编辑'" @click="openEdit(t)"><i class="el-icon-edit" /> 编辑</button>
+                  <button class="action-link" title="复制一份归本部门，样例复制后可修改" @click="doCopy(t)"><i class="el-icon-copy-document" /> 复制</button>
                   <button class="action-link text-error" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例配置模板仅超管可删除' : ''" @click="onDelete(t)"><i class="el-icon-delete" /> 删除</button>
                 </td>
               </tr>
@@ -117,7 +118,7 @@
 </template>
 
 <script>
-import { getConfigTemplates, getConfigTemplateStats, deleteConfigTemplate, toggleConfigTemplateSample } from '@/service/sys/FlowDispatchService'
+import { getConfigTemplates, getConfigTemplateStats, deleteConfigTemplate, toggleConfigTemplateSample, copyConfigTemplate } from '@/service/sys/FlowDispatchService'
 
 export default {
   name: 'FlowDispatchConfigTemplate',
@@ -159,6 +160,16 @@ export default {
         this.fetchList()
       } catch (e) {
         this.$message.error((e && e.message) || '操作失败')
+      }
+    },
+    /** 复制配置模板：复制一份归本部门（样例复制后可修改） */
+    async doCopy(t) {
+      try {
+        const res = await copyConfigTemplate(t.id)
+        this.$message.success((res && res.message) || '复制成功')
+        this.fetchList()
+      } catch (e) {
+        this.$message.error((e && e.message) || '复制失败')
       }
     },
     async fetchList() {

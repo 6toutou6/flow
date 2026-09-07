@@ -27,38 +27,43 @@
           </div>
         </div>
 
-        <!-- 部门（按 dept_admin 为准） -->
+        <!-- 部门（按 dept_admin 为准，弹窗选择） -->
         <div class="form-item">
           <label class="form-label">部门 <span class="required">*</span></label>
-          <select
-            v-model="formData.deptId"
-            class="form-select"
-            :disabled="isEdit"
-            @change="handleDeptChange"
-          >
-            <option value="">请选择部门</option>
-            <option v-for="d in deptOptions" :key="d.deptId" :value="d.deptId">
-              {{ d.deptName }}
-            </option>
-          </select>
+          <div class="user-row">
+            <input
+              v-model="displayDept"
+              class="form-input readonly"
+              placeholder="点击右侧按钮选择部门"
+              readonly
+            >
+            <button
+              class="btn-pick"
+              :disabled="isEdit"
+              :title="isEdit ? '编辑时部门不可变更，可删除后重新新增' : '选择部门'"
+              @click="openDeptPicker"
+            >
+              <i class="el-icon-search" /> 选择
+            </button>
+          </div>
         </div>
 
         <!-- 部门名称（随部门选择自动带出） -->
         <div class="form-item">
           <label class="form-label">部门名称</label>
-          <input v-model="formData.deptName" class="form-input readonly" readonly>
+          <input v-model="localForm.deptName" class="form-input readonly" readonly>
         </div>
 
         <!-- 部门邮箱 -->
         <div class="form-item">
           <label class="form-label">部门邮箱</label>
-          <input v-model="formData.deptEmail" class="form-input" placeholder="请输入部门邮箱地址（可选）">
+          <input v-model="localForm.deptEmail" class="form-input" placeholder="请输入部门邮箱地址（可选）">
         </div>
 
         <!-- 邮箱密码 -->
         <div class="form-item">
           <label class="form-label">邮箱密码</label>
-          <input v-model="formData.deptEmailPwd" class="form-input" type="password" placeholder="请输入部门邮箱密码（可选）">
+          <input v-model="localForm.deptEmailPwd" class="form-input" type="password" placeholder="请输入部门邮箱密码（可选）">
         </div>
       </div>
       <div class="modal-footer">
@@ -76,15 +81,24 @@
       @confirm="confirmPick"
       @close="pickerVisible = false"
     />
+    <!-- 部门选择弹窗（单选，仿机构树） -->
+    <DeptPickerDialog
+      :visible="deptPickerVisible"
+      title="选择部门"
+      :current-dept-id="localForm.deptId"
+      @confirm="confirmDept"
+      @close="deptPickerVisible = false"
+    />
   </div>
 </template>
 
 <script>
 import UserPicker from '@/components/UserPicker'
+import DeptPickerDialog from './DeptPickerDialog.vue'
 
 export default {
   name: 'DeptAdminAddEditModal',
-  components: { UserPicker },
+  components: { UserPicker, DeptPickerDialog },
   props: {
     visible: { type: Boolean, default: false },
     isEdit: { type: Boolean, default: false },
@@ -94,7 +108,7 @@ export default {
   data() {
     return {
       pickerVisible: false,
-      deptOptions: [],
+      deptPickerVisible: false,
       localForm: {
         adminYstId: '',
         adminName: '',
@@ -112,6 +126,9 @@ export default {
       }
       return ''
     },
+    displayDept() {
+      return this.localForm.deptName || ''
+    },
     canSubmit() {
       return !!(this.localForm.adminYstId && this.localForm.deptId)
     }
@@ -119,7 +136,6 @@ export default {
   watch: {
     visible(val) {
       if (val) {
-        this.loadDeptOptions()
         this.localForm = {
           adminYstId: this.formData.adminYstId || '',
           adminName: this.formData.adminName || '',
@@ -132,19 +148,6 @@ export default {
     }
   },
   methods: {
-    async loadDeptOptions() {
-      try {
-        const { getDeptOptions } = await import('@/service/base/DeptAdminService')
-        const res = await getDeptOptions()
-        this.deptOptions = (res.data || []).map(d => ({
-          deptId: String(d.deptId),
-          deptName: d.deptName
-        }))
-      } catch (e) {
-        console.error('获取部门选项失败:', e)
-        this.deptOptions = []
-      }
-    },
     openPicker() {
       if (this.isEdit) return
       this.pickerVisible = true
@@ -156,9 +159,15 @@ export default {
       this.localForm.adminYstId = u.yyytId
       this.localForm.adminName = u.userName
     },
-    handleDeptChange() {
-      const d = this.deptOptions.find(x => x.deptId === this.localForm.deptId)
-      this.localForm.deptName = d ? d.deptName : ''
+    openDeptPicker() {
+      if (this.isEdit) return
+      this.deptPickerVisible = true
+    },
+    confirmDept(dept) {
+      this.deptPickerVisible = false
+      if (!dept || !dept.deptId) return
+      this.localForm.deptId = String(dept.deptId)
+      this.localForm.deptName = dept.deptName || ''
     },
     handleSubmit() {
       this.$emit('submit', { ...this.localForm })

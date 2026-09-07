@@ -25,6 +25,10 @@ public interface DeptAdminService {
     /** 判断某用户是否为指定部门的部门管理员 */
     boolean isDeptAdmin(String yyytId, Long deptId);
 
+    /** 某用户在 dept_admin 中登记的部门（按 admin_yst_id 反查；未登记返回 null）。
+     *  部门归属以 dept_admin 为准（aut_user 为全量用户表、部门可能滞后，不作为权限依据） */
+    Long deptIdOf(String yyytId);
+
     /** 当前登录用户是否为其所在部门的部门管理员（创建权限校验用） */
     boolean currentIsDeptAdmin(String yyytId, Long deptId);
 

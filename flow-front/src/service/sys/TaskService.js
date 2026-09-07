@@ -145,14 +145,6 @@ export function removeTaskHandler(taskId, handlerUserId) {
   })
 }
 
-// 催办：给任务当前节点处理人发送催办通知（记录到流转日志）
-export function urgeTask(taskId) {
-  return request({
-    url: `/flow-task/urge/${taskId}`,
-    method: 'post'
-  })
-}
-
 // 批量催办：对多个成员任务发送催办通知（记录到流转日志）
 export function urgeTaskBatch(taskIds) {
   return request({

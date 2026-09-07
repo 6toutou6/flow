@@ -69,6 +69,25 @@ public class DeptAdminServiceImpl implements DeptAdminService {
     }
 
     @Override
+    public Long deptIdOf(String yyytId) {
+        if (!StringUtils.hasText(yyytId)) {
+            return null;
+        }
+        DeptAdmin admin = deptAdminMapper.selectOne(new LambdaQueryWrapper<DeptAdmin>()
+                .eq(DeptAdmin::getAdminYstId, yyytId)
+                .orderByAsc(DeptAdmin::getDeptId)
+                .last("LIMIT 1"));
+        if (admin == null || admin.getDeptId() == null) {
+            return null;
+        }
+        try {
+            return Long.valueOf(admin.getDeptId());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    @Override
     public boolean currentIsDeptAdmin(String yyytId, Long deptId) {
         return isDeptAdmin(yyytId, deptId);
     }

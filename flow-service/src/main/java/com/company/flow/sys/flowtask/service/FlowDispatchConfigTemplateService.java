@@ -30,6 +30,8 @@ public class FlowDispatchConfigTemplateService {
 
     @Autowired
     private UserMapper userMapper;
+    @Autowired
+    private com.company.flow.sys.base.deptAdmin.service.DeptAdminService deptAdminService;
 
     // ==================== 可见性与权限 ====================
 
@@ -37,13 +39,15 @@ public class FlowDispatchConfigTemplateService {
         return loginUser != null && Boolean.TRUE.equals(loginUser.getSuperAdmin());
     }
 
+    /** 当前登录人在 dept_admin 登记的部门（超管返回 null 全量；未登记返回 -1，仅样例/自建可见） */
     private Long visibleDeptId(LoginUser loginUser) {
         if (isSuperAdmin(loginUser)) return null;
-        if (loginUser == null || loginUser.getDeptId() == null) return -1L;
-        return loginUser.getDeptId();
+        if (loginUser == null || !StringUtils.hasText(loginUser.getYyytId())) return -1L;
+        Long dept = deptAdminService.deptIdOf(loginUser.getYyytId());
+        return dept == null ? -1L : dept;
     }
 
-    /** 操作权限校验：超管全量；样例仅超管可改；自己创建的可改；其余需同部门（无部门用户不可操作） */
+    /** 操作权限校验：超管全量；样例仅超管可改；自己创建的可改；其余需为 dept_admin 登记的同一部门 */
     private void checkPermission(FlowDispatchConfigTemplate tpl) {
         if (tpl == null) throw new RuntimeException("配置模板不存在");
         LoginUser loginUser = SecurityUtils.getLoginUser();
@@ -53,15 +57,16 @@ public class FlowDispatchConfigTemplateService {
         }
         if (loginUser == null) throw new RuntimeException("无权操作该配置模板");
         if (tpl.getCreatorId() != null && Objects.equals(tpl.getCreatorId(), loginUser.getYyytId())) return;
-        if (loginUser.getDeptId() == null) {
+        Long dept = deptAdminService.deptIdOf(loginUser.getYyytId());
+        if (dept == null) {
             throw new RuntimeException("无权操作其他部门的配置模板");
         }
-        if (tpl.getDeptId() == null || !Objects.equals(tpl.getDeptId(), loginUser.getDeptId())) {
+        if (tpl.getDeptId() == null || !Objects.equals(tpl.getDeptId(), dept)) {
             throw new RuntimeException("无权操作其他部门的配置模板");
         }
     }
 
-    /** 详情可见性校验（只读）：超管全量；样例公共可见；自己创建的可见；同部门可见；否则拒绝 */
+    /** 详情可见性校验（只读）：超管全量；样例公共可见；自己创建的可见；dept_admin 登记的同一部门可见；否则拒绝 */
     private void checkVisible(FlowDispatchConfigTemplate tpl) {
         if (tpl == null) throw new RuntimeException("配置模板不存在");
         LoginUser loginUser = SecurityUtils.getLoginUser();
@@ -69,10 +74,11 @@ public class FlowDispatchConfigTemplateService {
         if (tpl.getIsSample() != null && tpl.getIsSample() == 1) return;
         if (loginUser == null) throw new RuntimeException("无权查看该配置模板");
         if (tpl.getCreatorId() != null && Objects.equals(tpl.getCreatorId(), loginUser.getYyytId())) return;
-        if (loginUser.getDeptId() == null) {
+        Long dept = deptAdminService.deptIdOf(loginUser.getYyytId());
+        if (dept == null) {
             throw new RuntimeException("无权查看其他部门的配置模板");
         }
-        if (tpl.getDeptId() == null || !Objects.equals(tpl.getDeptId(), loginUser.getDeptId())) {
+        if (tpl.getDeptId() == null || !Objects.equals(tpl.getDeptId(), dept)) {
             throw new RuntimeException("无权查看其他部门的配置模板");
         }
     }
@@ -151,9 +157,15 @@ public class FlowDispatchConfigTemplateService {
         Date now = new Date();
         LoginUser loginUser = SecurityUtils.getLoginUser();
         if (tpl.getId() == null) {
+            // 新建归属部门管理员（dept_admin 登记），非管理员不可创建
+            if (loginUser != null && !isSuperAdmin(loginUser)
+                    && deptAdminService.deptIdOf(loginUser.getYyytId()) == null) {
+                throw new RuntimeException("非部门管理员，无创建权限");
+            }
             tpl.setCreatorId(loginUser == null ? null : loginUser.getYyytId());
         tpl.setCreatorName(loginUser == null ? null : loginUser.getUserName());
-            tpl.setDeptId(loginUser == null ? null : loginUser.getDeptId());
+            // 部门归属以 dept_admin 登记为准（aut_user 为全量用户表、部门可能滞后）
+            tpl.setDeptId(loginUser == null ? null : deptAdminService.deptIdOf(loginUser.getYyytId()));
             tpl.setIsSample(0);
             tpl.setCreateTime(now);
             tpl.setUpdateTime(now);
@@ -181,5 +193,33 @@ public class FlowDispatchConfigTemplateService {
     public boolean delete(String id) {
         checkPermission(mapper.selectById(id));
         return id != null && mapper.deleteById(id) > 0;
+    }
+
+    /** 复制配置模板：样例可复制（公共）；复制产物归属当前部门管理员（dept_admin 登记），样例复制后转为普通配置 */
+    public FlowDispatchConfigTemplate copy(String id) {
+        FlowDispatchConfigTemplate src = mapper.selectById(id);
+        if (src == null) throw new RuntimeException("配置模板不存在");
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        if (loginUser == null) throw new RuntimeException("未登录");
+        Long myDept = deptAdminService.deptIdOf(loginUser.getYyytId());
+        if (myDept == null) {
+            throw new RuntimeException("非部门管理员，无复制权限");
+        }
+        Date now = new Date();
+        FlowDispatchConfigTemplate c = new FlowDispatchConfigTemplate();
+        c.setConfigName(src.getConfigName() + "_副本");
+        c.setCycleType(src.getCycleType());
+        c.setCycleDay(src.getCycleDay());
+        c.setDeadlineDays(src.getDeadlineDays());
+        c.setUrgeDays(src.getUrgeDays());
+        c.setRemark(src.getRemark());
+        c.setDeptId(myDept);
+        c.setIsSample(0);
+        c.setCreatorId(loginUser.getYyytId());
+        c.setCreatorName(loginUser.getUserName());
+        c.setCreateTime(now);
+        c.setUpdateTime(now);
+        mapper.insert(c);
+        return c;
     }
 }

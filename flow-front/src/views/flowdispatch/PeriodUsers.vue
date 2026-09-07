@@ -125,10 +125,6 @@
                 </div>
               </div>
               <div class="mi-right" @click.stop>
-                <button v-if="m.status === 1" class="mi-urge" :disabled="urgingId === m.taskId" :title="'催办「' + (m.currentHandlerName || m.ownerName || '') + '」尽快处理'" @click="onUrge(m)">
-                  <i v-if="urgingId === m.taskId" class="el-icon-loading" />
-                  <i v-else class="el-icon-alarm-clock" /> 催办
-                </button>
                 <button class="mi-view" @click="openFlow(m)"><i class="el-icon-view" /> 查看流程</button>
               </div>
             </div>
@@ -162,7 +158,7 @@
 </template>
 
 <script>
-import { getTaskMembers, urgeTask, urgeTaskBatch, deleteTaskBatch } from '@/service/sys/TaskService'
+import { getTaskMembers, urgeTaskBatch, deleteTaskBatch } from '@/service/sys/TaskService'
 import { addPeriodMembers, getPeriodInfo } from '@/service/sys/FlowDispatchService'
 import UserPicker from '@/components/UserPicker/index.vue'
 
@@ -181,7 +177,6 @@ export default {
       page: 1,
       limit: 10,
       filters: { name: '', dept: '', status: '' },
-      urgingId: null,
       selected: [],
       pickerVisible: false,
       adding: false,
@@ -288,15 +283,16 @@ export default {
       }
     },
     memberName(m) { return m.ownerName || '—' },
-    /** 卡片左标：任务已完成（状态码 2）时显示绿色勾 */
-    isTaskDone(m) { return m.status === 2 || m.status === '已完成' },
+    /** 卡片左标：任务已完成（状态码 2 / 展示词「已完成」/ 底层词「已结束」）时显示绿色勾 */
+    isTaskDone(m) { return m.status === 2 || m.status === '已完成' || m.status === '已结束' },
     /** 卡片左标：未完成时取当前节点名的首字（如「整」=整改审核） */
     badgeNodeText(m) {
       const name = m.currentNodeName || ''
       return name ? name.charAt(0) : ''
     },
-    statusText(s) { return ({ 进行中: '进行中', 已完成: '已完成', 已作废: '已作废', 1: '进行中', 2: '已完成', 3: '已作废' })[s] || '—' },
-    statusClass(s) { return ({ 进行中: 'status-running', 已完成: 'status-done', 已作废: 'status-cancel', 1: 'status-running', 2: 'status-done', 3: 'status-cancel' })[s] || '' },
+    /** 展示归一：底层任务状态「已结束」在成员卡片统一展示为「已完成」 */
+    statusText(s) { return ({ 进行中: '进行中', 已完成: '已完成', 已结束: '已完成', 已作废: '已作废', 1: '进行中', 2: '已完成', 3: '已作废' })[s] || '—' },
+    statusClass(s) { return ({ 进行中: 'status-running', 已完成: 'status-done', 已结束: 'status-done', 已作废: 'status-cancel', 1: 'status-running', 2: 'status-done', 3: 'status-cancel' })[s] || '' },
     memberProgress(m) {
       if (!m.totalNodeCount) return 0
       return Math.round(((m.finishedNodeCount || 0) / m.totalNodeCount) * 100)
@@ -344,27 +340,6 @@ export default {
           taskName: this.taskName || ''
         }
       })
-    },
-    onUrge(m) {
-      if (!m || !m.taskId) return
-      const target = m.currentHandlerName || m.ownerName || '该处理人'
-      this.$confirm(`确定向「${target}」发送催办通知吗？\n将提醒其在当前节点（${m.currentNodeName || '—'}）尽快处理。`, '催办确认', {
-        confirmButtonText: '发送催办',
-        cancelButtonText: '取消',
-        type: 'warning',
-        confirmButtonClass: 'el-button--primary'
-      }).then(async () => {
-        this.urgingId = m.taskId
-        try {
-          const res = await urgeTask(m.taskId)
-          this.$message.success(res.message || '催办通知已发送')
-          await this.fetchMembers()
-        } catch (e) {
-          this.$message.error((e && e.message) || '催办失败')
-        } finally {
-          this.urgingId = null
-        }
-      }).catch(() => {})
     },
     goBack() {
       this.$router.push('/flow-dispatch/index')
@@ -484,10 +459,6 @@ $border: #CBD5E1;
 .chip-rejected { background: rgba(180, 83, 9,0.16); color: #B45309; border: 1px solid rgba(180, 83, 9,0.45); }
 .chip-pending { background: #f0f0f0; color: #aaa; }
 .mi-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-left: 12px; }
-.mi-urge { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; border: 1px solid rgba(180, 83, 9,0.5); background: #EFF6FF; color: #B45309; border-radius: 2px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;
-  &:hover { background: rgba(180, 83, 9,0.12); border-color: #B45309; }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-}
 .mi-view { display: inline-flex; align-items: center; gap: 3px; padding: 5px 10px; border: 1px solid $border; background: #fff; color: $primary; border-radius: 2px; font-size: 12px; font-weight: 600; cursor: pointer;
   &:hover { background: var(--color-primary-light); border-color: $primary; }
 }

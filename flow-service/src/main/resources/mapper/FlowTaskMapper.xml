@@ -4,7 +4,9 @@
 
     <sql id="memberSelectColumns">
         t.id AS taskId, t.task_name AS taskName, t.template_id AS templateId,
-        t.status, t.current_node_id AS currentNodeId, t.current_handler_id AS currentHandlerId,
+        -- 状态对外统一为展示语义词（底层存「已结束」，成员卡片/筛选按「已完成」使用）
+        CASE t.status WHEN '已结束' THEN '已完成' ELSE t.status END AS status,
+        t.current_node_id AS currentNodeId, t.current_handler_id AS currentHandlerId,
         t.finished_node_count AS finishedNodeCount, t.total_node_count AS totalNodeCount,
         t.create_time AS createTime,
         s.handler_user_id AS ownerUserId,
@@ -44,7 +46,7 @@
             AND u.dept_name LIKE CONCAT('%', #{dept}, '%')
         </if>
         <if test="status != null and status != ''">
-            AND t.status = #{status}
+            AND (t.status = #{status} OR (#{status} = '已完成' AND t.status = '已结束'))
         </if>
     </sql>
 

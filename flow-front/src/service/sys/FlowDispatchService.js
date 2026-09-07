@@ -170,6 +170,14 @@ export function toggleConfigTemplateSample(id) {
   })
 }
 
+// 复制下发配置模板（样例可复制，产物归属当前部门管理员并转为普通配置）
+export function copyConfigTemplate(id) {
+  return request({
+    url: `/flow-dispatch/config-template/copy/${id}`,
+    method: 'post'
+  })
+}
+
 // 期次新增人员：抄用期次配置为每位新人员创建独立提交任务
 export function addPeriodMembers(dispatchId, userIds) {
   return request({

@@ -71,20 +71,26 @@ public class FlowTemplateService {
         return loginUser != null && Boolean.TRUE.equals(loginUser.getSuperAdmin());
     }
 
-    /** 追加可见性过滤：超管全量；普通用户 is_sample=1（样例公共可见） OR dept_id=当前用户部门 */
+    /** 追加可见性过滤：超管全量；普通用户 is_sample=1（样例公共可见） OR dept_id=其在 dept_admin 登记的部门 */
     private void applyVisibleFilter(LambdaQueryWrapper<FlowTemplate> wrapper, LoginUser loginUser) {
         if (isSuperAdmin(loginUser)) return;
-        Long deptId = loginUser == null ? null : loginUser.getDeptId();
+        Long deptId = loginUser == null ? null : deptAdminService.deptIdOf(loginUser.getYyytId());
         if (deptId != null) {
             // 样例公共可见 或 同部门创建
             wrapper.and(w -> w.eq(FlowTemplate::getIsSample, 1).or().eq(FlowTemplate::getDeptId, deptId));
         } else {
-            // 无部门用户：仅样例公共可见
+            // 未在 dept_admin 登记部门：仅样例公共可见
             wrapper.eq(FlowTemplate::getIsSample, 1);
         }
     }
 
-    /** 操作权限校验：超管全量；样例仅超管可改；普通模板需同部门（无部门用户不可操作） */
+    /** 当前登录人在 dept_admin 登记的部门（未登记返回 null） */
+    private Long currentDept(LoginUser loginUser) {
+        if (loginUser == null || !StringUtils.hasText(loginUser.getYyytId())) return null;
+        return deptAdminService.deptIdOf(loginUser.getYyytId());
+    }
+
+    /** 操作权限校验：超管全量；样例仅超管可改；普通模板需为 dept_admin 登记的同一部门（未登记部门者不可操作） */
     private void checkPermission(FlowTemplate t) {
         if (t == null) throw new RuntimeException("模板不存在");
         LoginUser loginUser = SecurityUtils.getLoginUser();
@@ -92,24 +98,26 @@ public class FlowTemplateService {
         if (t.getIsSample() != null && t.getIsSample() == 1) {
             throw new RuntimeException("样例模板仅超管可修改");
         }
-        if (loginUser == null || loginUser.getDeptId() == null) {
+        Long dept = currentDept(loginUser);
+        if (dept == null) {
             throw new RuntimeException("无权操作其他部门的模板");
         }
-        if (t.getDeptId() == null || !Objects.equals(t.getDeptId(), loginUser.getDeptId())) {
+        if (t.getDeptId() == null || !Objects.equals(t.getDeptId(), dept)) {
             throw new RuntimeException("无权操作其他部门的模板");
         }
     }
 
-    /** 详情可见性校验（只读）：超管全量；样例公共可见；同部门可见；否则拒绝（无部门用户不可见） */
+    /** 详情可见性校验（只读）：超管全量；样例公共可见；dept_admin 登记的同一部门可见；否则拒绝 */
     private void checkVisible(FlowTemplate t) {
         if (t == null) throw new RuntimeException("模板不存在");
         LoginUser loginUser = SecurityUtils.getLoginUser();
         if (isSuperAdmin(loginUser)) return;
         if (t.getIsSample() != null && t.getIsSample() == 1) return;
-        if (loginUser == null || loginUser.getDeptId() == null) {
+        Long dept = currentDept(loginUser);
+        if (dept == null) {
             throw new RuntimeException("无权查看其他部门的模板");
         }
-        if (t.getDeptId() == null || !Objects.equals(t.getDeptId(), loginUser.getDeptId())) {
+        if (t.getDeptId() == null || !Objects.equals(t.getDeptId(), dept)) {
             throw new RuntimeException("无权查看其他部门的模板");
         }
     }
@@ -178,12 +186,12 @@ public class FlowTemplateService {
         return vo;
     }
 
-    /** 创建权限校验：须为本部门管理员（dept_admin 有记录） */
+    /** 创建/复制权限校验：须为 dept_admin 登记的部门管理员（aut_user 部门不作依据） */
     private void checkDeptAdmin(LoginUser loginUser) {
         if (loginUser == null) {
             throw new RuntimeException("未登录");
         }
-        if (!deptAdminService.isDeptAdmin(loginUser.getYyytId(), loginUser.getDeptId())) {
+        if (deptAdminService.deptIdOf(loginUser.getYyytId()) == null) {
             throw new RuntimeException("非部门管理员，无创建权限");
         }
     }
@@ -202,7 +210,8 @@ public class FlowTemplateService {
         checkDeptAdmin(loginUser);
         template.setCreatorId(loginUser == null ? null : loginUser.getYyytId());
         template.setCreatorName(loginUser == null ? null : loginUser.getUserName());
-        template.setDeptId(loginUser == null ? null : loginUser.getDeptId());
+        // 部门归属以 dept_admin 登记为准（aut_user 为全量用户表、部门可能滞后）
+        template.setDeptId(loginUser == null ? null : deptAdminService.deptIdOf(loginUser.getYyytId()));
         // 样例仅超管通过单独接口设置，普通创建一律为普通模板
         template.setIsSample(0);
         template.setVersion(1);
@@ -246,14 +255,16 @@ public class FlowTemplateService {
         FlowTemplate src = flowTemplateMapper.selectById(id);
         if (src == null) return null;
         LoginUser loginUser = SecurityUtils.getLoginUser();
+        // 复制产物归属本部门，须为 dept_admin 登记的部门管理员
+        checkDeptAdmin(loginUser);
         src.setId(null);
         src.setTemplateName(src.getTemplateName() + "_副本");
         src.setVersion(1);
         src.setStatus("停用");
-        // 复制得到的模板归属当前用户/部门，样例复制后变为普通模板
+        // 复制得到的模板归属当前部门管理员，样例复制后变为普通模板
         src.setCreatorId(loginUser == null ? null : loginUser.getYyytId());
         src.setCreatorName(loginUser == null ? null : loginUser.getUserName());
-        src.setDeptId(loginUser == null ? null : loginUser.getDeptId());
+        src.setDeptId(loginUser == null ? null : deptAdminService.deptIdOf(loginUser.getYyytId()));
         src.setIsSample(0);
         src.setModifierId(null);
         flowTemplateMapper.insert(src);

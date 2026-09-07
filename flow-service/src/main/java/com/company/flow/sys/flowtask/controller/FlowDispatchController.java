@@ -101,6 +101,16 @@ public class FlowDispatchController {
         }
     }
 
+    /** 复制下发配置模板（样例可复制；复制产物归属当前部门管理员并转为普通配置） */
+    @PostMapping("/config-template/copy/{id}")
+    public Result<FlowDispatchConfigTemplate> configTemplateCopy(@PathVariable String id) {
+        try {
+            return Result.success("复制成功", configTemplateService.copy(id));
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
     /** 任务分页列表（含期次数、人员数） */
     @GetMapping("/list")
     public Result<PageResult<FlowDispatch>> list(@RequestParam(required = false) Integer page,

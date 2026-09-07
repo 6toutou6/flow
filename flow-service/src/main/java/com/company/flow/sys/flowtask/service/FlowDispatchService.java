@@ -188,14 +188,22 @@ public class FlowDispatchService {
     }
 
     /** 当前用户可见性过滤的 deptId：超管返回 null（全量）；
-     *  普通用户返回其部门ID；无部门用户返回 -1（SQL 无匹配，仅样例公共可见） */
+     *  普通用户返回其在 dept_admin 登记的部门（以 dept_admin 为准，aut_user 部门可能滞后不作依据）；
+     *  未登记任何部门的管理员返回 -1（SQL 无匹配，仅样例公共可见） */
     private String visibleDeptId(LoginUser loginUser) {
         if (isSuperAdmin(loginUser)) return null;
-        if (loginUser == null || loginUser.getDeptId() == null) return "-1";
-        return String.valueOf(loginUser.getDeptId());
+        if (loginUser == null || !StringUtils.hasText(loginUser.getYyytId())) return "-1";
+        Long dept = deptAdminService.deptIdOf(loginUser.getYyytId());
+        return dept == null ? "-1" : String.valueOf(dept);
     }
 
-    /** 操作权限校验：超管全量；样例仅超管可改；普通任务需同部门（无部门用户不可操作） */
+    /** 当前登录人在 dept_admin 登记的部门（未登记返回 null） */
+    private Long currentDept(LoginUser loginUser) {
+        if (loginUser == null || !StringUtils.hasText(loginUser.getYyytId())) return null;
+        return deptAdminService.deptIdOf(loginUser.getYyytId());
+    }
+
+    /** 操作权限校验：超管全量；样例仅超管可改；普通任务需为 dept_admin 登记的同一部门（未登记部门者不可操作） */
     private void checkPermission(FlowDispatch d) {
         if (d == null) throw new RuntimeException("任务不存在");
         LoginUser loginUser = SecurityUtils.getLoginUser();
@@ -203,24 +211,26 @@ public class FlowDispatchService {
         if (d.getIsSample() != null && d.getIsSample() == 1) {
             throw new RuntimeException("样例任务仅超管可修改");
         }
-        if (loginUser == null || loginUser.getDeptId() == null) {
+        Long dept = currentDept(loginUser);
+        if (dept == null) {
             throw new RuntimeException("无权操作其他部门的任务");
         }
-        if (d.getDeptId() == null || !Objects.equals(d.getDeptId(), loginUser.getDeptId())) {
+        if (d.getDeptId() == null || !Objects.equals(d.getDeptId(), dept)) {
             throw new RuntimeException("无权操作其他部门的任务");
         }
     }
 
-    /** 详情可见性校验（只读）：超管全量；样例公共可见；同部门可见；否则拒绝（无部门用户不可见） */
+    /** 详情可见性校验（只读）：超管全量；样例公共可见；dept_admin 登记的同一部门可见；否则拒绝 */
     private void checkVisible(FlowDispatch d) {
         if (d == null) throw new RuntimeException("任务不存在");
         LoginUser loginUser = SecurityUtils.getLoginUser();
         if (isSuperAdmin(loginUser)) return;
         if (d.getIsSample() != null && d.getIsSample() == 1) return;
-        if (loginUser == null || loginUser.getDeptId() == null) {
+        Long dept = currentDept(loginUser);
+        if (dept == null) {
             throw new RuntimeException("无权查看其他部门的任务");
         }
-        if (d.getDeptId() == null || !Objects.equals(d.getDeptId(), loginUser.getDeptId())) {
+        if (d.getDeptId() == null || !Objects.equals(d.getDeptId(), dept)) {
             throw new RuntimeException("无权查看其他部门的任务");
         }
     }
@@ -295,7 +305,8 @@ public class FlowDispatchService {
         task.setStatus(normalizeStatus(dto.getStatus()));
         task.setCreatorId(loginUser == null ? null : loginUser.getYyytId());
         task.setCreatorName(loginUser == null ? null : loginUser.getUserName());
-        task.setDeptId(loginUser == null ? null : loginUser.getDeptId());
+        // 部门归属以 dept_admin 登记为准（aut_user 为全量用户表、部门可能滞后）
+        task.setDeptId(loginUser == null ? null : deptAdminService.deptIdOf(loginUser.getYyytId()));
         // 样例仅超管通过单独接口设置，普通创建一律为普通任务
         task.setIsSample(0);
         task.setCreateTime(new Date());
@@ -427,12 +438,12 @@ public class FlowDispatchService {
 
     // ==================== 任务人员配置 ====================
 
-    /** 创建权限校验：须为本部门管理员（dept_admin 有记录） */
+    /** 创建权限校验：须为 dept_admin 登记的部门管理员（aut_user 部门不作依据） */
     private void checkDeptAdmin(LoginUser loginUser) {
         if (loginUser == null) {
             throw new RuntimeException("未登录");
         }
-        if (!deptAdminService.isDeptAdmin(loginUser.getYyytId(), loginUser.getDeptId())) {
+        if (deptAdminService.deptIdOf(loginUser.getYyytId()) == null) {
             throw new RuntimeException("非部门管理员，无创建权限");
         }
     }
