@@ -16,25 +16,25 @@
 
         <!-- 统计卡 -->
         <section class="stats-grid">
-          <div class="stat-card">
+          <div class="stat-card clickable" :class="{ active: statActive('all') }" title="点击显示全部模板" @click="toggleStat('all')">
             <div class="stat-icon icon-total"><i class="el-icon-document" /></div>
             <div class="stat-body">
               <div class="stat-label">模板总数</div>
               <div class="stat-value">{{ stats.total || 0 }}</div>
             </div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card clickable" :class="{ active: statActive('active') }" title="点击筛选启用中的流程，再点取消" @click="toggleStat('active')">
             <div class="stat-icon icon-active"><i class="el-icon-circle-check" /></div>
             <div class="stat-body">
               <div class="stat-label">启用中流程</div>
               <div class="stat-value">{{ stats.active || 0 }}</div>
             </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon icon-rate"><i class="el-icon-data-line" /></div>
+          <div class="stat-card clickable" :class="{ active: statActive('stopped') }" title="点击筛选停用中的流程，再点取消" @click="toggleStat('stopped')">
+            <div class="stat-icon icon-stopped"><i class="el-icon-remove-outline" /></div>
             <div class="stat-body">
-              <div class="stat-label">本月更新率</div>
-              <div class="stat-value">{{ stats.monthlyUpdateRate != null ? stats.monthlyUpdateRate + '%' : '0%' }}</div>
+              <div class="stat-label">停用流程</div>
+              <div class="stat-value">{{ (stats.total || 0) - (stats.active || 0) }}</div>
             </div>
           </div>
         </section>
@@ -57,6 +57,22 @@
                 <option value="启用">启用</option>
                 <option value="停用">停用</option>
               </select>
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">样例</label>
+              <select v-model="filters.isSample" class="filter-select">
+                <option value="">全部</option>
+                <option value="1">仅样例</option>
+                <option value="0">仅普通</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">更新开始</label>
+              <input v-model="filters.updateStart" type="date" class="filter-input">
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">更新结束</label>
+              <input v-model="filters.updateEnd" type="date" class="filter-input">
             </div>
           </div>
           <div class="filter-actions">
@@ -175,12 +191,14 @@ export default {
       pageSize: 10,
       totalPages: 1,
       stats: {},
-      filters: { templateName: '', category: '', status: '' },
+      filters: { templateName: '', category: '', status: '', isSample: '', updateStart: '', updateEnd: '' },
       modalVisible: false,
       isEdit: false,
       formData: {},
       // 编辑弹窗只读（样例模板且非超管）
-      modalReadonly: false
+      modalReadonly: false,
+      // 统计卡筛选（多选叠加：key 集合）
+      activeStats: []
     }
   },
   computed: {
@@ -208,6 +226,33 @@ export default {
     this.fetchStats()
   },
   methods: {
+    /** 统计卡是否选中：全部卡 = 无任何分类筛选时高亮 */
+    statActive(k) {
+      if (k === 'all') return this.activeStats.length === 0
+      return this.activeStats.indexOf(k) >= 0
+    },
+    /** 点击统计卡：启用中/停用中同维互斥（再点取消）；点「模板总数」恢复全部 */
+    toggleStat(k) {
+      if (k === 'all') {
+        this.activeStats = []
+      } else {
+        if (k === 'active' || k === 'stopped') {
+          this.activeStats = this.activeStats.filter(x => x !== 'active' && x !== 'stopped')
+        }
+        const i = this.activeStats.indexOf(k)
+        if (i >= 0) this.activeStats.splice(i, 1)
+        else this.activeStats.push(k)
+      }
+      this.applyStatFilter()
+      this.currentPage = 1
+      this.fetchData()
+    },
+    /** 统计卡选择 → 状态筛选（供卡与下拉共用同一 filters.status） */
+    applyStatFilter() {
+      this.filters.status = this.activeStats.indexOf('active') >= 0
+        ? '启用'
+        : (this.activeStats.indexOf('stopped') >= 0 ? '停用' : '')
+    },
     /** 样例锁定：非超管用户对样例模板不可改/删（复制除外） */
     isSampleLocked(row) {
       return !this.isSuperAdmin && row.isSample === 1
@@ -225,7 +270,17 @@ export default {
     async fetchData() {
       this.loading = true
       try {
-        const res = await getTemplateList({ page: this.currentPage, limit: this.pageSize, ...this.filters })
+        const p = {
+          page: this.currentPage,
+          limit: this.pageSize,
+          templateName: this.filters.templateName || undefined,
+          category: this.filters.category || undefined,
+          status: this.filters.status || undefined,
+          updateStart: this.filters.updateStart || undefined,
+          updateEnd: this.filters.updateEnd || undefined
+        }
+        if (this.filters.isSample !== '') p.isSample = Number(this.filters.isSample)
+        const res = await getTemplateList(p)
         this.list = res.data.records
         this.total = res.data.total
         this.totalPages = Math.ceil(this.total / this.pageSize) || 1
@@ -249,7 +304,8 @@ export default {
     handlePageSizeChange() { this.currentPage = 1; this.fetchData() },
     handleSearch() { this.currentPage = 1; this.fetchData() },
     resetFilters() {
-      this.filters = { templateName: '', category: '', status: '' }
+      this.filters = { templateName: '', category: '', status: '', isSample: '', updateStart: '', updateEnd: '' }
+      this.activeStats = []
       this.currentPage = 1
       this.fetchData()
     },
@@ -336,11 +392,16 @@ $primary: var(--color-primary);
 .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
   @media (max-width: 900px) { grid-template-columns: 1fr; }
 }
-.stat-card { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid #CBD5E1; border-radius: 3px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.stat-card { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid #CBD5E1; border-radius: 3px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: all .2s;
+  &.clickable { cursor: pointer;
+    &:hover { border-color: var(--color-primary); box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.12); }
+    &.active { border-color: var(--color-primary); background: var(--color-primary-light); box-shadow: inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.5); }
+  }
+}
 .stat-icon { width: 48px; height: 48px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; flex-shrink: 0;
   &.icon-total { background: $primary; }
   &.icon-active { background: #15803D; }
-  &.icon-rate { background: var(--color-primary-hover); }
+  &.icon-stopped { background: #B45309; }
 }
 .stat-body { flex: 1; }
 .stat-label { font-size: 13px; color: #757575; margin-bottom: 4px; }
@@ -348,7 +409,7 @@ $primary: var(--color-primary);
 
 // 筛选
 .filter-section { background: #fff; border: 1px solid #CBD5E1; border-radius: 3px; padding: 16px; }
-.filter-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+.filter-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
   @media (max-width: 768px) { grid-template-columns: 1fr; }
 }
 .filter-item { display: flex; flex-direction: column; gap: 4px; }

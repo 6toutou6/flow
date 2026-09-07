@@ -121,11 +121,19 @@ export function generatePeriod(taskId, data) {
 // ==================== 下发配置模板 ====================
 
 // 配置模板列表（新建任务时可拉取复用）
-export function getConfigTemplates(keyword) {
+export function getConfigTemplates(keyword, sample, mine, cycleType, creatorName, updateStart, updateEnd) {
   return request({
     url: '/flow-dispatch/config-template/list',
     method: 'get',
-    params: { keyword }
+    params: {
+      keyword: keyword || undefined,
+      sample: sample === '' || sample == null ? undefined : sample,
+      mine: mine ? true : undefined,
+      cycleType: cycleType === '' || cycleType == null ? undefined : cycleType,
+      creatorName: creatorName || undefined,
+      updateStart: updateStart || undefined,
+      updateEnd: updateEnd || undefined
+    }
   })
 }
 

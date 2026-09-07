@@ -124,9 +124,15 @@ public class FlowTemplateService {
 
     public PageResult<FlowTemplate> getPage(FlowTemplateQueryForm form) {
         LambdaQueryWrapper<FlowTemplate> wrapper = new LambdaQueryWrapper<>();
+        // 更新范围先判空取局部值（wrapper 条件值为调用时求值，空值不可直接 .trim()）
+        String updStart = StringUtils.hasText(form.getUpdateStart()) ? form.getUpdateStart().trim() : null;
+        String updEnd = StringUtils.hasText(form.getUpdateEnd()) ? form.getUpdateEnd().trim() + " 23:59:59" : null;
         wrapper.like(StringUtils.hasText(form.getTemplateName()), FlowTemplate::getTemplateName, form.getTemplateName())
                .like(StringUtils.hasText(form.getCategory()), FlowTemplate::getCategory, form.getCategory())
-               .eq(StringUtils.hasText(form.getStatus()), FlowTemplate::getStatus, form.getStatus());
+               .eq(StringUtils.hasText(form.getStatus()), FlowTemplate::getStatus, form.getStatus())
+               .eq(form.getIsSample() != null, FlowTemplate::getIsSample, form.getIsSample())
+               .ge(updStart != null, FlowTemplate::getUpdateTime, updStart)
+               .le(updEnd != null, FlowTemplate::getUpdateTime, updEnd);
         applyVisibleFilter(wrapper, SecurityUtils.getLoginUser());
         wrapper.orderByDesc(FlowTemplate::getUpdateTime);
         Page<FlowTemplate> p = new Page<>(form.getPage() == null ? 1 : form.getPage(), form.getLimit() == null ? 10 : form.getLimit());

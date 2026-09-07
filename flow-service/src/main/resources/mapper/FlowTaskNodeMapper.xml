@@ -98,6 +98,18 @@
           <if test="taskName != null and taskName != ''">
               AND COALESCE(plan.task_name, t.task_name) LIKE CONCAT('%', #{taskName}, '%')
           </if>
+          <if test="taskType != null">
+              AND COALESCE(plan.is_sample, 0) = #{taskType}
+          </if>
+          <if test="templateName != null and templateName != ''">
+              AND COALESCE(tpl.template_name, tpl2.template_name) LIKE CONCAT('%', #{templateName}, '%')
+          </if>
+          <if test="createStart != null and createStart != ''">
+              AND COALESCE(plan.create_time, t.create_time) &gt;= #{createStart}
+          </if>
+          <if test="createEnd != null and createEnd != ''">
+              AND COALESCE(plan.create_time, t.create_time) &lt;= CONCAT(#{createEnd}, ' 23:59:59')
+          </if>
         GROUP BY COALESCE(d.task_id, t.id), COALESCE(plan.task_name, t.task_name),
                  COALESCE(plan.template_id, t.template_id), tpl.template_name, tpl2.template_name,
                  COALESCE(plan.create_time, t.create_time)
@@ -119,10 +131,24 @@
             INNER JOIN flow_task t ON tn.task_id = t.id
             LEFT JOIN flow_task_dispatch d ON d.id = t.dispatch_id
             LEFT JOIN flow_dispatch plan ON plan.id = d.task_id
+            LEFT JOIN flow_template tpl ON plan.template_id = tpl.id
+            LEFT JOIN flow_template tpl2 ON t.template_id = tpl2.id
             WHERE tn.handler_user_id = #{handlerUserId}
               AND t.status IN ('进行中', '已结束')
               <if test="taskName != null and taskName != ''">
                   AND COALESCE(plan.task_name, t.task_name) LIKE CONCAT('%', #{taskName}, '%')
+              </if>
+              <if test="taskType != null">
+                  AND COALESCE(plan.is_sample, 0) = #{taskType}
+              </if>
+              <if test="templateName != null and templateName != ''">
+                  AND COALESCE(tpl.template_name, tpl2.template_name) LIKE CONCAT('%', #{templateName}, '%')
+              </if>
+              <if test="createStart != null and createStart != ''">
+                  AND COALESCE(plan.create_time, t.create_time) &gt;= #{createStart}
+              </if>
+              <if test="createEnd != null and createEnd != ''">
+                  AND COALESCE(plan.create_time, t.create_time) &lt;= CONCAT(#{createEnd}, ' 23:59:59')
               </if>
             GROUP BY COALESCE(d.task_id, t.id)
             <if test="status != null">

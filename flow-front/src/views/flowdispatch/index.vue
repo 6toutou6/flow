@@ -18,34 +18,34 @@
           </div>
         </div>
 
-        <!-- 统计卡 -->
+        <!-- 统计卡（全部可点击筛选，可叠加：状态与样例不同维） -->
         <section class="stats-grid">
-          <div class="stat-card">
+          <div class="stat-card clickable" :class="{ active: statActive('all') }" title="点击显示全部任务" @click="toggleStat('all')">
             <div class="stat-icon icon-total"><i class="el-icon-s-order" /></div>
             <div class="stat-body">
               <div class="stat-label">任务总数</div>
               <div class="stat-value">{{ stats.taskCount || 0 }}</div>
             </div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card clickable" :class="{ active: statActive('active') }" title="点击筛选启用中的任务，再点取消" @click="toggleStat('active')">
             <div class="stat-icon icon-active"><i class="el-icon-circle-check" /></div>
             <div class="stat-body">
               <div class="stat-label">启用中</div>
               <div class="stat-value">{{ stats.activeCount || 0 }}</div>
             </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon icon-period"><i class="el-icon-tickets" /></div>
+          <div class="stat-card clickable" :class="{ active: statActive('stopped') }" title="点击筛选停用中的任务，再点取消" @click="toggleStat('stopped')">
+            <div class="stat-icon icon-stopped"><i class="el-icon-remove-outline" /></div>
             <div class="stat-body">
-              <div class="stat-label">已下发期次</div>
-              <div class="stat-value">{{ stats.periodCount || 0 }}</div>
+              <div class="stat-label">停用中</div>
+              <div class="stat-value">{{ stats.stoppedCount || 0 }}</div>
             </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon icon-member"><i class="el-icon-user" /></div>
+          <div class="stat-card clickable" :class="{ active: statActive('sample') }" title="点击筛选样例任务（公共可见），再点取消" @click="toggleStat('sample')">
+            <div class="stat-icon icon-sample"><i class="el-icon-star-on" /></div>
             <div class="stat-body">
-              <div class="stat-label">参与人员</div>
-              <div class="stat-value">{{ stats.memberCount || 0 }}</div>
+              <div class="stat-label">样例任务</div>
+              <div class="stat-value">{{ stats.sampleCount || 0 }}</div>
             </div>
           </div>
         </section>
@@ -82,6 +82,26 @@
                 <option value="启用">启用</option>
                 <option value="停用">停用</option>
               </select>
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">样例</label>
+              <select v-model="filters.sample" class="filter-select">
+                <option value="">全部</option>
+                <option value="1">仅样例</option>
+                <option value="0">仅普通</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">创建人</label>
+              <input v-model="filters.creatorName" class="filter-input" placeholder="请输入创建人姓名" @keyup.enter="handleSearch">
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">创建开始</label>
+              <input v-model="filters.createStart" type="date" class="filter-input">
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">创建结束</label>
+              <input v-model="filters.createEnd" type="date" class="filter-input">
             </div>
           </div>
           <div class="filter-actions">
@@ -326,7 +346,7 @@ export default {
       total: 0,
       page: 1,
       limit: 5,
-      filters: { taskName: '', status: '' },
+      filters: { taskName: '', status: '', sample: '', creatorName: '', createStart: '', createEnd: '' },
       templates: [],
       activeTasks: [],
       // 统计卡
@@ -483,10 +503,40 @@ export default {
       }
       return '计算中...'
     },
+    /** 统计卡是否选中：以当前筛选状态判定（状态/样例与卡一一对应） */
+    statActive(k) {
+      if (k === 'all') return !this.filters.status && this.filters.sample === ''
+      if (k === 'active') return this.filters.status === '启用'
+      if (k === 'stopped') return this.filters.status === '停用'
+      if (k === 'sample') return this.filters.sample === '1'
+      return false
+    },
+    /** 点击统计卡：状态/样例即点即设（与筛选下拉同源），点「任务总数」恢复全部 */
+    toggleStat(k) {
+      if (k === 'all') {
+        this.filters.status = ''
+        this.filters.sample = ''
+      } else if (k === 'active') {
+        this.filters.status = this.filters.status === '启用' ? '' : '启用'
+      } else if (k === 'stopped') {
+        this.filters.status = this.filters.status === '停用' ? '' : '停用'
+      } else if (k === 'sample') {
+        this.filters.sample = this.filters.sample === '1' ? '' : '1'
+      }
+      this.page = 1
+      this.fetchList()
+    },
     async fetchList() {
       this.loading = true
       try {
-        const res = await getDispatchTaskList({ page: this.page, limit: this.limit, ...this.filters })
+        const p = { page: this.page, limit: this.limit }
+        if (this.filters.taskName && this.filters.taskName.trim()) p.taskName = this.filters.taskName.trim()
+        if (this.filters.status) p.status = this.filters.status
+        if (this.filters.sample !== '') p.sample = Number(this.filters.sample)
+        if (this.filters.creatorName && this.filters.creatorName.trim()) p.creatorName = this.filters.creatorName.trim()
+        if (this.filters.createStart) p.createStart = this.filters.createStart
+        if (this.filters.createEnd) p.createEnd = this.filters.createEnd
+        const res = await getDispatchTaskList(p)
         this.taskList = (res.data && res.data.records) || []
         this.total = (res.data && res.data.total) || 0
       } catch (e) {
@@ -533,7 +583,7 @@ export default {
       }
     },
     resetFilters() {
-      this.filters = { taskName: '', status: '' }
+      this.filters = { taskName: '', status: '', sample: '', creatorName: '', createStart: '', createEnd: '' }
       this.page = 1
       this.fetchList()
     },
@@ -795,10 +845,17 @@ $border: #CBD5E1;
   @media (max-width: 1100px) { grid-template-columns: repeat(2, 1fr); }
   @media (max-width: 600px) { grid-template-columns: 1fr; }
 }
-.stat-card { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.stat-card { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: all .2s;
+  &.clickable { cursor: pointer;
+    &:hover { border-color: $primary; box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.12); }
+    &.active { border-color: $primary; background: var(--color-primary-light); box-shadow: inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.5); }
+  }
+}
 .stat-icon { width: 48px; height: 48px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; flex-shrink: 0;
   &.icon-total { background: $primary; }
   &.icon-active { background: #15803D; }
+  &.icon-stopped { background: #B45309; }
+  &.icon-sample { background: #7C5CBF; }
   &.icon-period { background: #B45309; }
   &.icon-member { background: #545f72; }
 }
@@ -827,7 +884,7 @@ $border: #CBD5E1;
   }
 }
 .filter-section { background: #fff; border: 1px solid $border; border-radius: 3px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
-.filter-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+.filter-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
   @media (max-width: 768px) { grid-template-columns: 1fr; }
 }
 .filter-item { display: flex; flex-direction: column; gap: 4px; }

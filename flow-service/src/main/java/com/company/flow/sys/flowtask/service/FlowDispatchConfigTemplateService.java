@@ -83,12 +83,28 @@ public class FlowDispatchConfigTemplateService {
         }
     }
 
-    /** 列表（可见性过滤 + 按创建时间倒序，配置数量有限无需分页） */
-    public List<FlowDispatchConfigTemplate> list(String keyword) {
+    /** 列表（可见性过滤 + 分类：样例/我创建/周期/创建人/更新时间，可叠加 + 按创建时间倒序，配置数量有限无需分页） */
+    public List<FlowDispatchConfigTemplate> list(String keyword, Integer sample, Boolean mine, Integer cycleType,
+                                                 String creatorName, String updateStart, String updateEnd) {
         LambdaQueryWrapper<FlowDispatchConfigTemplate> qw = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(keyword)) {
             qw.and(w -> w.like(FlowDispatchConfigTemplate::getConfigName, keyword.trim())
                           .or().like(FlowDispatchConfigTemplate::getRemark, keyword.trim()));
+        }
+        if (cycleType != null) {
+            qw.eq(FlowDispatchConfigTemplate::getCycleType, cycleType);
+        }
+        if (sample != null) {
+            qw.eq(FlowDispatchConfigTemplate::getIsSample, sample);
+        }
+        if (creatorName != null && !creatorName.trim().isEmpty()) {
+            qw.like(FlowDispatchConfigTemplate::getCreatorName, creatorName.trim());
+        }
+        if (StringUtils.hasText(updateStart)) {
+            qw.ge(FlowDispatchConfigTemplate::getUpdateTime, updateStart.trim());
+        }
+        if (StringUtils.hasText(updateEnd)) {
+            qw.le(FlowDispatchConfigTemplate::getUpdateTime, updateEnd.trim() + " 23:59:59");
         }
         LoginUser loginUser = SecurityUtils.getLoginUser();
         Long deptId = visibleDeptId(loginUser);
@@ -98,6 +114,9 @@ public class FlowDispatchConfigTemplateService {
             qw.and(w -> w.eq(FlowDispatchConfigTemplate::getIsSample, 1)
                           .or().eq(FlowDispatchConfigTemplate::getDeptId, deptId)
                           .or().eq(FlowDispatchConfigTemplate::getCreatorId, userId));
+        }
+        if (Boolean.TRUE.equals(mine)) {
+            qw.eq(FlowDispatchConfigTemplate::getCreatorId, userId);
         }
         qw.orderByDesc(FlowDispatchConfigTemplate::getId);
         List<FlowDispatchConfigTemplate> list = mapper.selectList(qw);

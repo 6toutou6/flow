@@ -17,23 +17,23 @@
           </div>
         </div>
 
-        <!-- 统计卡 -->
+        <!-- 统计卡（点击筛选：待处理/已完成，点「我的任务」恢复全部） -->
         <section class="stats-grid">
-          <div class="stat-card">
+          <div class="stat-card clickable" :class="{ active: statActive('all') }" title="点击显示全部我的任务" @click="toggleStat('all')">
             <div class="stat-icon icon-total"><i class="el-icon-s-order" /></div>
             <div class="stat-body">
               <div class="stat-label">我的任务</div>
               <div class="stat-value">{{ stats.taskCount || 0 }}</div>
             </div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card clickable" :class="{ active: statActive('pending') }" title="点击筛选待处理节点，再点取消" @click="toggleStat('pending')">
             <div class="stat-icon icon-pending"><i class="el-icon-alarm-clock" /></div>
             <div class="stat-body">
               <div class="stat-label">待处理节点</div>
               <div class="stat-value">{{ stats.pendingNodeCount || 0 }}</div>
             </div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card clickable" :class="{ active: statActive('done') }" title="点击筛选已完成节点，再点取消" @click="toggleStat('done')">
             <div class="stat-icon icon-done"><i class="el-icon-circle-check" /></div>
             <div class="stat-body">
               <div class="stat-label">已完成节点</div>
@@ -56,6 +56,26 @@
                 <option :value="1">待处理</option>
                 <option :value="0">已完成</option>
               </select>
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">任务类型</label>
+              <select v-model="filters.taskType" class="filter-select">
+                <option value="">全部</option>
+                <option :value="1">样例任务</option>
+                <option :value="0">普通任务</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">模板名称</label>
+              <input v-model="filters.templateName" class="filter-input" placeholder="请输入模板名称" @keyup.enter="handleSearch">
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">创建开始</label>
+              <input v-model="filters.createStart" type="date" class="filter-input">
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">创建结束</label>
+              <input v-model="filters.createEnd" type="date" class="filter-input">
             </div>
           </div>
           <div class="filter-actions">
@@ -206,7 +226,9 @@ export default {
       // 统计卡
       stats: {},
       // 筛选条件
-      filters: { taskName: '', status: '' },
+      filters: { taskName: '', status: '', taskType: '', templateName: '', createStart: '', createEnd: '' },
+      // 统计卡筛选（待处理/已完成同维互斥；点「我的任务」恢复全部）
+      activeStats: [],
       // 展开的任务（可多个同时展开）
       openTaskIds: []
     }
@@ -221,6 +243,28 @@ export default {
     /** 节点状态→chip 样式：1已完成 / 2进行中(当前) / 0未开始 */
     nodeChipClass(s) {
       return { 1: 'chip-done', 2: 'chip-current', 0: 'chip-pending' }[s] || 'chip-pending'
+    },
+    /** 统计卡是否选中：全部卡 = 无任何分类筛选时高亮 */
+    statActive(k) {
+      if (k === 'all') return this.activeStats.length === 0
+      return this.activeStats.indexOf(k) >= 0
+    },
+    /** 点击统计卡：待处理/已完成同维互斥，再点取消；点「我的任务」恢复全部 */
+    toggleStat(k) {
+      if (k === 'all') {
+        this.activeStats = []
+      } else {
+        if (k === 'pending' || k === 'done') {
+          this.activeStats = this.activeStats.filter(x => x !== 'pending' && x !== 'done')
+        }
+        const i = this.activeStats.indexOf(k)
+        if (i >= 0) this.activeStats.splice(i, 1)
+        else this.activeStats.push(k)
+      }
+      // 与状态下拉同源（1待处理 / 0已完成 / 空=全部）
+      this.filters.status = this.activeStats.indexOf('pending') >= 0 ? 1 : (this.activeStats.indexOf('done') >= 0 ? 0 : '')
+      this.currentPage = 1
+      this.fetchData()
     },
     /**
      * 行级超期标：待处理行 → 当前已超截止显示「已超期」；已处理行 → 处理时间晚于截止显示「超期完成」；否则不显示
@@ -258,6 +302,10 @@ export default {
         const params = { page: this.currentPage, limit: this.pageSize }
         if (this.filters.taskName && this.filters.taskName.trim()) params.taskName = this.filters.taskName.trim()
         if (this.filters.status !== '') params.status = Number(this.filters.status)
+        if (this.filters.taskType !== '') params.taskType = Number(this.filters.taskType)
+        if (this.filters.templateName && this.filters.templateName.trim()) params.templateName = this.filters.templateName.trim()
+        if (this.filters.createStart) params.createStart = this.filters.createStart
+        if (this.filters.createEnd) params.createEnd = this.filters.createEnd
         const res = await getMyTodoGrouped(params)
         this.list = res.data.records || []
         this.total = res.data.total || 0
@@ -283,7 +331,8 @@ export default {
       this.fetchData()
     },
     resetFilters() {
-      this.filters = { taskName: '', status: '' }
+      this.filters = { taskName: '', status: '', taskType: '', templateName: '', createStart: '', createEnd: '' }
+      this.activeStats = []
       this.currentPage = 1
       this.fetchData()
     },
@@ -326,7 +375,12 @@ $border: #CBD5E1;
 .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
   @media (max-width: 900px) { grid-template-columns: 1fr; }
 }
-.stat-card { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.stat-card { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: all .2s;
+  &.clickable { cursor: pointer;
+    &:hover { border-color: $primary; box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.12); }
+    &.active { border-color: $primary; background: var(--color-primary-light); box-shadow: inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.5); }
+  }
+}
 .stat-icon { width: 48px; height: 48px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; flex-shrink: 0;
   &.icon-total { background: $primary; }
   &.icon-pending { background: #B45309; }
@@ -338,7 +392,7 @@ $border: #CBD5E1;
 
 // 筛选区
 .filter-section { background: #fff; border: 1px solid $border; border-radius: 3px; padding: 16px; }
-.filter-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+.filter-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
   @media (max-width: 768px) { grid-template-columns: 1fr; }
 }
 .filter-item { display: flex; flex-direction: column; gap: 4px; }

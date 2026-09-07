@@ -30,6 +30,18 @@
             <if test="status != null and status != ''">
                 AND d.status = #{status}
             </if>
+            <if test="sample != null">
+                AND d.is_sample = #{sample}
+            </if>
+            <if test="creatorName != null and creatorName != ''">
+                AND d.creator_name LIKE CONCAT('%', #{creatorName}, '%')
+            </if>
+            <if test="createStart != null and createStart != ''">
+                AND d.create_time &gt;= #{createStart}
+            </if>
+            <if test="createEnd != null and createEnd != ''">
+                AND d.create_time &lt;= CONCAT(#{createEnd}, ' 23:59:59')
+            </if>
             <!-- 部门可见性：样例公共可见 或 同部门创建；deptId 为 null（超管）时不加过滤 -->
             <if test="deptId != null">
                 AND (d.is_sample = 1 OR d.dept_id = #{deptId})
@@ -48,13 +60,25 @@
             <if test="status != null and status != ''">
                 AND d.status = #{status}
             </if>
+            <if test="sample != null">
+                AND d.is_sample = #{sample}
+            </if>
+            <if test="creatorName != null and creatorName != ''">
+                AND d.creator_name LIKE CONCAT('%', #{creatorName}, '%')
+            </if>
+            <if test="createStart != null and createStart != ''">
+                AND d.create_time &gt;= #{createStart}
+            </if>
+            <if test="createEnd != null and createEnd != ''">
+                AND d.create_time &lt;= CONCAT(#{createEnd}, ' 23:59:59')
+            </if>
             <if test="deptId != null">
                 AND (d.is_sample = 1 OR d.dept_id = #{deptId})
             </if>
         </where>
     </select>
 
-    <!-- 任务管理页统计卡：任务数 / 启用中 / 已下发期次 / 参与人员（部门可见性：样例公共或同部门；deptId 为 null 超管全量） -->
+    <!-- 任务管理页统计卡：任务数 / 启用中 / 停用中 / 样例 / 已下发期次 / 参与人员（部门可见性：样例公共或同部门；deptId 为 null 超管全量） -->
     <select id="selectStats" resultType="com.company.flow.sys.flowtask.vo.DispatchStatsVO">
         SELECT
             (SELECT COUNT(*) FROM flow_dispatch d
@@ -64,6 +88,13 @@
              WHERE d.status = '启用'
              <if test="deptId != null">AND (d.is_sample = 1 OR d.dept_id = #{deptId})</if>
             ) AS activeCount,
+            (SELECT COUNT(*) FROM flow_dispatch d
+             WHERE d.status = '停用'
+             <if test="deptId != null">AND (d.is_sample = 1 OR d.dept_id = #{deptId})</if>
+            ) AS stoppedCount,
+            (SELECT COUNT(*) FROM flow_dispatch d
+             WHERE d.is_sample = 1
+            ) AS sampleCount,
             (SELECT COUNT(*) FROM flow_task_dispatch td
              LEFT JOIN flow_dispatch d ON d.id = td.task_id
              <if test="deptId != null">WHERE (d.is_sample = 1 OR d.dept_id = #{deptId})</if>

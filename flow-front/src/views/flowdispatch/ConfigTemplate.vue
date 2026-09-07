@@ -15,23 +15,23 @@
           <button class="btn-create" @click="openCreate"><i class="el-icon-plus" /> 新增模板</button>
         </div>
 
-        <!-- 统计卡 -->
+        <!-- 统计卡（点击筛选：样例/我的可叠加，点「全部」恢复） -->
         <section class="stats-grid">
-          <div class="stat-card">
+          <div class="stat-card clickable" :class="{ active: statActive('all') }" title="点击显示全部配置模板" @click="toggleStat('all')">
             <div class="stat-icon icon-total"><i class="el-icon-setting" /></div>
             <div class="stat-body">
               <div class="stat-label">配置模板总数</div>
               <div class="stat-value">{{ stats.total || 0 }}</div>
             </div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card clickable" :class="{ active: statActive('sample') }" title="点击筛选样例模板（公共可见），再点取消" @click="toggleStat('sample')">
             <div class="stat-icon icon-sample"><i class="el-icon-star-on" /></div>
             <div class="stat-body">
               <div class="stat-label">样例模板</div>
               <div class="stat-value">{{ stats.sampleCount || 0 }}</div>
             </div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card clickable" :class="{ active: statActive('mine') }" title="点击筛选我创建的模板，再点取消" @click="toggleStat('mine')">
             <div class="stat-icon icon-mine"><i class="el-icon-user" /></div>
             <div class="stat-body">
               <div class="stat-label">我创建的</div>
@@ -51,7 +51,44 @@
           <div class="filter-grid">
             <div class="filter-item">
               <label class="filter-label">关键词</label>
-              <input v-model="keyword" class="filter-input" placeholder="配置名称 / 备注" @keyup.enter="fetchList">
+              <input v-model="filters.keyword" class="filter-input" placeholder="配置名称 / 备注" @keyup.enter="fetchList">
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">周期类型</label>
+              <select v-model="filters.cycleType" class="filter-select">
+                <option value="">全部周期</option>
+                <option :value="1">每周</option>
+                <option :value="2">每月</option>
+                <option :value="3">每季度</option>
+                <option :value="4">单次下发</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">样例</label>
+              <select v-model="filters.sample" class="filter-select">
+                <option value="">全部</option>
+                <option value="1">仅样例</option>
+                <option value="0">仅普通</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">我创建的</label>
+              <select v-model="filters.mine" class="filter-select">
+                <option value="">全部</option>
+                <option value="1">仅我创建</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">创建人</label>
+              <input v-model="filters.creatorName" class="filter-input" placeholder="请输入创建人姓名" @keyup.enter="fetchList">
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">更新开始</label>
+              <input v-model="filters.updateStart" type="date" class="filter-input">
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">更新结束</label>
+              <input v-model="filters.updateEnd" type="date" class="filter-input">
             </div>
           </div>
           <div class="filter-actions">
@@ -125,10 +162,11 @@ export default {
   data() {
     return {
       loading: false,
-      keyword: '',
       list: [],
       // 统计卡
-      stats: {}
+      stats: {},
+      // 筛选条件（样例/我创建与统计卡同源；关键词/周期/创建人/更新时间范围）
+      filters: { keyword: '', cycleType: '', sample: '', mine: '', creatorName: '', updateStart: '', updateEnd: '' }
     }
   },
   computed: {
@@ -141,6 +179,25 @@ export default {
     this.fetchStats()
   },
   methods: {
+    /** 统计卡是否选中：全部卡 = 无任何分类筛选时高亮 */
+    statActive(k) {
+      if (k === 'all') return this.filters.sample === '' && this.filters.mine === ''
+      if (k === 'sample') return this.filters.sample === '1'
+      if (k === 'mine') return this.filters.mine === '1'
+      return false
+    },
+    /** 点击统计卡：样例/我创建的与筛选下拉同源（可叠加），点「总数」恢复 */
+    toggleStat(k) {
+      if (k === 'all') {
+        this.filters.sample = ''
+        this.filters.mine = ''
+      } else if (k === 'sample') {
+        this.filters.sample = this.filters.sample === '1' ? '' : '1'
+      } else if (k === 'mine') {
+        this.filters.mine = this.filters.mine === '1' ? '' : '1'
+      }
+      this.fetchList()
+    },
     async fetchStats() {
       try {
         const res = await getConfigTemplateStats()
@@ -175,7 +232,16 @@ export default {
     async fetchList() {
       this.loading = true
       try {
-        const res = await getConfigTemplates(this.keyword)
+        const f = this.filters
+        const res = await getConfigTemplates(
+          f.keyword,
+          f.sample === '' ? undefined : Number(f.sample),
+          f.mine === '1',
+          f.cycleType === '' ? undefined : Number(f.cycleType),
+          f.creatorName,
+          f.updateStart,
+          f.updateEnd
+        )
         this.list = res.data || []
       } catch (e) {
         console.error(e)
@@ -185,7 +251,7 @@ export default {
       }
     },
     resetFilter() {
-      this.keyword = ''
+      this.filters = { keyword: '', cycleType: '', sample: '', mine: '', creatorName: '', updateStart: '', updateEnd: '' }
       this.fetchList()
     },
     cycleText(row) {
@@ -247,7 +313,12 @@ $border: #CBD5E1;
 .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
   @media (max-width: 900px) { grid-template-columns: 1fr; }
 }
-.stat-card { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.stat-card { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: all .2s;
+  &.clickable { cursor: pointer;
+    &:hover { border-color: var(--color-primary); box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.12); }
+    &.active { border-color: var(--color-primary); background: var(--color-primary-light); box-shadow: inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.5); }
+  }
+}
 .stat-icon { width: 48px; height: 48px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; flex-shrink: 0;
   &.icon-total { background: $primary; }
   &.icon-sample { background: #B45309; }
@@ -260,7 +331,7 @@ $border: #CBD5E1;
   i { color: $primary; }
 }
 .filter-section { background: #fff; border: 1px solid $border; border-radius: 3px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
-.filter-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.filter-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .filter-item { display: flex; flex-direction: column; gap: 4px; }
 .filter-label { font-size: 13px; color: #757575; }
 .filter-input { height: 36px; border: 1px solid #dcdfe6; border-radius: 2px; padding: 0 10px; font-size: 13px; outline: none; background: #fff; transition: all .2s;

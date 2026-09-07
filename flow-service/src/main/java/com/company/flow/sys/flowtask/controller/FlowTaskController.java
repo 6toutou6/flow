@@ -126,7 +126,9 @@ public class FlowTaskController {
         if (form.getStatus() != null && !form.getStatus().trim().isEmpty()) {
             status = Integer.valueOf(form.getStatus());
         }
-        return Result.success("获取成功", flowTaskService.myTodoGrouped(form.getPage(), form.getLimit(), form.getTaskName(), status));
+        return Result.success("获取成功", flowTaskService.myTodoGrouped(
+                form.getPage(), form.getLimit(), form.getTaskName(), status,
+                form.getTaskType(), form.getTemplateName(), form.getCreateStart(), form.getCreateEnd()));
     }
 
     /** 我的任务统计（统计卡） */

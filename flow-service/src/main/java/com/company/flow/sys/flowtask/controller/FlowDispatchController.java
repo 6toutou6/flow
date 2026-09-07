@@ -37,10 +37,17 @@ public class FlowDispatchController {
 
     // ==================== 下发配置模板 ====================
 
-    /** 下发配置模板列表（新建任务时可拉取复用） */
+    /** 下发配置模板列表（新建任务时可拉取复用；支持样例/我的/周期/创建人/更新时间范围过滤，可叠加） */
     @GetMapping("/config-template/list")
-    public Result<List<FlowDispatchConfigTemplate>> configTemplateList(@RequestParam(required = false) String keyword) {
-        return Result.success("获取成功", configTemplateService.list(keyword));
+    public Result<List<FlowDispatchConfigTemplate>> configTemplateList(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer sample,
+            @RequestParam(required = false) Boolean mine,
+            @RequestParam(required = false) Integer cycleType,
+            @RequestParam(required = false) String creatorName,
+            @RequestParam(required = false) String updateStart,
+            @RequestParam(required = false) String updateEnd) {
+        return Result.success("获取成功", configTemplateService.list(keyword, sample, mine, cycleType, creatorName, updateStart, updateEnd));
     }
 
     /** 下发配置模板页统计卡 */
@@ -116,8 +123,12 @@ public class FlowDispatchController {
     public Result<PageResult<FlowDispatch>> list(@RequestParam(required = false) Integer page,
                                                  @RequestParam(required = false) Integer limit,
                                                  @RequestParam(required = false) String taskName,
-                                                 @RequestParam(required = false) String status) {
-        return Result.success("获取成功", flowDispatchService.getPage(page, limit, taskName, status));
+                                                 @RequestParam(required = false) String status,
+                                                 @RequestParam(required = false) Integer sample,
+                                                 @RequestParam(required = false) String creatorName,
+                                                 @RequestParam(required = false) String createStart,
+                                                 @RequestParam(required = false) String createEnd) {
+        return Result.success("获取成功", flowDispatchService.getPage(page, limit, taskName, status, sample, creatorName, createStart, createEnd));
     }
 
     /** 任务管理页统计卡 */

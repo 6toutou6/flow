@@ -1357,15 +1357,20 @@ public class FlowTaskService {
     }
 
     /** 我的任务（任务→期次 两级展示）：任务级分页，任务下按期次分组待办节点 */
-    public PageResult<MyTodoTaskVO> myTodoGrouped(Integer page, Integer limit, String taskName, Integer status) {
+    public PageResult<MyTodoTaskVO> myTodoGrouped(Integer page, Integer limit, String taskName, Integer status,
+                                                  Integer taskType, String templateName,
+                                                  String createStart, String createEnd) {
         LoginUser loginUser = SecurityUtils.getLoginUser();
         if (loginUser == null) return new PageResult<>(new ArrayList<>(), 0L);
         int p = page == null ? 1 : page;
         int l = limit == null ? 10 : limit;
         int offset = (p - 1) * l;
         String name = StringUtils.hasText(taskName) ? taskName.trim() : null;
-        List<MyTodoTaskVO> groups = flowTaskNodeMapper.selectMyTaskGroups(loginUser.getYyytId(), name, status, offset, l);
-        Long total = flowTaskNodeMapper.selectMyTaskGroupCount(loginUser.getYyytId(), name, status);
+        String tpl = StringUtils.hasText(templateName) ? templateName.trim() : null;
+        List<MyTodoTaskVO> groups = flowTaskNodeMapper.selectMyTaskGroups(
+                loginUser.getYyytId(), name, status, taskType, tpl, createStart, createEnd, offset, l);
+        Long total = flowTaskNodeMapper.selectMyTaskGroupCount(
+                loginUser.getYyytId(), name, status, taskType, tpl, createStart, createEnd);
         if (!groups.isEmpty()) {
             List<String> taskIds = groups.stream().map(MyTodoTaskVO::getTaskId).collect(Collectors.toList());
             List<MyTodoVO> nodes = flowTaskNodeMapper.selectMyTodoByTasks(loginUser.getYyytId(), taskIds);

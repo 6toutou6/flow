@@ -10,4 +10,11 @@ public class FlowTaskQueryForm {
     private String taskId;
     private String taskName;
     private String status;
+    /** 任务类型：1 仅样例 / 0 仅普通 / null 全部 */
+    private Integer taskType;
+    /** 模板名称（模糊） */
+    private String templateName;
+    /** 创建时间范围（yyyy-MM-dd） */
+    private String createStart;
+    private String createEnd;
 }
