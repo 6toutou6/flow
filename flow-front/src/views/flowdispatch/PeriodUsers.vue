@@ -104,7 +104,7 @@
                   <div v-if="!isTaskDone(m)" class="mi-meta">
                     <span><i class="el-icon-user" /> 当前处理人：{{ m.currentHandlerName || '—' }}</span>
                     <span><i class="el-icon-s-claim" /> 当前节点：{{ m.currentNodeName || '—' }}</span>
-                    <span><i class="el-icon-odometer" /> 进度 {{ m.finishedNodeCount || 0 }}/{{ m.totalNodeCount || 0 }}</span>
+                    <span><i class="el-icon-odometer" /> 进度 {{ memberProgressText(m) }}</span>
                   </div>
                   <div class="progress-bar thin"><div class="progress-fill" :style="{ width: memberProgress(m) + '%' }" /></div>
                   <div class="mi-nodes">
@@ -287,8 +287,20 @@ export default {
     statusText(s) { return ({ 进行中: '进行中', 已完成: '已完成', 已结束: '已完成', 已作废: '已作废', 1: '进行中', 2: '已完成', 3: '已作废' })[s] || '—' },
     statusClass(s) { return ({ 进行中: 'status-running', 已完成: 'status-done', 已结束: 'status-done', 已作废: 'status-cancel', 1: 'status-running', 2: 'status-done', 3: 'status-cancel' })[s] || '' },
     memberProgress(m) {
-      if (!m.totalNodeCount) return 0
-      return Math.round(((m.finishedNodeCount || 0) / m.totalNodeCount) * 100)
+      const total = m.totalNodeCount || 0
+      if (!total) return 0
+      return Math.round(Math.min(this.memberDoneCount(m), total) / total * 100)
+    },
+    /** 已完成节点数：nodeSteps 中真正完成(done)的节点数——正在办理(current)、被退回(rejected)、未开始(pending)均不计 */
+    memberDoneCount(m) {
+      const steps = m.nodeSteps || []
+      return steps.filter(s => s.status === 'done').length
+    },
+    /** 进度文本：已完成节点数/总节点数（如 0/5=第一个节点尚未完成） */
+    memberProgressText(m) {
+      const total = m.totalNodeCount || 0
+      if (!total) return '—'
+      return `${Math.min(this.memberDoneCount(m), total)}/${total}`
     },
     async fetchMembers() {
       if (!this.dispatchId) return

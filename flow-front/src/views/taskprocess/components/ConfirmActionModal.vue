@@ -43,7 +43,7 @@
         <span>{{ nextHandlerTip }}</span>
       </div>
       <div v-if="nextHandlers.length > 0" class="handler-list">
-        <div v-for="(h, i) in nextHandlers" :key="h.id" class="handler-chip">
+        <div v-for="h in nextHandlers" :key="h.id" class="handler-chip">
           <span class="hc-avatar">{{ h.userName ? h.userName.charAt(0) : 'U' }}</span>
           <span class="hc-name">{{ h.userName }} <span class="hc-emp">{{ h.yyytId }}</span></span>
           <i class="el-icon-close hc-remove" @click="removeHandler(h.id)" />
@@ -97,7 +97,9 @@ export default {
     /** 当前节点是否为结束节点（通过时无需选择下一处理人） */
     endNode: { type: Boolean, default: false },
     /** 创建人配置的「下一步处理人提示」，在选择下一处理人时展示 */
-    nextHandlerTip: { type: String, default: '' }
+    nextHandlerTip: { type: String, default: '' },
+    /** 默认带出的下一节点处理人（如退回重做后再次提交，回填本节点上次流转所选的人），打开弹窗即带入、可增删 */
+    defaultNextHandlers: { type: Array, default: () => [] }
   },
   data() {
     return {
@@ -124,8 +126,15 @@ export default {
     visible(val) {
       if (val) {
         this.passComment = ''
-        this.nextHandlers = []
         this.pickerVisible = false
+        // 默认带出上次流转所选下一处理人（退回重做后再次提交时省去重新选择；无可回填则空手选）
+        this.nextHandlers = []
+        ;(this.defaultNextHandlers || []).forEach(h => {
+          if (h && (h.id || h.yyytId)) {
+            const uid = h.id || h.yyytId
+            this.nextHandlers.push({ id: uid, userName: h.userName || uid, yyytId: uid })
+          }
+        })
       }
     }
   },

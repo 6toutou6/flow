@@ -40,6 +40,8 @@ public class FlowTaskNode {
     private String nextHandlerUserId;
     /** 指定的下一节点处理人姓名（冗余） */
     private String nextHandlerUserName;
+    /** 本次流转所选下一节点处理人全集（JSON [{id,name}]，多选保留，退回重做后回填用） */
+    private String nextHandlerIds;
     /** 本节点提交的表单记录ID flow_form_record.id */
     private String formRecordId;
     /** 处理人填写的任务基础字段值（JSON fieldId→value，模板级字段 fieldRole=2） */

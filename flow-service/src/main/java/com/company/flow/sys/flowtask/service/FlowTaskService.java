@@ -308,15 +308,20 @@ public class FlowTaskService {
             s.setNodeName(tpl.getNodeName());
             boolean done = ns.stream().anyMatch(t -> t.getSubmitStatus() != null && t.getSubmitStatus() == 1);
             boolean hasPending = ns.stream().anyMatch(t -> t.getSubmitStatus() != null && t.getSubmitStatus() == 0);
-            if (done) {
+            // 存在待办（含被退回后重建的重做节点）优先标为 current——节点“当前正在办理”优先于历史完成标记，
+            // 否则被退回的节点会因保留的历史已提交记录而误显示为已完成/done，进度会虚高。
+            if (hasPending) {
+                s.setStatus("current");
+            } else if (done) {
                 // 最新一条已处理记录若为退回 → rejected，否则 done
                 boolean rejected = ns.stream()
                         .filter(t -> t.getSubmitStatus() != null && t.getSubmitStatus() == 1)
                         .max(Comparator.comparing(FlowTaskNode::getId))
                         .map(t -> t.getAction() != null && t.getAction() == 1).orElse(false);
                 s.setStatus(rejected ? "rejected" : "done");
-            } else if (hasPending) s.setStatus("current");
-            else s.setStatus("pending");
+            } else {
+                s.setStatus("pending");
+            }
             steps.add(s);
         }
         m.setNodeSteps(steps);
@@ -827,6 +832,25 @@ public class FlowTaskService {
         return u == null ? null : u.getUserName();
     }
 
+    /** 本次流转所选下一处理人全集 → JSON（[{id,name}]，保留多选顺序） */
+    private String serializeNextHandlers(List<String> handlerIds) {
+        if (handlerIds == null || handlerIds.isEmpty()) return null;
+        List<Map<String, String>> arr = new java.util.ArrayList<>();
+        for (String hid : handlerIds) {
+            if (hid == null || hid.trim().isEmpty()) continue;
+            Map<String, String> item = new java.util.LinkedHashMap<>();
+            item.put("id", hid.trim());
+            item.put("name", userNameOf(hid.trim()));
+            arr.add(item);
+        }
+        if (arr.isEmpty()) return null;
+        try {
+            return objectMapper.writeValueAsString(arr);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     /** 为任务节点补齐处理人/下一处理人姓名（冗余双写） */
     private void fillNodeHandlerName(FlowTaskNode node) {
         if (node == null) return;
@@ -1124,6 +1148,8 @@ public class FlowTaskService {
         currentTaskNode.setPassComment(dto.getPassComment());
         currentTaskNode.setHandleTime(new Date());
         currentTaskNode.setNextHandlerUserId(isEnd ? null : nextHandlerIds.get(0));
+        // 完整保存本次所选下一处理人（含多选），退回重做后回填整组
+        currentTaskNode.setNextHandlerIds(isEnd ? null : serializeNextHandlers(nextHandlerIds));
         currentTaskNode.setFormRecordId(recordId);
         flowTaskNodeMapper.updateById(currentTaskNode);
         // 同一节点其他 pending 分支：任一处理人完成即可，一并标记完成，避免遗留他人待办

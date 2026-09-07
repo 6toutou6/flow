@@ -118,7 +118,7 @@
                       <el-checkbox-group v-else-if="f.fieldType === 'checkbox'" v-model="handlerBaseForm[f.id]">
                         <el-checkbox v-for="opt in parseEnum(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-checkbox>
                       </el-checkbox-group>
-                      <AttachField v-else-if="f.fieldType === 'file' || f.fieldType === 'image'" v-model="handlerBaseForm[f.id]" :field-type="f.fieldType" :biz-id="bizIdFor(f)" :ref="'af_' + f.id" />
+                      <AttachField v-else-if="f.fieldType === 'file' || f.fieldType === 'image'" :ref="'af_' + f.id" v-model="handlerBaseForm[f.id]" :field-type="f.fieldType" :biz-id="bizIdFor(f)" />
                       <el-input v-else v-model="handlerBaseForm[f.id]" :placeholder="f.placeholder || (f.fieldType === 'image' ? '请输入图片名称' : '请输入文件名称')" />
                       <div v-if="f.fieldTips" class="field-tip">{{ f.fieldTips }}</div>
                     </el-form-item>
@@ -176,7 +176,7 @@
                       <el-checkbox-group v-else-if="f.fieldType === 'checkbox'" v-model="formData[f.id]">
                         <el-checkbox v-for="opt in parseEnum(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-checkbox>
                       </el-checkbox-group>
-                      <AttachField v-else-if="f.fieldType === 'file' || f.fieldType === 'image'" v-model="formData[f.id]" :field-type="f.fieldType" :biz-id="bizIdFor(f)" :ref="'af_' + f.id" />
+                      <AttachField v-else-if="f.fieldType === 'file' || f.fieldType === 'image'" :ref="'af_' + f.id" v-model="formData[f.id]" :field-type="f.fieldType" :biz-id="bizIdFor(f)" />
                       <el-input v-else v-model="formData[f.id]" :placeholder="f.placeholder || (f.fieldType === 'image' ? '请输入图片名称' : '请输入文件名称')" />
                       <div v-if="f.fieldTips" class="field-tip">{{ f.fieldTips }}</div>
                     </el-form-item>
@@ -287,6 +287,7 @@
           :summary="confirmSummary"
           :end-node="isEndNode"
           :next-handler-tip="nextHandlerTip"
+          :default-next-handlers="lastChosenNextHandlers"
           :loading="submitting"
           @confirm="onConfirmSubmit"
           @close="confirmVisible = false"
@@ -522,14 +523,72 @@ export default {
     nextHandlerTip() {
       const gn = this.currentGuideNode
       return (gn && (gn.nextHandlerTip || gn.next_handler_tip)) || ''
+    },
+    /** 退回重做后再次提交：回填本节点上次「真实通过流转」所分配的**全部**下一节点处理人。
+     *  判定「真实流转」：submit=1 action=0 且带表单留痕(formRecordId)或带下一处理人(nextHandlerUserId)——
+     *  排除同节点并行分支被自动标记完成、无实际流转的空记录；多条取处理时间最新。
+     *  回填三档：① 后端落库全集 JSON nextHandlerIds（新提交，含多选整组）；
+     *  ② 旧数据无全集 → 从该次流转实际创建的下一节点(sort+1)各分支反推当时分配的全部处理人；
+     *  ③ 仍无 → 单值 nextHandlerUserId；无历史（首次流转）为空由处理人手动选择 */
+    lastChosenNextHandlers() {
+      if (this.isEndNode || !this.detail || !this.todo) return []
+      const curId = this.todo.currentNodeId
+      if (!curId) return []
+      const tns = (this.detail.taskNodes) || []
+      const nameOf = {}
+      tns.forEach(n => {
+        if (n.handlerUserId && n.handlerName) nameOf[n.handlerUserId] = n.handlerName
+      })
+      const merged = new Map()
+      const add = (id, name) => {
+        const uid = String(id || '').trim()
+        if (uid && !merged.has(uid)) {
+          merged.set(uid, { id: uid, userName: name || nameOf[uid] || uid, yyytId: uid })
+        }
+      }
+      const history = tns
+        .filter(n => n.nodeId === curId && n.submitStatus === 1 && n.action === 0 && (n.formRecordId || n.nextHandlerUserId))
+        .sort((a, b) => String(b.handleTime || '').localeCompare(String(a.handleTime || '')))
+      if (history.length === 0) return []
+      const last = history[0]
+      // ① 后端全集 JSON（多选整组）
+      this.parseNextHandlerIds(last.nextHandlerIds).forEach(h => add(h.id, h.userName))
+      // ② 旧数据无全集 → 本次流转实际创建的下游分支（下一节点）全部处理人
+      if (merged.size === 0) {
+        const curSort = history[0].sortNum
+        tns.forEach(n => {
+          if (curSort != null && n.sortNum === curSort + 1 && n.handlerUserId) {
+            add(n.handlerUserId, nameOf[n.handlerUserId])
+          }
+        })
+      }
+      // ③ 单值回退
+      if (merged.size === 0 && last.nextHandlerUserId) {
+        add(last.nextHandlerUserId, last.nextHandlerName)
+      }
+      return Array.from(merged.values())
     }
   },
   created() {
     this.taskId = this.$route.query.taskId || null
-    this.periodName = this.$route.query.periodName || ''
     this.fetchDetail()
   },
   methods: {
+    /** 解析后端落库的下一处理人全集 JSON（[{id,name}]）→ [{id,userName,yyytId}]；非法/空返回 [] */
+    parseNextHandlerIds(json) {
+      if (!json) return []
+      try {
+        const arr = JSON.parse(json)
+        if (!Array.isArray(arr)) return []
+        return arr.map(x => {
+          const uid = (x && (x.id || x.yyytId)) || ''
+          if (!uid) return null
+          return { id: uid, userName: (x && (x.name || x.userName)) || uid, yyytId: uid }
+        }).filter(Boolean)
+      } catch (e) {
+        return []
+      }
+    },
     /** 附件上传的业务id：任务节点 + 字段 唯一（同一节点多个文件/图片字段互不串档） */
     bizIdFor(f) {
       const tn = this.todo && this.todo.taskNodeId
@@ -576,9 +635,9 @@ export default {
         const curId = d.task ? d.task.currentNodeId : null
         const tpl = d.templateNodes || []
         const tplNode = tpl.find(n => n.id === curId) || null
-        const nodeName = (tplNode && tplNode.nodeName)
-          || (target && target.nodeName)
-          || (tns.length ? tns[tns.length - 1].nodeName : '')
+        const nodeName = (tplNode && tplNode.nodeName) ||
+          (target && target.nodeName) ||
+          (tns.length ? tns[tns.length - 1].nodeName : '')
         const nodeType = (tplNode && tplNode.nodeType) || (target && target.nodeType) || 2
         this.todo = {
           taskId: this.taskId,
@@ -840,6 +899,8 @@ export default {
         if (this.$route.query.taskName) q.taskName = this.$route.query.taskName
         if (this.$route.query.templateName) q.templateName = this.$route.query.templateName
         if (this.$route.query.periodName) q.periodName = this.$route.query.periodName
+        // 停留本页重新加载最新流程/表单状态；先复位按钮 loading（若本人仍有新待办将续显示办理表单，按钮须恢复可点）
+        this.submitting = false
         this.$router.replace({ path: '/task-process/detail', query: q }, () => this.fetchDetail())
       } catch (e) {
         console.error(e)

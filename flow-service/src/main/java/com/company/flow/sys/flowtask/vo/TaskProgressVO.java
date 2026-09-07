@@ -27,6 +27,8 @@ public class TaskProgressVO {
     private Date handleTime;
     private String nextHandlerUserId;
     private String nextHandlerName;
+    /** 本次流转所选下一节点处理人全集（JSON [{id,name}]，多选保留，退回重做后回填用） */
+    private String nextHandlerIds;
     private String formRecordId;
     /** 操作类型 0通过 1退回 */
     private Integer action;

@@ -211,6 +211,7 @@
         <result property="handleTime" column="handle_time"/>
         <result property="nextHandlerUserId" column="next_handler_user_id"/>
         <result property="nextHandlerName" column="next_handler_name"/>
+        <result property="nextHandlerIds" column="next_handler_ids"/>
         <result property="formRecordId" column="form_record_id"/>
         <result property="action" column="action"/>
         <result property="rejectReason" column="reject_reason"/>
@@ -220,7 +221,7 @@
     <select id="selectTaskProgress" resultMap="ProgressMap">
         SELECT tn.id AS task_node_id, tn.node_id, tn.node_name, tn.sort_num, tn.node_type,
                tn.handler_user_id, tn.submit_status, tn.handle_time,
-               tn.next_handler_user_id, tn.form_record_id, tn.action, tn.reject_reason, tn.pass_comment,
+               tn.next_handler_user_id, tn.next_handler_ids, tn.form_record_id, tn.action, tn.reject_reason, tn.pass_comment,
                u.user_name AS handler_name,
                u2.user_name AS next_handler_name
         FROM flow_task_node tn

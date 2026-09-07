@@ -405,11 +405,13 @@ export default {
       return !this.isSuperAdmin && t.isSample === 1
     },
     async toggleSample(t) {
+      const wasSample = t.isSample === 1
       try {
         await toggleDispatchSample(t.id)
         // 本地翻转样例标记即可，不整表刷新（避免列表/期次闪烁跳动）
-        t.isSample = t.isSample === 1 ? 0 : 1
-        this.$message.success(t.isSample === 1 ? '已设为样例' : '已取消样例')
+        // eslint-disable-next-line require-atomic-updates
+        t.isSample = wasSample ? 0 : 1
+        this.$message.success(!wasSample ? '已设为样例' : '已取消样例')
       } catch (e) {
         this.$message.error((e && e.message) || '操作失败')
       }

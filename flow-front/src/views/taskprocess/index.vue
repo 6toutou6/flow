@@ -468,8 +468,6 @@ $border: #CBD5E1;
 .badge-end { background: rgba(var(--color-primary-rgb),0.1); color: $primary; }
 .btn-process { display: flex; align-items: center; gap: 4px; padding: 6px 14px; background: $primary; color: #fff; border: none; border-radius: 2px; cursor: pointer; font-size: 13px; font-weight: 600;
   &:hover { opacity: 0.9; }
-
-
 }
 .btn-view { display: flex; align-items: center; gap: 4px; padding: 6px 14px; background: #fff; color: #545f72; border: 1px solid #d8dee9; border-radius: 2px; cursor: pointer; font-size: 13px; font-weight: 600;
   &:hover { background: #f0f3ff; border-color: #b7c3d8; }
