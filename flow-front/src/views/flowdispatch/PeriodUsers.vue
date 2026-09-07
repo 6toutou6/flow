@@ -95,19 +95,13 @@
                   <i v-else class="el-icon-s-operation" />
                 </div>
                 <div class="mi-info">
-                  <!-- 主标题：员工任务名称（流程主体；首个节点处理人只是启动它的人，后面还有多个节点继续流转） -->
+                  <!-- 主标题行：任务名称（左） + 状态徽标（右） -->
                   <div class="mi-name" :title="m.taskName">
                     <span class="mi-task-text">{{ m.taskName || '未命名任务' }}</span>
                     <span class="status-chip" :class="statusClass(m.status)">{{ statusText(m.status) }}</span>
                   </div>
-                  <!-- 首个节点处理人信息（弱于任务名，仅说明本任务由谁启动） -->
-                  <div class="mi-owner">
-                    <span class="mi-owner-label">首个节点处理人</span>
-                    <span class="mi-owner-name">{{ memberName(m) }}</span>
-                    <span class="mi-emp">{{ m.ownerEmpNo || '—' }}</span>
-                    <span class="mi-dept"><i class="el-icon-office-building" /> {{ m.ownerDept || '—' }}</span>
-                  </div>
-                  <div class="mi-meta">
+                  <!-- 进行中的任务展示处理中信息（当前处理人/当前节点/进度）；已完成/已作废不显示 -->
+                  <div v-if="!isTaskDone(m)" class="mi-meta">
                     <span><i class="el-icon-user" /> 当前处理人：{{ m.currentHandlerName || '—' }}</span>
                     <span><i class="el-icon-s-claim" /> 当前节点：{{ m.currentNodeName || '—' }}</span>
                     <span><i class="el-icon-odometer" /> 进度 {{ m.finishedNodeCount || 0 }}/{{ m.totalNodeCount || 0 }}</span>
@@ -282,7 +276,6 @@ export default {
         if (e !== 'cancel') this.$message.error((e && e.message) || '删除失败')
       }
     },
-    memberName(m) { return m.ownerName || '—' },
     /** 卡片左标：任务已完成（状态码 2 / 展示词「已完成」/ 底层词「已结束」）时显示绿色勾 */
     isTaskDone(m) { return m.status === 2 || m.status === '已完成' || m.status === '已结束' },
     /** 卡片左标：未完成时取当前节点名的首字（如「整」=整改审核） */
@@ -427,25 +420,19 @@ $border: #CBD5E1;
 .mi-badge.is-done { background: rgba(21, 128, 61, 0.12); color: #15803D; }
 .mi-badge.is-done i { font-size: 20px; }
 .mi-info { flex: 1; min-width: 0; }
-// 员工任务名称为主标题（流程主体）
+// 主标题行：任务名称（左）+ 状态徽标（右）
 .mi-name { display: flex; align-items: center; gap: 10px; min-width: 0; margin-top: 1px; }
 .mi-task-text { font-size: 15px; font-weight: 700; color: #1b1c1c; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mi-name .status-chip { flex-shrink: 0; }
-// 首个节点处理人信息（弱于任务名，仅作任务启动人的说明）
-.mi-owner { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 13px; min-width: 0; }
-.mi-owner-label { flex-shrink: 0; padding: 1px 6px; border-radius: 3px; background: #EFF6FF; color: var(--color-primary-hover); font-size: 11px; line-height: 1.6; }
-.mi-owner-name { color: #1b1c1c; font-weight: 600; white-space: nowrap; }
-.mi-emp { font-size: 12px; color: #909399; font-weight: 400; font-family: monospace; white-space: nowrap; }
-.mi-dept { display: inline-flex; align-items: center; gap: 3px; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: #757575; white-space: nowrap; }
-.mi-owner .mi-emp, .mi-owner .mi-dept { flex-shrink: 0; }
+// 处理中信息（当前处理人/当前节点/进度），位于标题行下方左侧
+.mi-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: #757575; margin-top: 5px; line-height: 1.6;
+  i { margin-right: 2px; }
+}
 .status-chip { padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; display: inline-flex; border: 1px solid transparent; }
 .status-running { background: rgba(var(--color-primary-rgb),0.1); border-color: $primary; color: $primary; }
 .status-done { background: rgba(21, 128, 61,0.1); border-color: #15803D; color: #15803D; }
 .status-cancel { background: rgba(220,38,38,0.08); border-color: #DC2626; color: #DC2626; }
 .status-empty { background: rgba(144,147,153,0.1); border-color: #909399; color: #909399; }
-.mi-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: #757575; margin-top: 5px;
-  i { margin-right: 2px; }
-}
 .progress-bar.thin { width: 100%; height: 5px; background: #f0f0f0; border-radius: 3px; margin-top: 6px; overflow: hidden; }
 .progress-fill { height: 100%; background: $primary; border-radius: 3px; transition: width .3s; }
 .mi-nodes { display: flex; align-items: center; gap: 4px; margin-top: 6px; overflow-x: auto; white-space: nowrap;
