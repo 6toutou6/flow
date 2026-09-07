@@ -31,6 +31,10 @@
         <!-- 主体：左(任务信息+流程链+办理表单) + 右(操作历史) -->
         <div v-loading="loading" class="detail-body">
           <template v-if="!loading && detail">
+            <!-- 完成节点提示（办理到最后一个节点时置顶展示，进页面即见，不用滚到底部） -->
+            <div v-if="!isReadonly && isEndNode" class="top-end-tip">
+              <div class="end-tip"><i class="el-icon-success" /> 当前为结束节点，提交后任务将标记为已完成</div>
+            </div>
             <!-- 顶部通栏：任务说明 / 超期提示 / 任务基础信息（对齐「期次人员-流程详情」：信息横贯顶部，两栏留给流程链+表单与操作历史） -->
             <div class="pd-top">
               <!-- 任务说明（下发时填写，处理人可见） -->
@@ -203,11 +207,6 @@
                   <div class="empty-form">该节点无需填写字段</div>
                 </div>
 
-                <!-- 完成节点提示（仅办理到最后一个节点时展示） -->
-                <div v-if="!isReadonly && isEndNode" class="next-section">
-                  <div class="section-title">完成节点</div>
-                  <div class="end-tip"><i class="el-icon-success" /> 当前为结束节点，提交后任务将标记为已完成</div>
-                </div>
               </div><!-- /pd-left -->
 
               <!-- 右侧：完整操作历史（通过/退回步骤） -->
@@ -452,7 +451,7 @@ export default {
         let srcText = null
         if (f.fieldRole === 2) {
           const hit = filledNodes.filter(tn => tn.baseDataList.some(b => String(b.fieldId) === String(f.id)))
-            .sort((a, b) => (a.taskNodeId || 0) - (b.taskNodeId || 0))
+            .sort((a, b) => String(a.taskNodeId || '').localeCompare(String(b.taskNodeId || '')))
           const src = hit[hit.length - 1]
           if (src) srcText = `「${src.nodeName}」节点由 ${src.handlerName}${src.handlerUserId ? ' ' + src.handlerUserId : ''} 填写`
         }
@@ -517,7 +516,7 @@ export default {
       return tns
         // 仅真实提交记录（排除“任一完成即可”自动完成的无表单分支）
         .filter(tn => tn.submitStatus === 1 && tn.formRecordId != null)
-        .sort((a, b) => (a.taskNodeId || 0) - (b.taskNodeId || 0))
+        .sort((a, b) => String(a.taskNodeId || '').localeCompare(String(b.taskNodeId || '')))
     },
     /** 下一节点处理人提示（通过确认弹窗顶部提示，取自模板节点配置） */
     nextHandlerTip() {
@@ -560,14 +559,14 @@ export default {
     buildTodo() {
       const d = this.detail
       if (!d) return
-      const me = this.currentUserId
       const tnQuery = this.$route.query.tn || ''
       const viewMode = this.$route.query.mode === 'view'
       const tns = d.taskNodes || []
-      // 定位待办节点：优先路由指定节点（列表行对应的节点），其次当前登录人的待处理节点
+      // 定位待办节点：优先路由指定节点（列表行对应的节点），其次后端返回的当前登录人在当前节点的待办
+      // （提交后停留本页刷新、无 tn 参数时据此自动定位继续办理；由后端判断，前端不做身份判断）
       let target = tnQuery ? tns.find(n => n.taskNodeId === tnQuery) : null
-      if (!target) {
-        target = tns.find(n => n.handlerUserId === me && n.submitStatus === 0) || null
+      if (!target && d.myPendingTaskNodeId) {
+        target = tns.find(n => n.taskNodeId === d.myPendingTaskNodeId) || null
       }
       const pending = target && target.submitStatus === 0 && (!tnQuery || target.taskNodeId === tnQuery)
       const taskName = (d.task && d.task.taskName) || ''
@@ -834,7 +833,14 @@ export default {
         await submitTask(payload)
         const isEnd = this.isEndNode
         this.$message.success(isReject ? '已退回到目标节点，表单已回填上次数据' : (isEnd ? '已提交，任务已完成' : '提交成功，已流转至下一节点'))
-        this.goBack()
+        // 提交成功：停留本页，清除 tn/mode 后重新加载最新状态——
+        // 本人仍在本任务有新的待办（流转至本人下游 / 退回到本人重做）则自动继续办理，否则转为只读回看，不再跳回列表
+        // 注意：当前 vue-router 的 replace 不返回 Promise，用 onComplete 回调保证路由已更新后再拉详情
+        const q = { taskId: this.taskId }
+        if (this.$route.query.taskName) q.taskName = this.$route.query.taskName
+        if (this.$route.query.templateName) q.templateName = this.$route.query.templateName
+        if (this.$route.query.periodName) q.periodName = this.$route.query.periodName
+        this.$router.replace({ path: '/task-process/detail', query: q }, () => this.fetchDetail())
       } catch (e) {
         console.error(e)
         this.$message.error((e && e.message) || '提交失败')
@@ -891,9 +897,11 @@ $border: #CBD5E1;
 // 左右布局：左(流程链+办理表单)宽 3 / 右(操作历史)窄 1，参考期次人员-流程详情
 .process-wrap { display: flex; gap: 16px; align-items: flex-start; }
 .pd-left { flex: 3; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-.pd-right { flex: 1; min-width: 0; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 20px; position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+.pd-right { flex: 1; min-width: 0; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 20px; }
 // 卡片与标题
-.form-section, .next-section { background: #fff; border: 1px solid $border; border-radius: 3px; padding: 16px 18px; }
+.form-section { background: #fff; border: 1px solid $border; border-radius: 3px; padding: 16px 18px; }
+// 结束节点提示：置顶展示（与下方通栏信息保持间距）
+.top-end-tip { margin-bottom: 14px; }
 .section-title { font-size: 15px; font-weight: 700; color: $primary; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .chain-hint { font-size: 12px; color: #999; font-weight: 400; margin-left: 0; }
 // 超期软性标记

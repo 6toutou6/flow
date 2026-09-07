@@ -557,6 +557,17 @@ public class FlowTaskService {
         }
         // 处理人填写的任务基础字段汇总值：各绑定节点已提交的最新值，同步展示在任务基础信息区
         vo.setHandlerBaseData(loadAllBaseData(progress));
+        // 当前登录人在当前节点的待处理 task_node（前端提交后停留本页刷新时自动定位继续办理；无待办为空）
+        if (loginUser != null && task.getCurrentNodeId() != null && "进行中".equals(task.getStatus())) {
+            LambdaQueryWrapper<FlowTaskNode> mpw = new LambdaQueryWrapper<>();
+            mpw.eq(FlowTaskNode::getTaskId, id)
+               .eq(FlowTaskNode::getNodeId, task.getCurrentNodeId())
+               .eq(FlowTaskNode::getHandlerUserId, loginUser.getYyytId())
+               .eq(FlowTaskNode::getSubmitStatus, 0)
+               .orderByDesc(FlowTaskNode::getId).last("LIMIT 1");
+            FlowTaskNode mp = flowTaskNodeMapper.selectOne(mpw);
+            if (mp != null) vo.setMyPendingTaskNodeId(mp.getId());
+        }
         return vo;
     }
 
@@ -623,29 +634,34 @@ public class FlowTaskService {
                 }
             }
         }
-        // 已提交逻辑（退回重做回填）
-        LambdaQueryWrapper<FlowTaskNode> tnw = new LambdaQueryWrapper<>();
-        tnw.eq(FlowTaskNode::getTaskId, task.getId())
-           .eq(FlowTaskNode::getNodeId, task.getCurrentNodeId())
-           .eq(FlowTaskNode::getHandlerUserId, loginUser.getYyytId())
-           .eq(FlowTaskNode::getSubmitStatus, 1)
-           .orderByDesc(FlowTaskNode::getId).last("LIMIT 1");
-        FlowTaskNode lastDone = flowTaskNodeMapper.selectOne(tnw);
-        // 退回重做场景：本人未填过（任一完成即可时被自动关单）→ 取该节点最近一次任何人的提交
-        if (lastDone == null || lastDone.getBaseData() == null || lastDone.getBaseData().trim().isEmpty()) {
-            LambdaQueryWrapper<FlowTaskNode> anyw = new LambdaQueryWrapper<>();
-            anyw.eq(FlowTaskNode::getTaskId, task.getId())
-                .eq(FlowTaskNode::getNodeId, task.getCurrentNodeId())
-                .eq(FlowTaskNode::getSubmitStatus, 1)
-                .orderByDesc(FlowTaskNode::getId).last("LIMIT 1");
-            FlowTaskNode anyDone = flowTaskNodeMapper.selectOne(anyw);
-            if (anyDone != null && anyDone.getBaseData() != null && !anyDone.getBaseData().trim().isEmpty()) {
-                lastDone = anyDone;
-            }
+        // 已提交逻辑（退回重做回填）：只认“确有内容”的记录（退回/被终止等空记录不挡回填）
+        FlowTaskNode lastDone = latestNodeWithBaseData(task, task.getCurrentNodeId(), loginUser.getYyytId());
+        if (lastDone == null) {
+            // 本人未填过（任一完成即可时被自动关单）→ 取该节点最近一次任何人有内容的提交
+            lastDone = latestNodeWithBaseData(task, task.getCurrentNodeId(), null);
         }
         if (lastDone == null || lastDone.getBaseData() == null || lastDone.getBaseData().trim().isEmpty()) return null;
         Map<String, String> map = deserializeTemplateData(lastDone.getBaseData());
         return map.isEmpty() ? null : map;
+    }
+
+    /** 该节点最近一条「确有任务基础字段内容（base_data 非空）」的已提交记录（按 task_node.id 倒序找） */
+    private FlowTaskNode latestNodeWithBaseData(FlowTask task, String nodeId, String handlerUserId) {
+        LambdaQueryWrapper<FlowTaskNode> w = new LambdaQueryWrapper<>();
+        w.eq(FlowTaskNode::getTaskId, task.getId())
+         .eq(FlowTaskNode::getNodeId, nodeId)
+         .eq(FlowTaskNode::getSubmitStatus, 1)
+         .isNotNull(FlowTaskNode::getBaseData)
+         .orderByDesc(FlowTaskNode::getId);
+        if (handlerUserId != null) {
+            w.eq(FlowTaskNode::getHandlerUserId, handlerUserId);
+        }
+        for (FlowTaskNode n : flowTaskNodeMapper.selectList(w)) {
+            if (n.getBaseData() != null && !n.getBaseData().trim().isEmpty()) {
+                return n;
+            }
+        }
+        return null;
     }
 
     /** 聚合任务全部字段定义（快照优先，降级模板），返回非空 map（label/type 回填展示用） */
@@ -700,7 +716,7 @@ public class FlowTaskService {
         }
     }
 
-    /** 加载当前节点当前处理人的表单数据（草稿优先；无草稿则取最近一次已提交表单，用于退回后回填，仅回填本人的） */
+    /** 加载当前节点当前处理人的表单数据（草稿优先；无草稿则回填该节点最近一次确有内容的提交表单） */
     private List<FlowFormData> loadCurrentNodeFormData(FlowTask task) {
         if (task.getCurrentNodeId() == null) return null;
         LoginUser loginUser = SecurityUtils.getLoginUser();
@@ -717,29 +733,46 @@ public class FlowTaskService {
                 if (draftData != null && !draftData.isEmpty()) return draftData;
             }
         }
-        // 当前节点最近一条「当前登录用户」已 done 的 task_node（避免回填他人的数据）
-        LambdaQueryWrapper<FlowTaskNode> tnw = new LambdaQueryWrapper<>();
-        tnw.eq(FlowTaskNode::getTaskId, task.getId())
-           .eq(FlowTaskNode::getNodeId, task.getCurrentNodeId())
-           .eq(FlowTaskNode::getHandlerUserId, loginUser.getYyytId())
-           .eq(FlowTaskNode::getSubmitStatus, 1)
-           .orderByDesc(FlowTaskNode::getId).last("LIMIT 1");
-        FlowTaskNode lastDone = flowTaskNodeMapper.selectOne(tnw);
-        // 退回重做场景：本人未填过（任一完成即可时被自动关单，无表单记录）→ 取该节点最近一次任何人的提交，
-        // 保证重做人能看到节点上已有的表单数据（一份表单，多人入口）
-        if (lastDone == null || lastDone.getFormRecordId() == null) {
-            LambdaQueryWrapper<FlowTaskNode> anyw = new LambdaQueryWrapper<>();
-            anyw.eq(FlowTaskNode::getTaskId, task.getId())
-                .eq(FlowTaskNode::getNodeId, task.getCurrentNodeId())
-                .eq(FlowTaskNode::getSubmitStatus, 1)
-                .isNotNull(FlowTaskNode::getFormRecordId)
-                .orderByDesc(FlowTaskNode::getId).last("LIMIT 1");
-            lastDone = flowTaskNodeMapper.selectOne(anyw);
-        }
-        if (lastDone == null || lastDone.getFormRecordId() == null) return null;
+        // 退回重做回填：直接取该节点最近一次确有表单内容的提交（一份表单、多人入口——不区分处理人，
+        // 谁最近真实提交就以谁的数据回填，保证表单内容最新）；
+        // 只认“确有表单数据”的记录：退回(reject)动作也会建一条 form_record 留痕（可跳过必填、通常无字段），
+        // 不能当作有效提交回填，否则会出现“节点有数据却不回填”的假象。
+        FlowTaskNode lastDone = latestNodeWithFormData(task, task.getCurrentNodeId());
+        if (lastDone == null) return null;
         LambdaQueryWrapper<FlowFormData> fdw = new LambdaQueryWrapper<>();
         fdw.eq(FlowFormData::getRecordId, lastDone.getFormRecordId());
         return flowFormDataMapper.selectList(fdw);
+    }
+
+    /**
+     * 该节点最近一条「确有表单数据」的已提交记录（按 task_node.id 倒序找）。
+     * 判定有数据：task_node 关联的 form_record 下存在 ≥1 条 form_data（退回动作的空留痕不会命中）。
+     */
+    private FlowTaskNode latestNodeWithFormData(FlowTask task, String nodeId) {
+        LambdaQueryWrapper<FlowTaskNode> w = new LambdaQueryWrapper<>();
+        w.eq(FlowTaskNode::getTaskId, task.getId())
+         .eq(FlowTaskNode::getNodeId, nodeId)
+         .eq(FlowTaskNode::getSubmitStatus, 1)
+         .isNotNull(FlowTaskNode::getFormRecordId)
+         .orderByDesc(FlowTaskNode::getId);
+        List<FlowTaskNode> candidates = flowTaskNodeMapper.selectList(w);
+        if (candidates.isEmpty()) return null;
+        Set<String> recordIds = candidates.stream()
+                .map(FlowTaskNode::getFormRecordId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (recordIds.isEmpty()) return null;
+        // 一次性聚合各 record 的表单字段条数，仅确有内容的记录可作为回填源
+        Map<String, Long> fieldCntByRecord = flowFormDataMapper.selectList(
+                        new LambdaQueryWrapper<FlowFormData>().in(FlowFormData::getRecordId, recordIds))
+                .stream()
+                .collect(Collectors.groupingBy(FlowFormData::getRecordId, Collectors.counting()));
+        for (FlowTaskNode c : candidates) {
+            if (fieldCntByRecord.getOrDefault(c.getFormRecordId(), 0L) > 0) {
+                return c;
+            }
+        }
+        return null;
     }
 
     /** 回填各已处理 task_node 的表单数据（关联字段取 fieldLabel；快照 label/type 优先） */
@@ -1381,27 +1414,30 @@ public class FlowTaskService {
     }
 
     /**
-     * 构建某期次下当前用户的完整流程节点链（含完成状态）。
-     * 以模板节点链为准（order by sort_num），用该用户实例（taskId）的提交记录标记：
-     * 有记录且 submit_status=1 → 已完成；有记录且 submit_status=0 → 进行中（当前节点）；无记录 → 未开始。
+     * 构建某期次下当前任务的完整流程节点链（含完成状态）。
+     * 以模板节点链为准（order by sort_num），按该任务（taskId）的提交记录标记节点状态。
+     * 状态语义需兼容“退回到前置节点重做”：
+     *   取每个节点最近一次记录——有待办(pending) → 进行中（当前活动节点）；
+     *   已完成(done) 且位于当前活动节点之前 → 本轮已走过，显示已完成；
+     *   已完成(done) 但位于当前活动节点之后 → 是被退回作废的历史完成，本轮尚未重新走到，显示未开始；
+     *   任务已无任何待办（全部走完）→ 历史完成节点照常显示已完成。
      * 模板节点链可能被重建（node_id 悬空），故优先按 node_id 匹配，失败时按 sort_num 位置兜底匹配。
      */
     private List<TodoNodeVO> buildTodoNodes(MyTodoVO todo) {
         List<TodoNodeVO> result = new ArrayList<>();
         if (todo == null || todo.getTaskId() == null) return result;
         String taskId = todo.getTaskId();
-        // 我的节点提交记录（按 id 排序，同节点多次记录时取最后一条，即最近状态）
-        List<FlowTaskNode> myNodes = flowTaskNodeMapper.selectList(new LambdaQueryWrapper<FlowTaskNode>()
+        // 该任务全部流转节点记录（按 id 升序，同节点多次记录时最后一条为最近状态）
+        List<FlowTaskNode> taskNodes = flowTaskNodeMapper.selectList(new LambdaQueryWrapper<FlowTaskNode>()
                 .eq(FlowTaskNode::getTaskId, taskId)
                 .orderByAsc(FlowTaskNode::getId));
-        Map<String, Integer> statusByNode = new HashMap<>();
-        Map<Integer, Integer> statusBySort = new HashMap<>();
-        for (FlowTaskNode tn : myNodes) {
-            if (tn.getNodeId() != null) {
-                statusByNode.put(tn.getNodeId(), tn.getSubmitStatus() == null ? 0 : tn.getSubmitStatus());
-            }
-            if (tn.getSortNum() != null) {
-                statusBySort.put(tn.getSortNum(), tn.getSubmitStatus() == null ? 0 : tn.getSubmitStatus());
+        // 当前活动节点位置：最新一条待处理记录所在节点 sortNum（退回到某节点重做时，进度由此重新开始）
+        Integer activeSort = null;
+        for (int i = taskNodes.size() - 1; i >= 0; i--) {
+            FlowTaskNode tn = taskNodes.get(i);
+            if (tn.getSubmitStatus() != null && tn.getSubmitStatus() == 0 && tn.getSortNum() != null) {
+                activeSort = tn.getSortNum();
+                break;
             }
         }
         // 模板节点链
@@ -1409,33 +1445,50 @@ public class FlowTaskService {
                 : flowTemplateNodeMapper.selectList(new LambdaQueryWrapper<FlowTemplateNode>()
                         .eq(FlowTemplateNode::getTemplateId, todo.getTemplateId())
                         .orderByAsc(FlowTemplateNode::getSortNum));
-        // 模板链缺失（模板节点被重建等）时，用我的提交记录按创建顺序兜底
+        // 模板链缺失（模板节点被重建等）时，用提交记录按创建顺序兜底
         if (chain.isEmpty()) {
-            myNodes.sort(Comparator.comparing(FlowTaskNode::getId));
-            for (FlowTaskNode tn : myNodes) {
+            taskNodes.sort(Comparator.comparing(FlowTaskNode::getId));
+            for (FlowTaskNode tn : taskNodes) {
                 TodoNodeVO v = new TodoNodeVO();
                 v.setNodeId(tn.getNodeId());
                 v.setNodeName(tn.getNodeName());
                 v.setNodeType(tn.getNodeType());
-                v.setStatus(tn.getSubmitStatus() == null || tn.getSubmitStatus() == 0 ? 2 : 1);
+                v.setStatus(resolveTodoNodeStatus(tn.getSubmitStatus(), tn.getSortNum(), activeSort));
                 result.add(v);
             }
             return result;
         }
         for (FlowTemplateNode tpl : chain) {
+            // 取该模板节点最近一次记录（node_id 优先，悬空时按 sort_num 兜底）
+            FlowTaskNode last = null;
+            for (FlowTaskNode tn : taskNodes) {
+                boolean match = tn.getNodeId() != null && tn.getNodeId().equals(tpl.getId());
+                if (!match && tn.getSortNum() != null && tpl.getSortNum() != null
+                        && tn.getSortNum().equals(tpl.getSortNum())) {
+                    match = true;
+                }
+                if (match) last = tn;
+            }
             TodoNodeVO v = new TodoNodeVO();
             v.setNodeId(tpl.getId());
             v.setNodeName(tpl.getNodeName());
             v.setNodeType(tpl.getNodeType());
-            Integer st = statusByNode.get(tpl.getId());
-            if (st == null) {
-                // node_id 悬空（模板节点链重建），按 sort_num 位置兜底匹配
-                st = statusBySort.get(tpl.getSortNum());
-            }
-            v.setStatus(st == null ? 0 : (st == 1 ? 1 : 2));
+            v.setStatus(resolveTodoNodeStatus(
+                    last == null ? null : last.getSubmitStatus(),
+                    last == null ? null : last.getSortNum(),
+                    activeSort));
             result.add(v);
         }
         return result;
+    }
+
+    /** 节点链状态判定：0未开始 / 1已完成 / 2进行中（当前活动节点）。 */
+    private int resolveTodoNodeStatus(Integer submitStatus, Integer nodeSort, Integer activeSort) {
+        if (submitStatus == null) return 0;                          // 无记录 → 未开始
+        if (submitStatus == 0) return 2;                             // 有待办 → 进行中
+        if (activeSort == null) return 1;                            // 任务已无待办（走完/结束）→ 按历史完成
+        if (nodeSort == null || nodeSort < activeSort) return 1;     // 位于活动节点之前 → 本轮已走过
+        return 0;                                                    // 活动节点之后的历史完成 → 被退回作废，本轮未到
     }
 
     /** 任务流转进度（全部节点） */

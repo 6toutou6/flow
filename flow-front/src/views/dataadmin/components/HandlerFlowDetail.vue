@@ -102,7 +102,7 @@ export default {
         let srcText = null
         if (f.fieldRole === 2) {
           const hit = filledNodes.filter(tn => tn.baseDataList.some(b => String(b.fieldId) === String(f.id)))
-            .sort((a, b) => (a.taskNodeId || 0) - (b.taskNodeId || 0))
+            .sort((a, b) => String(a.taskNodeId || '').localeCompare(String(b.taskNodeId || '')))
           const src = hit[hit.length - 1]
           if (src) srcText = `「${src.nodeName}」节点由 ${src.handlerName}${src.handlerUserId ? ' ' + src.handlerUserId : ''} 填写`
         }
@@ -132,7 +132,7 @@ export default {
       return tns
         // 仅真实提交记录（排除“任一完成即可”自动完成的无表单分支）
         .filter(tn => tn.submitStatus === 1 && tn.formRecordId != null)
-        .sort((a, b) => (a.taskNodeId || 0) - (b.taskNodeId || 0))
+        .sort((a, b) => String(a.taskNodeId || '').localeCompare(String(b.taskNodeId || '')))
     }
   },
   methods: {

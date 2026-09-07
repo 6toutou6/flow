@@ -432,7 +432,8 @@ $border: #CBD5E1;
 }
 .node-chip { flex-shrink: 0; padding: 2px 9px; border-radius: 4px; font-size: 11px; font-weight: 600; line-height: 1.6; white-space: nowrap;
   &.chip-done { background: #15803D; color: #fff; }
-  &.chip-current { background: rgba(var(--color-primary-rgb),0.14); color: $primary; border: 1px solid rgba(var(--color-primary-rgb),0.4); }
+  // 进行中（当前待处理节点）：实底深色白字加粗，与「未开始」浅灰明确区分
+  &.chip-current { background: var(--color-primary); color: #fff; font-weight: 700; box-shadow: 0 0 0 1px rgba(255,255,255,0.35) inset; }
   &.chip-pending { background: #f0f0f0; color: #aaa; }
 }
 // 已超期标识（软性标记：仍可提交，仅提示）

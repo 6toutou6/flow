@@ -33,4 +33,6 @@ public class TaskDetailVO {
     private Map<String, String> currentBaseData;
     /** 处理人填写的任务基础字段汇总值（fieldId → value，取各绑定节点最新一次提交，随任务流转同步展示） */
     private Map<String, String> handlerBaseData;
+    /** 当前登录人在当前节点的待处理 task_node（提交后停留本页刷新时据此定位继续办理；无待办为空） */
+    private String myPendingTaskNodeId;
 }

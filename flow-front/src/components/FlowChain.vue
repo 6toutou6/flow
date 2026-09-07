@@ -49,7 +49,6 @@
               <span v-if="hExpandedItem.latestDone" class="actual-handler"><i class="el-icon-user" /> 实际处理：{{ hExpandedItem.handledText || hExpandedItem.latestDone.handlerName || '—' }}</span>
               <span v-if="hExpandedItem.latestDone && hExpandedItem.assignedText !== hExpandedItem.handledText" class="sd-meta"><i class="el-icon-s-custom" /> 当时分配：{{ hExpandedItem.assignedText }}</span>
               <span v-if="hExpandedItem.latestDone && nodeOverdue(hExpandedItem.latestDone.handleTime)" class="sd-overdue"><i class="el-icon-alarm-clock" /> 超期处理</span>
-              <span v-if="hExpandedItem.rejectReason" class="meta-reason" :title="hExpandedItem.rejectReason"><i class="el-icon-warning-outline" /> 退回建议：{{ hExpandedItem.rejectReason }}</span>
             </div>
           </div>
           <div class="step-expanded">
@@ -129,7 +128,6 @@
             <span class="step-badge" :class="'badge-' + item.status">{{ statusLabel(item.status) }}</span>
             <span v-if="item.status === 'current'" class="cur-stage-tag">当前阶段</span>
             <span v-if="item.latestDone" class="mine-tag">{{ item.latestDone.handlerName || '该人员' }}已处理</span>
-            <span v-if="item.branchCount > 1" class="branch-tag">{{ item.branchCount }} 分支</span>
           </div>
           <div class="step-meta">
             <template v-if="item.latestDone">
@@ -140,7 +138,6 @@
             <template v-else-if="item.hasPending">
               <span><i class="el-icon-user" /> 处理人：{{ item.pendingHandlersText || '待处理' }}</span>
             </template>
-            <span v-if="item.rejectReason" class="step-reject-reason"><i class="el-icon-warning-outline" /> 退回建议：{{ item.rejectReason }}</span>
           </div>
           <!-- 展开内容：左表单 + 右操作记录 -->
           <div v-if="item.status === 'done' && expandedNodeIds.includes(item.nodeId)" class="step-expanded" @click.stop>
@@ -215,7 +212,7 @@ import { formatNodeHandlers } from '@/utils'
  * 任务流程链（统一组件）：
  * 以「期次人员-流程详情」的展示为准——横向 chip / 竖向卡片可切换，
  * 展示该任务从开始到当前节点的全部阶段；多处理人阶段合并展示；
- * 点击已处理节点展开表单/基础字段/填写说明/操作记录，并支持超期/分支/本人高亮。
+ * 点击已处理节点展开表单/基础字段/填写说明/操作记录，并支持超期/本人高亮。
  */
 export default {
   name: 'FlowChain',
@@ -267,8 +264,12 @@ export default {
           const doneNodes = nodes.filter(tn => tn.submitStatus === 1)
           const hasPending = pendingNodes.length > 0
           // 退回重做判定：节点存在晚于“最近一次已处理记录”的待办 → 被退回重做，状态为处理中
-          const latestHandledId = doneNodes.reduce((m, tn) => Math.max(m, tn.taskNodeId || 0), 0)
-          const newerPending = pendingNodes.some(tn => (tn.taskNodeId || 0) > latestHandledId)
+          // 注意：taskNodeId 为 32 位字符串主键（FLOWTASKN+时间戳+随机数），必须按字典序比较（同前缀定长=时间序），数值化会失真
+          const latestHandledId = doneNodes.reduce((m, tn) => {
+            const cur = String(tn.taskNodeId || '')
+            return cur > String(m || '') ? tn.taskNodeId : m
+          }, '')
+          const newerPending = pendingNodes.some(tn => String(tn.taskNodeId || '') > String(latestHandledId || ''))
           // 表单数据：优先“有真实提交”的节点（有 formRecordId），
           // 自动完成的分支（任一处理人完成即可时其余分支被标记完成、无表单）不作为完成人展示
           // 退回重做中不展示旧表单
@@ -284,7 +285,7 @@ export default {
           // 操作记录：该节点真实提交记录（排除“任一完成即可”自动完成的分支，按时间正序）
           const actionHistory = doneNodes
             .filter(tn => tn.formRecordId != null)
-            .slice().sort((a, b) => (a.taskNodeId || 0) - (b.taskNodeId || 0))
+            .slice().sort((a, b) => String(a.taskNodeId || '').localeCompare(String(b.taskNodeId || '')))
             .map(tn => ({
               action: tn.action,
               handlerName: tn.handlerName,
@@ -298,8 +299,6 @@ export default {
           const assignedText = formatNodeHandlers(nodes, false)
           // 已处理人（实际处理者，带用户号）
           const handledText = latestDone ? formatNodeHandlers([latestDone], false) : ''
-          // 退回建议：优先取重做待办携带的（退回时写入），其次取该节点历史已退回记录
-          const rejectReason = (pendingNodes.find(n => n.rejectReason) || doneNodes.find(n => n.action === 1 && n.rejectReason) || {}).rejectReason
           return {
             nodeId: tpl.id,
             nodeName: tpl.nodeName,
@@ -312,8 +311,6 @@ export default {
             pendingHandlersText,
             assignedText,
             handledText,
-            rejectReason,
-            branchCount: nodes.length,
             actionHistory,
             guideText: tpl.guideText,
             guideFiles: tpl.guideFiles
@@ -436,7 +433,6 @@ $border: #CBD5E1;
   .sd-no { width: 20px; height: 20px; border-radius: 50%; background: $primary; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
   .sd-name { font-size: 14px; font-weight: 700; color: #1b1c1c; }
   .sd-meta { font-size: 12px; color: #757575; display: inline-flex; align-items: center; gap: 3px; i { margin-right: 1px; } }
-  .meta-reason { font-size: 12px; color: #B45309; font-weight: 600; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; }
   .sd-overdue { padding: 1px 8px; border-radius: 3px; font-size: 11px; font-weight: 700; color: #fff; background: #D97706; display: inline-flex; align-items: center; gap: 3px; }
   .step-expanded { border: none; margin: 0; padding: 14px; }
 }
@@ -460,12 +456,10 @@ $border: #CBD5E1;
 .badge-current { background: rgba(var(--color-primary-rgb),0.12); color: $primary; }
 .badge-pending { background: #e8e8e8; color: #999; }
 .mine-tag { padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; background: $primary; color: #fff; }
-.branch-tag { padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; background: rgba(var(--color-primary-rgb),0.1); color: $primary; }
 .cur-stage-tag { padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 700; background: $primary; color: #fff; letter-spacing: .5px; }
 .step-meta { display: flex; gap: 16px; margin-top: 6px; padding-left: 32px; font-size: 12px; color: #757575;
   i { margin-right: 3px; }
 }
-.step-reject-reason { display: block; flex-basis: 100%; color: #B45309; font-weight: 600; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
 .step-expanded { display: flex; gap: 16px; margin-top: 12px; padding: 12px; background: #fff; border-radius: 2px; border: 1px dashed rgba(var(--color-primary-rgb),0.35); }
 .expanded-left { flex: 3; min-width: 0; }
 .expanded-right { flex: 1; min-width: 0; border-left: 1px solid #f0f0f0; padding-left: 16px; }

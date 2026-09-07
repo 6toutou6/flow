@@ -479,7 +479,8 @@ $border: #CBD5E1;
 }
 .node-chip { padding: 2px 9px; border-radius: 4px; font-size: 11px; font-weight: 600; flex-shrink: 0; line-height: 1.6; }
 .chip-done { background: #15803D; color: #fff; }
-.chip-current { background: rgba(var(--color-primary-rgb),0.14); color: $primary; border: 1px solid rgba(var(--color-primary-rgb),0.4); }
+// 进行中（当前待处理节点）：实底深色白字加粗，与「未开始」浅灰明确区分
+.chip-current { background: var(--color-primary); color: #fff; font-weight: 700; box-shadow: 0 0 0 1px rgba(255,255,255,0.35) inset; }
 .chip-rejected { background: rgba(180, 83, 9,0.16); color: #B45309; border: 1px solid rgba(180, 83, 9,0.45); }
 .chip-pending { background: #f0f0f0; color: #aaa; }
 .mi-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-left: 12px; }
