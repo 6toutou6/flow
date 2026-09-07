@@ -209,7 +209,8 @@ public class FlowDispatchService {
         LoginUser loginUser = SecurityUtils.getLoginUser();
         if (isSuperAdmin(loginUser)) return;
         if (d.getIsSample() != null && d.getIsSample() == 1) {
-            throw new RuntimeException("样例任务仅超管可修改");
+            // 样例公开供参考学习：所有人可进入编辑界面查看/试改，但保存落库仅超管允许
+            throw new RuntimeException("样例任务仅供学习参考，修改不可保存（仅超管可维护样例）");
         }
         Long dept = currentDept(loginUser);
         if (dept == null) {

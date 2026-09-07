@@ -60,7 +60,7 @@
         <section v-if="dueList.length > 0" class="due-bar">
           <i class="el-icon-alarm-clock" />
           <span class="due-text">有 <b>{{ dueList.length }}</b> 个周期期次已到下发时间：</span>
-          <span class="due-item" v-for="(d, i) in dueList" :key="d.taskId + '-' + i">
+          <span v-for="(d, i) in dueList" :key="d.taskId + '-' + i" class="due-item">
             「{{ d.taskName }}」· {{ d.periodName || '第' + d.periodNo + '期' }}
           </span>
           <button class="due-btn" :disabled="dispatching" @click="handleAutoDispatch">
@@ -197,7 +197,9 @@
                     <i class="el-icon-s-promotion" /> 生成期次
                   </button>
                   <button class="btn-ghost btn-person" @click="openPersonView(t)"><i class="el-icon-user" /> 按人员查看</button>
-                  <button class="btn-ghost" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例任务仅超管可修改' : ''" @click="openEdit(t)"><i class="el-icon-edit" /> 编辑</button>
+                  <!-- 样例对所有用户开放编辑入口（参考学习：可试改，保存将被拒绝）；普通任务照常编辑 -->
+                  <button class="btn-ghost" :title="t.isSample === 1 && !isSuperAdmin ? '样例任务仅供学习参考：可打开编辑查看配置并试改，但保存修改将被拒绝' : ''" @click="openEdit(t)"><i class="el-icon-edit" /> 编辑</button>
+                  <button class="btn-ghost" :title="'复制任务基本信息（含人员配置），复制结果不含任何期次' + (t.isSample === 1 ? '；样例复制后转为普通任务' : '')" @click="openCopyTask(t)"><i class="el-icon-copy-document" /> 复制</button>
                   <button class="btn-ghost" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例任务仅超管可操作' : ''" @click="toggleStatus(t)"><i class="el-icon-refresh" /> {{ t.status === '启用' ? '停用' : '启用' }}</button>
                   <button class="btn-ghost text-error" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例任务仅超管可删除' : ''" @click="onDelete(t)"><i class="el-icon-delete" /> 删除</button>
                 </div>
@@ -248,6 +250,7 @@
                         <td>{{ p.dispatchTime }}</td>
                         <td class="text-right">
                           <button class="action-link" @click="openEndTimeDialog(t, p)"><i class="el-icon-time" /> 改截止</button>
+                          <button class="action-link" :title="'复制本期次：打开生成期次弹窗，成员已回填，期次名称/起止时间请自行填写' " @click="openCopyPeriod(t, p)"><i class="el-icon-copy-document" /> 复制期次</button>
                           <button class="action-link" @click="openPeriodUsers(t, p)"><i class="el-icon-user" /> 查看人员</button>
                           <button class="action-link text-error" @click="onDeletePeriod(t, p)"><i class="el-icon-delete" /> 删除</button>
                         </td>
@@ -295,8 +298,9 @@
       :visible="genVisible"
       :task="genTask"
       :members="genMembers"
+      :init-manual="genCopyMode"
       @success="onGenSuccess"
-      @close="genVisible = false"
+      @close="closeGenModal"
       @edit-config="onEditConfig"
     />
 
@@ -332,7 +336,7 @@
 
 <script>
 import { getDispatchTaskList, getDispatchStats, toggleDispatchPlanStatus, toggleDispatchSample, deleteDispatchPlan, getTaskMembers, getPreviewPeriod, checkDueDispatches, autoDispatchDuePeriods, updatePeriodEndTime } from '@/service/sys/FlowDispatchService'
-import { getTaskList, deleteTaskGroup } from '@/service/sys/TaskService'
+import { getTaskList, deleteTaskGroup, getTaskMembers as getPeriodMembers } from '@/service/sys/TaskService'
 import { getTemplateList } from '@/service/sys/TemplateService'
 import GeneratePeriodModal from './components/GeneratePeriodModal.vue'
 
@@ -360,6 +364,8 @@ export default {
       genVisible: false,
       genTask: null,
       genMembers: [],
+      /** 期次复制模式：打开生成期次弹窗即定位手动临时期次，人员回填源期次成员、名称/时间清空自填 */
+      genCopyMode: false,
       // 到期待下发的期次
       dueList: [],
       dueLoading: false,
@@ -666,8 +672,14 @@ export default {
       const d = this.taskData[taskId]
       if (d) d.periodPage = p
     },
+    /** 关闭生成期次弹窗（同时复位复制模式） */
+    closeGenModal() {
+      this.genVisible = false
+      this.genCopyMode = false
+    },
     /** 打开生成期次弹窗：加载本期次人员（默认抄用任务配置人员） */
     async openGen(t) {
+      this.genCopyMode = false
       let members = []
       const d = this.taskData[t.id]
       if (d && d.loaded) {
@@ -690,6 +702,7 @@ export default {
       this.genVisible = false
       this.genTask = null
       this.genMembers = []
+      this.genCopyMode = false
       if (taskId && this.taskData[taskId]) {
         this.loadTaskDetail(taskId)
       }
@@ -698,6 +711,31 @@ export default {
     openEdit(t) {
       this.saveFlashId(t.id)
       this.$router.push({ path: '/flow-dispatch/edit', query: { id: t.id }})
+    },
+    /** 复制任务：进入「复制新增」编辑页，预填源任务基本信息与人员配置（不含任何期次），保存后生成全新普通任务 */
+    openCopyTask(t) {
+      this.$router.push({ path: '/flow-dispatch/edit', query: { copyFrom: t.id }})
+    },
+    /** 复制期次：打开生成期次弹窗（手动临时期次），成员回填源期次人员；期次名/开始/截止清空由用户自填 */
+    async openCopyPeriod(t, p) {
+      let members = []
+      try {
+        const res = await getPeriodMembers(p.dispatchId, { page: 1, limit: 200 })
+        members = ((res.data && res.data.records) || [])
+          .filter(m => m.ownerUserId)
+          .map(m => ({
+            yyytId: m.ownerUserId,
+            userName: m.ownerName || m.ownerUserId,
+            deptName: m.ownerDept || '',
+            taskName: m.taskName || ''
+          }))
+      } catch (e) {
+        console.error('拉取期次成员失败:', e)
+      }
+      this.genTask = t
+      this.genMembers = members
+      this.genCopyMode = true
+      this.genVisible = true
     },
     /** 打开「按人员查看」界面（该任务下所有人员的历史提交，人员→期次→节点折叠展示） */
     openPersonView(t) {

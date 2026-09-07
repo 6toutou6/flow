@@ -6,14 +6,18 @@
         <div class="page-header">
           <div class="header-left">
             <div class="hl-row1">
-            <button class="btn-back" @click="goBack"><i class="el-icon-arrow-left" /> 返回</button>
-            <nav class="breadcrumb">
-              <span class="link" @click="goBack">任务管理</span>
-              <span>/</span>
-              <span class="active">{{ isEdit ? '编辑任务' : '新建任务' }}</span>
-            </nav>
-          </div>
-          <h3 class="page-heading">{{ isEdit ? '编辑任务' : '新建任务' }}</h3>
+              <button class="btn-back" @click="goBack"><i class="el-icon-arrow-left" /> 返回</button>
+              <nav class="breadcrumb">
+                <span class="link" @click="goBack">任务管理</span>
+                <span>/</span>
+                <span class="active">{{ pageTitle }}</span>
+              </nav>
+            </div>
+            <h3 class="page-heading">{{ pageTitle }}</h3>
+            <!-- 样例任务：对所有用户开放编辑（参考学习），但保存被拒 -->
+            <div v-if="sampleViewOnly" class="sample-tip">
+              <i class="el-icon-info" /> 该任务为<b>样例</b>，对所有用户开放编辑仅供<b>学习参考</b>：可自由查看并试改各项配置，但<b>修改不可保存</b>（仅超管可维护样例）。如需练习完整流程，请复制为普通任务。
+            </div>
           </div>
         </div>
 
@@ -293,7 +297,7 @@
           <button class="btn-cancel" @click="goBack"><i class="el-icon-arrow-left" /> 取消</button>
           <button class="btn-submit" :disabled="saving" @click="handleSubmit">
             <i v-if="saving" class="el-icon-loading" />
-            <i v-else class="el-icon-check" /> {{ isEdit ? '保存修改' : '创建任务' }}
+            <i v-else class="el-icon-check" /> {{ pageSubmit }}
           </button>
         </div>
       </section>
@@ -351,12 +355,27 @@ export default {
       // 下发配置模板
       configTemplates: [],
       tplLoading: false,
-      pickedTplId: null
+      pickedTplId: null,
+      /** 当前编辑的是否为样例任务（样例对所有用户开放编辑学习，但保存仅超管可落库） */
+      isSampleTask: false
     }
   },
   computed: {
     isEdit() { return !!this.$route.query.id },
     taskId() { return this.$route.query.id || null },
+    /** 复制新增：源任务 id（复制基本信息/人员配置，保存为全新任务；不复制期次） */
+    copyFrom() { return this.$route.query.copyFrom || null },
+    /** 页面标题：编辑 / 复制新增 / 新建 */
+    pageTitle() { return this.isEdit ? '编辑任务' : (this.copyFrom ? '复制新增任务' : '新建任务') },
+    pageSubmit() { return this.isEdit ? '保存修改' : (this.copyFrom ? '保存副本' : '创建任务') },
+    isSuperAdmin() {
+      const u = this.$store.state.user.userInfo
+      return !!(u && u.superAdmin)
+    },
+    /** 样例任务 + 非超管：只开放编辑学习、保存被拒绝（后端兜底同口径） */
+    sampleViewOnly() {
+      return this.isEdit && this.isSampleTask && !this.isSuperAdmin
+    },
     creatorFields() {
       return (this.templateFields || []).filter(f => f.fieldRole !== 2)
     },
@@ -407,7 +426,8 @@ export default {
   created() {
     this.loadTemplates()
     this.loadConfigTemplates()
-    if (this.isEdit) this.initEdit()
+    // 编辑 或 复制新增（copyFrom）都需预填源任务数据；复制走新建保存（不复制期次）
+    if (this.isEdit || this.copyFrom) this.initEdit()
   },
   methods: {
     /** 折叠/展开板块 */
@@ -456,13 +476,25 @@ export default {
     async initEdit() {
       this.loading = true
       try {
+        // 编辑源 = 本任务 id；复制新增源 = copyFrom（保存时仍走新建 saveDispatchPlan，不产生副本期次）
+        const sourceId = this.isEdit ? this.taskId : this.copyFrom
+        if (!sourceId) {
+          this.loading = false
+          return
+        }
         const [detailRes, memberRes] = await Promise.all([
-          getDispatchTask(this.taskId),
-          getTaskMembers(this.taskId)
+          getDispatchTask(sourceId),
+          getTaskMembers(sourceId)
         ])
         const row = detailRes.data
+        this.isSampleTask = row.isSample === 1 && this.isEdit
+        // 复制新增：任务名追加副本后缀；状态回新建初始（不沿用源任务启停态）
+        if (!this.isEdit) {
+          row.taskName = (row.taskName || '') + '_副本'
+          row.status = 1
+        }
         this.form = {
-          id: row.id,
+          id: this.isEdit ? row.id : null,
           taskName: row.taskName || '',
           taskDesc: row.taskDesc || '',
           templateId: row.templateId,
@@ -594,6 +626,11 @@ export default {
       this.firstHandlers = this.firstHandlers.filter(h => h.id !== id)
     },
     async handleSubmit() {
+      // 样例任务：对非超管开放编辑学习，但保存被拒绝（后端兜底）
+      if (this.sampleViewOnly) {
+        this.$message.warning('样例任务仅供学习参考，修改不可保存（仅超管可维护样例）；如需完整流程请复制为普通任务')
+        return
+      }
       if (!this.form.taskName || !this.form.taskName.trim()) {
         this.$message.warning('请填写任务名称')
         return
@@ -749,6 +786,11 @@ $border: #CBD5E1;
 }
 .tip-bar { display: flex; align-items: center; gap: 8px; background: var(--color-primary-light); border: 1px solid $border; color: var(--color-primary-hover); font-size: 13px; border-radius: 3px; padding: 10px 14px;
   i { color: $primary; }
+}
+// 样例任务学习提示（橙）
+.sample-tip { display: flex; align-items: center; gap: 8px; background: rgba(180, 83, 9, 0.08); border: 1px solid rgba(180, 83, 9, 0.4); color: #B45309; font-size: 13px; border-radius: 3px; padding: 10px 14px; margin-bottom: 4px;
+  i { color: #B45309; }
+  b { font-weight: 700; }
 }
 .form-card { background: #fff; border: 1px solid $border; border-radius: 3px; padding: 18px 20px; }
 .card-head { display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; margin-bottom: 14px;

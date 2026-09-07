@@ -184,7 +184,9 @@ export default {
   props: {
     visible: { type: Boolean, default: false },
     task: { type: Object, default: null },
-    members: { type: Array, default: () => [] }
+    members: { type: Array, default: () => [] },
+    /** 期次复制模式：打开即定位到「手动临时期次」，期次名称/开始/截止清空由用户自填（人员由 members 回填） */
+    initManual: { type: Boolean, default: false }
   },
   data() {
     return {
@@ -251,14 +253,23 @@ export default {
       this.periodName = ''
       this.preview = null
       this.lastAutoName = ''
-      // 临时期次默认时间：开始=当前，截止=当前 + 配置截止天数（用户可自行修改）
-      const now = new Date()
-      const days = (this.task && this.task.deadlineDays) || 7
-      this.manualStartTime = this.formatDateTime(now)
-      this.manualEndTime = this.formatDateTime(new Date(now.getTime() + days * 24 * 3600 * 1000))
-      // 默认抄用任务配置人员，可临时增删（不影响任务配置）；每人任务名默认沿用任务配置名单名/「下发给{姓名}的任务」
+      if (this.initManual) {
+        // 期次复制：定位手动临时期次，期次名/开始/截止清空由用户自填，人员已回填
+        this.mode = 'manual'
+        this.periodName = ''
+        this.manualStartTime = ''
+        this.manualEndTime = ''
+      } else {
+        this.mode = 'auto'
+        // 临时期次默认时间：开始=当前，截止=当前 + 配置截止天数（用户可自行修改）
+        const now = new Date()
+        const days = (this.task && this.task.deadlineDays) || 7
+        this.manualStartTime = this.formatDateTime(now)
+        this.manualEndTime = this.formatDateTime(new Date(now.getTime() + days * 24 * 3600 * 1000))
+      }
+      // 人员回填（普通生成=任务配置人员；期次复制=源期次成员），可临时增删（不影响任务配置）
       this.tempMembers = (this.members || []).map(m => ({ ...m, taskName: m.taskName || this.defaultTaskName(m) }))
-      this.loadPreview()
+      if (this.mode === 'auto') this.loadPreview()
     },
     async loadPreview() {
       if (!this.task) return
