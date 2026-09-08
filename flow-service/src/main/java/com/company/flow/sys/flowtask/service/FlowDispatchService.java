@@ -236,17 +236,18 @@ public class FlowDispatchService {
         }
     }
 
-    /** 任务分页（含下发配置、期次数、人员数；sample 1样例/0普通/null 全部；creatorName 创建人；createStart/End 创建时间范围） */
+    /** 任务分页（含下发配置、期次数、人员数；sample 1样例/0普通/null 全部；progress 进行中/已完成派生；creatorName 创建人；createStart/End 创建时间范围） */
     public PageResult<FlowDispatch> getPage(Integer page, Integer limit, String taskName, String status,
-                                            Integer sample, String creatorName, String createStart, String createEnd) {
+                                            Integer sample, String progress, String creatorName, String createStart, String createEnd) {
         int p = page == null ? 1 : page;
         int l = limit == null ? 10 : limit;
         int offset = (p - 1) * l;
         String n = StringUtils.hasText(taskName) ? taskName.trim() : null;
+        String pr = StringUtils.hasText(progress) ? progress.trim() : null;
         String cn = StringUtils.hasText(creatorName) ? creatorName.trim() : null;
         String deptId = visibleDeptId(SecurityUtils.getLoginUser());
-        List<FlowDispatch> list = flowDispatchMapper.selectTaskPage(n, status, sample, cn, createStart, createEnd, deptId, offset, l);
-        Long total = flowDispatchMapper.selectTaskCount(n, status, sample, cn, createStart, createEnd, deptId);
+        List<FlowDispatch> list = flowDispatchMapper.selectTaskPage(n, status, sample, pr, cn, createStart, createEnd, deptId, offset, l);
+        Long total = flowDispatchMapper.selectTaskCount(n, status, sample, pr, cn, createStart, createEnd, deptId);
         fillCreatorInfo(list);
         return new PageResult<>(list, total);
     }

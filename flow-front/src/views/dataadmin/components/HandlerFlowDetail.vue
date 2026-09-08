@@ -9,7 +9,7 @@
     <div v-if="templateFieldRows.length > 0" class="hfd-tpl">
       <div class="section-title">任务基础信息 <span class="chain-hint">创建人下发时赋值，处理人节点填写同步展示</span></div>
       <div class="tpl-grid">
-        <div v-for="r in templateFieldRows" :key="r.id" class="tpl-item">
+        <div v-for="r in templateFieldRows" :key="r.id" class="tpl-item" :class="{ 'tpl-wide': r.longText }">
           <span class="tpl-label">
             {{ r.label }}
             <span v-if="r.role === 2" class="tpl-handler-note"><i class="el-icon-user" /> {{ r.roleTip || '处理人填写' }}</span>
@@ -113,7 +113,14 @@ export default {
           roleTip: f.fieldRole === 2
             ? (srcText || (node ? `在「${node.nodeName}」节点由处理人填写` : '由处理人填写'))
             : '创建人填写',
-          value: map[f.id] !== undefined && map[f.id] !== null ? String(map[f.id]) : ''
+          value: map[f.id] !== undefined && map[f.id] !== null ? String(map[f.id]) : '',
+          // 多行文本值过长（>60 字或含换行）时该项独占整行
+          longText: f.fieldType === 'textarea' && (() => {
+            const v = map[f.id]
+            if (v === undefined || v === null) return false
+            const s = String(v)
+            return s.length > 60 || s.indexOf('\n') >= 0
+          })()
         }
       })
     },
@@ -158,6 +165,7 @@ $border: #CBD5E1;
 .hfd-tpl { background: #fff; border: 1px solid $border; border-radius: 3px; padding: 20px; }
 .tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 32px; }
 .tpl-item { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.tpl-item.tpl-wide { grid-column: 1 / -1; }
 .tpl-label { font-size: 12px; color: #999; display: inline-flex; align-items: center; gap: 4px; }
 .tpl-value { font-size: 14px; color: var(--color-primary); font-weight: 500; word-break: break-all; line-height: 1.5; white-space: pre-wrap; }
 .hfd-cols { display: flex; gap: 16px; align-items: flex-start; }

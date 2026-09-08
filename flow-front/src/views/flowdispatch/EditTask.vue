@@ -67,7 +67,7 @@
               <div v-for="f in creatorFields" :key="f.id" class="form-row">
                 <label class="form-label"><span v-if="f.required === 1" class="req">*</span> {{ f.fieldLabel }}</label>
                 <el-input v-if="f.fieldType === 'text'" v-model="templateForm[f.id]" :placeholder="f.placeholder || '请输入' + f.fieldLabel" :maxlength="f.maxLength || undefined" />
-                <el-input v-else-if="f.fieldType === 'textarea'" v-model="templateForm[f.id]" type="textarea" :rows="2" :placeholder="f.placeholder || '请输入' + f.fieldLabel" :maxlength="f.maxLength || undefined" />
+                <el-input v-else-if="f.fieldType === 'textarea'" v-model="templateForm[f.id]" type="textarea" :autosize="{ minRows: 2, maxRows: 6 }" :placeholder="f.placeholder || '请输入' + f.fieldLabel" :maxlength="f.maxLength || undefined" />
                 <el-input v-else-if="f.fieldType === 'number'" v-model="templateForm[f.id]" type="number" :placeholder="f.placeholder || '请输入' + f.fieldLabel" />
                 <el-date-picker v-else-if="f.fieldType === 'date'" v-model="templateForm[f.id]" type="date" value-format="yyyy-MM-dd" :placeholder="f.placeholder || '选择日期'" style="width:100%" />
                 <el-select v-else-if="f.fieldType === 'radio'" v-model="templateForm[f.id]" :placeholder="f.placeholder || '请选择'" style="width:100%">

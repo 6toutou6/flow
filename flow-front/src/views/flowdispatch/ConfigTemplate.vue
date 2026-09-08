@@ -10,9 +10,7 @@
               <span>/</span>
               <span class="active">下发配置模板</span>
             </nav>
-            <h3 class="page-heading">下发配置模板</h3>
           </div>
-          <button class="btn-create" @click="openCreate"><i class="el-icon-plus" /> 新增模板</button>
         </div>
 
         <!-- 统计卡（点击筛选：样例/我的可叠加，点「全部」恢复） -->
@@ -92,6 +90,9 @@
             </div>
           </div>
           <div class="filter-actions">
+            <div class="filter-actions-left">
+              <button class="btn-create" @click="openCreate"><i class="el-icon-plus" /> 新增模板</button>
+            </div>
             <div class="filter-actions-right">
               <button class="btn-reset" :disabled="loading" @click="resetFilter">重置</button>
               <button class="btn-search" :disabled="loading" @click="fetchList">
@@ -104,7 +105,7 @@
         <!-- 模板列表 -->
         <div v-if="!loading && list.length === 0" class="empty-state">
           <i class="el-icon-setting" />
-          <p>暂无配置模板，点击右上角「新增模板」创建一套常用配置</p>
+          <p>暂无配置模板，点击查询栏左下角「新增模板」创建一套常用配置</p>
         </div>
         <div v-else class="tpl-card">
           <div v-if="loading" class="loading-bar"><i class="el-icon-loading" /> 加载中...</div>
@@ -304,7 +305,6 @@ $border: #CBD5E1;
     &:hover { text-decoration: underline; }
   }
 }
-.page-heading { font-size: 24px; line-height: 32px; font-weight: 600; color: #1b1c1c; }
 .btn-create { display: flex; align-items: center; gap: 5px; padding: 10px 22px; background: $primary; color: #fff; border: none; border-radius: 3px; font-weight: 600; font-size: 13px; cursor: pointer; box-shadow: 0 2px 8px rgba(var(--color-primary-rgb),0.25); transition: all .2s;
   &:hover { opacity: 0.9; transform: translateY(-1px); }
 }
@@ -337,8 +337,8 @@ $border: #CBD5E1;
 .filter-input { height: 36px; border: 1px solid #dcdfe6; border-radius: 2px; padding: 0 10px; font-size: 13px; outline: none; background: #fff; transition: all .2s;
   &:focus { border-color: $primary; box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb),0.12); }
 }
-.filter-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(var(--color-primary-rgb),0.08); }
-.filter-actions-right { display: flex; gap: 8px; }
+.filter-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(var(--color-primary-rgb),0.08); }
+.filter-actions-left, .filter-actions-right { display: flex; gap: 8px; }
 .btn-reset { padding: 0 16px; height: 36px; border: 1px solid $border; border-radius: 2px; font-size: 13px; color: var(--color-primary); background: #fff; cursor: pointer;
   &:hover { background: var(--color-primary-light); }
 }

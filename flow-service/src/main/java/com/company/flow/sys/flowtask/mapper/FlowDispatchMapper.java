@@ -11,10 +11,11 @@ import java.util.List;
 @Mapper
 public interface FlowDispatchMapper extends BaseMapper<FlowDispatch> {
 
-    /** 任务分页：任务 + 期次数 + 人员数（deptId 传 null 时不加部门过滤，超管全量；sample 1 样例/0 普通/null 全部；creatorName 创建人模糊；createStart/End 创建时间范围） */
+    /** 任务分页：任务 + 期次数 + 人员数（deptId 传 null 时不加部门过滤，超管全量；sample 1 样例/0 普通/null 全部；progress 进行中/已完成（派生）；creatorName 创建人模糊；createStart/End 创建时间范围） */
     List<FlowDispatch> selectTaskPage(@Param("taskName") String taskName,
                                       @Param("status") String status,
                                       @Param("sample") Integer sample,
+                                      @Param("progress") String progress,
                                       @Param("creatorName") String creatorName,
                                       @Param("createStart") String createStart,
                                       @Param("createEnd") String createEnd,
@@ -26,6 +27,7 @@ public interface FlowDispatchMapper extends BaseMapper<FlowDispatch> {
     Long selectTaskCount(@Param("taskName") String taskName,
                          @Param("status") String status,
                          @Param("sample") Integer sample,
+                         @Param("progress") String progress,
                          @Param("creatorName") String creatorName,
                          @Param("createStart") String createStart,
                          @Param("createEnd") String createEnd,

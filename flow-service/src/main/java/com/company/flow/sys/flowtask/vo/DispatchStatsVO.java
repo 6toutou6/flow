@@ -13,6 +13,10 @@ public class DispatchStatsVO {
     private Long activeCount;
     /** 停用中任务数 */
     private Long stoppedCount;
+    /** 进行中任务数（存在进行中的成员任务） */
+    private Long runningCount;
+    /** 已完成任务数（有成员任务且全部非进行中） */
+    private Long finishedCount;
     /** 样例任务数（样例公共可见，不计部门） */
     private Long sampleCount;
     /** 已下发期次数 */

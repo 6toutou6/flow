@@ -10,42 +10,44 @@
               <span>/</span>
               <span class="active">任务管理</span>
             </nav>
-            <h3 class="page-heading">任务管理</h3>
-          </div>
-          <div class="header-actions">
-            <button class="btn-tpl" @click="$router.push('/flow-dispatch/config-template')"><i class="el-icon-setting" /> 下发配置模板</button>
-            <button class="btn-create" @click="openCreate"><i class="el-icon-plus" /> 新建任务</button>
           </div>
         </div>
 
-        <!-- 统计卡（全部可点击筛选，可叠加：状态与样例不同维） -->
+        <!-- 统计卡（全部可点击筛选：进度维「进行中/已完成」互斥，启停维「已启用/已停用」互斥，两维可叠加） -->
         <section class="stats-grid">
           <div class="stat-card clickable" :class="{ active: statActive('all') }" title="点击显示全部任务" @click="toggleStat('all')">
             <div class="stat-icon icon-total"><i class="el-icon-s-order" /></div>
             <div class="stat-body">
-              <div class="stat-label">任务总数</div>
+              <div class="stat-label">全部任务</div>
               <div class="stat-value">{{ stats.taskCount || 0 }}</div>
             </div>
           </div>
-          <div class="stat-card clickable" :class="{ active: statActive('active') }" title="点击筛选启用中的任务，再点取消" @click="toggleStat('active')">
-            <div class="stat-icon icon-active"><i class="el-icon-circle-check" /></div>
+          <div class="stat-card clickable" :class="{ active: statActive('running') }" title="点击筛选进行中的任务（存在进行中的成员任务），再点取消" @click="toggleStat('running')">
+            <div class="stat-icon icon-running"><i class="el-icon-video-play" /></div>
             <div class="stat-body">
-              <div class="stat-label">启用中</div>
+              <div class="stat-label">进行中</div>
+              <div class="stat-value">{{ stats.runningCount || 0 }}</div>
+            </div>
+          </div>
+          <div class="stat-card clickable" :class="{ active: statActive('finished') }" title="点击筛选已完成的任务（全部成员任务已处理完），再点取消" @click="toggleStat('finished')">
+            <div class="stat-icon icon-finished"><i class="el-icon-circle-check" /></div>
+            <div class="stat-body">
+              <div class="stat-label">已完成</div>
+              <div class="stat-value">{{ stats.finishedCount || 0 }}</div>
+            </div>
+          </div>
+          <div class="stat-card clickable" :class="{ active: statActive('active') }" title="点击筛选已启用的任务（参与周期下发），再点取消" @click="toggleStat('active')">
+            <div class="stat-icon icon-active"><i class="el-icon-switch-button" /></div>
+            <div class="stat-body">
+              <div class="stat-label">已启用</div>
               <div class="stat-value">{{ stats.activeCount || 0 }}</div>
             </div>
           </div>
-          <div class="stat-card clickable" :class="{ active: statActive('stopped') }" title="点击筛选停用中的任务，再点取消" @click="toggleStat('stopped')">
+          <div class="stat-card clickable" :class="{ active: statActive('stopped') }" title="点击筛选已停用的任务，再点取消" @click="toggleStat('stopped')">
             <div class="stat-icon icon-stopped"><i class="el-icon-remove-outline" /></div>
             <div class="stat-body">
-              <div class="stat-label">停用中</div>
+              <div class="stat-label">已停用</div>
               <div class="stat-value">{{ stats.stoppedCount || 0 }}</div>
-            </div>
-          </div>
-          <div class="stat-card clickable" :class="{ active: statActive('sample') }" title="点击筛选样例任务（公共可见），再点取消" @click="toggleStat('sample')">
-            <div class="stat-icon icon-sample"><i class="el-icon-star-on" /></div>
-            <div class="stat-body">
-              <div class="stat-label">样例任务</div>
-              <div class="stat-value">{{ stats.sampleCount || 0 }}</div>
             </div>
           </div>
         </section>
@@ -77,10 +79,18 @@
             </div>
             <div class="filter-item">
               <label class="filter-label">状态</label>
-              <select v-model="filters.status" class="filter-select">
+              <select v-model="selStatus" class="filter-select">
                 <option value="">全部状态</option>
                 <option value="启用">启用</option>
                 <option value="停用">停用</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">进度</label>
+              <select v-model="selProgress" class="filter-select">
+                <option value="">全部进度</option>
+                <option value="进行中">进行中</option>
+                <option value="已完成">已完成</option>
               </select>
             </div>
             <div class="filter-item">
@@ -105,6 +115,9 @@
             </div>
           </div>
           <div class="filter-actions">
+            <div class="filter-actions-left">
+              <button class="btn-create" @click="openCreate"><i class="el-icon-plus" /> 新建任务</button>
+            </div>
             <div class="filter-actions-right">
               <button class="btn-reset" :disabled="loading" @click="resetFilters">重置</button>
               <button class="btn-search" :disabled="loading" @click="handleSearch">
@@ -117,7 +130,7 @@
         <!-- 任务折叠面板 -->
         <div v-if="!loading && taskList.length === 0" class="empty-state">
           <i class="el-icon-s-order" />
-          <p>暂无任务，点击右上角「新建任务」创建</p>
+          <p>暂无任务，点击查询栏左下角「新建任务」创建</p>
         </div>
         <div v-else class="task-collapse">
           <div v-if="loading" class="loading-bar"><i class="el-icon-loading" /> 加载中...</div>
@@ -125,12 +138,10 @@
             <div class="tp-head" @click="toggleTask(t.id)">
               <div class="ct-icon"><i class="el-icon-s-order" /></div>
               <div class="ct-main">
-                <div class="ct-name-row">
-                  <span class="ct-name">{{ t.taskName }}</span>
-                  <span v-if="t.isSample === 1" class="sample-tag">样例</span>
-                  <span :class="t.status === '启用' ? 'ct-status on' : 'ct-status off'">{{ t.status === '启用' ? '启用' : '停用' }}</span>
-                </div>
-                <div class="ct-sub">{{ cycleText(t) }}<template v-if="t.cycleType !== 4"> · {{ cycleDayText(t) }}</template> · 已下发 {{ t.periodCount || 0 }} 期 · {{ t.memberCount || 0 }} 人 · 创建人 {{ t.creatorName || '—' }}（{{ t.deptName || '—' }}）</div>
+                <span class="ct-name" :title="t.taskName">{{ t.taskName }}</span>
+                <span v-if="t.isSample === 1" class="sample-tag">样例</span>
+                <span :class="t.status === '启用' ? 'ct-status on' : 'ct-status off'">{{ t.status === '启用' ? '启用' : '停用' }}</span>
+                <span class="ct-meta" :title="ctMetaText(t)">{{ ctMetaText(t) }}</span>
               </div>
               <i class="el-icon-arrow-down tp-arrow" />
             </div>
@@ -225,7 +236,7 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="p in periodSlice(t)" :key="p.dispatchId" class="hover-row" :class="{ 'flash-period': flashPeriod === p.dispatchId }">
+                      <tr v-for="p in filteredPeriodRows(t)" :key="p.dispatchId" class="hover-row" :class="{ 'flash-period': flashPeriod === p.dispatchId }">
                         <td class="font-bold">
                           {{ p.periodName || p.taskName }}
                           <span v-if="p.manualFlag === 1" class="tag-manual">临时</span>
@@ -350,7 +361,7 @@ export default {
       total: 0,
       page: 1,
       limit: 5,
-      filters: { taskName: '', status: '', sample: '', creatorName: '', createStart: '', createEnd: '' },
+      filters: { taskName: '', filterSel: '', sample: '', creatorName: '', createStart: '', createEnd: '' },
       templates: [],
       activeTasks: [],
       // 统计卡
@@ -380,6 +391,15 @@ export default {
   computed: {
     isSuperAdmin() {
       return !!(this.$store.state.user.userInfo && this.$store.state.user.userInfo.superAdmin)
+    },
+    // 五类状态卡/两个筛选下拉共享单值 filterSel，单选互斥（启用↔停用↔进行中↔已完成，选后另者自动清除）
+    selStatus: {
+      get() { return (this.filters.filterSel === '启用' || this.filters.filterSel === '停用') ? this.filters.filterSel : '' },
+      set(v) { this.pickFilter(v) }
+    },
+    selProgress: {
+      get() { return (this.filters.filterSel === '进行中' || this.filters.filterSel === '已完成') ? this.filters.filterSel : '' },
+      set(v) { this.pickFilter(v) }
     },
     // 截止时间选择器：不能早于期次开始时间
     endTimePickerOptions() {
@@ -511,25 +531,32 @@ export default {
       }
       return '计算中...'
     },
-    /** 统计卡是否选中：以当前筛选状态判定（状态/样例与卡一一对应） */
+    /** 统计卡是否选中：以当前筛选判定（进度/启停 各与卡一一对应） */
     statActive(k) {
-      if (k === 'all') return !this.filters.status && this.filters.sample === ''
-      if (k === 'active') return this.filters.status === '启用'
-      if (k === 'stopped') return this.filters.status === '停用'
-      if (k === 'sample') return this.filters.sample === '1'
+      const sel = this.filters.filterSel
+      if (k === 'all') return !sel && this.filters.sample === ''
+      if (k === 'active') return sel === '启用'
+      if (k === 'stopped') return sel === '停用'
+      if (k === 'running') return sel === '进行中'
+      if (k === 'finished') return sel === '已完成'
       return false
     },
-    /** 点击统计卡：状态/样例即点即设（与筛选下拉同源），点「任务总数」恢复全部 */
+    /** 单选筛选写入（卡与下拉共用；再次点同一项则取消回「全部」） */
+    pickFilter(v) {
+      const val = v || ''
+      this.filters.filterSel = (this.filters.filterSel === val) ? '' : val
+      this.page = 1
+      this.fetchList()
+    },
+    /** 点击统计卡（单选互斥，仅一个可选中；点「全部任务」清空） */
     toggleStat(k) {
       if (k === 'all') {
-        this.filters.status = ''
+        this.filters.filterSel = ''
         this.filters.sample = ''
-      } else if (k === 'active') {
-        this.filters.status = this.filters.status === '启用' ? '' : '启用'
-      } else if (k === 'stopped') {
-        this.filters.status = this.filters.status === '停用' ? '' : '停用'
-      } else if (k === 'sample') {
-        this.filters.sample = this.filters.sample === '1' ? '' : '1'
+      } else {
+        const val = { active: '启用', stopped: '停用', running: '进行中', finished: '已完成' }[k] || ''
+        this.pickFilter(val)
+        return
       }
       this.page = 1
       this.fetchList()
@@ -539,7 +566,8 @@ export default {
       try {
         const p = { page: this.page, limit: this.limit }
         if (this.filters.taskName && this.filters.taskName.trim()) p.taskName = this.filters.taskName.trim()
-        if (this.filters.status) p.status = this.filters.status
+        if (this.filters.filterSel === '启用' || this.filters.filterSel === '停用') p.status = this.filters.filterSel
+        if (this.filters.filterSel === '进行中' || this.filters.filterSel === '已完成') p.progress = this.filters.filterSel
         if (this.filters.sample !== '') p.sample = Number(this.filters.sample)
         if (this.filters.creatorName && this.filters.creatorName.trim()) p.creatorName = this.filters.creatorName.trim()
         if (this.filters.createStart) p.createStart = this.filters.createStart
@@ -591,7 +619,7 @@ export default {
       }
     },
     resetFilters() {
-      this.filters = { taskName: '', status: '', sample: '', creatorName: '', createStart: '', createEnd: '' }
+      this.filters = { taskName: '', filterSel: '', sample: '', creatorName: '', createStart: '', createEnd: '' }
       this.page = 1
       this.fetchList()
     },
@@ -660,6 +688,20 @@ export default {
       const ps = d.periodSize || 5
       const pp = d.periodPage || 1
       return d.periods.slice((pp - 1) * ps, pp * ps)
+    },
+    /** 卡片头部单行摘要文本（周期 · 期次/人员/创建人） */
+    ctMetaText(t) {
+      const cycle = this.cycleText(t) || ''
+      const day = (t.cycleType !== 4 && this.cycleDayText(t)) ? ' · ' + this.cycleDayText(t) : ''
+      return `${cycle}${day} · 已下发 ${t.periodCount || 0} 期 · ${t.memberCount || 0} 人 · 创建人 ${t.creatorName || '—'}（${t.deptName || '—'}）`
+    },
+    /** 展开期次行过滤：点「进行中/已完成」进度卡后，任务下只保留对应状态的期次（启停/样例等不作用期次） */
+    filteredPeriodRows(t) {
+      const rows = this.periodSlice(t)
+      const prog = this.filters.filterSel
+      if (prog === '进行中') return rows.filter(p => (p.memberCount || 0) > 0 && (p.finishedCount || 0) < (p.memberCount || 0))
+      if (prog === '已完成') return rows.filter(p => (p.memberCount || 0) > 0 && (p.finishedCount || 0) >= (p.memberCount || 0))
+      return rows
     },
     onPeriodSizeChange(taskId, size) {
       const d = this.taskData[taskId]
@@ -878,37 +920,33 @@ $border: #CBD5E1;
 .breadcrumb { display: flex; gap: 8px; font-size: 12px; line-height: 20px; color: #414755; margin-bottom: 8px;
   .active { color: $primary; font-weight: 600; }
 }
-.page-heading { font-size: 24px; line-height: 32px; font-weight: 600; color: #1b1c1c; }
 
 // 统计卡
-.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
-  @media (max-width: 1100px) { grid-template-columns: repeat(2, 1fr); }
-  @media (max-width: 600px) { grid-template-columns: 1fr; }
+.stats-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px;
+  @media (max-width: 1100px) { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 700px) { grid-template-columns: 1fr; }
 }
-.stat-card { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: all .2s;
+.stat-card { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid $border; border-radius: 3px; padding: 12px 14px; min-width: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: all .2s;
   &.clickable { cursor: pointer;
     &:hover { border-color: $primary; box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.12); }
     &.active { border-color: $primary; background: var(--color-primary-light); box-shadow: inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.5); }
   }
 }
-.stat-icon { width: 48px; height: 48px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; flex-shrink: 0;
+.stat-icon { width: 40px; height: 40px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #fff; flex-shrink: 0;
   &.icon-total { background: $primary; }
-  &.icon-active { background: #15803D; }
+  &.icon-running { background: #0891B2; }
+  &.icon-finished { background: #15803D; }
+  &.icon-active { background: #6366F1; }
   &.icon-stopped { background: #B45309; }
   &.icon-sample { background: #7C5CBF; }
   &.icon-period { background: #B45309; }
   &.icon-member { background: #545f72; }
 }
-.stat-body { flex: 1; }
-.stat-label { font-size: 13px; color: #757575; margin-bottom: 4px; }
-.stat-value { font-size: 28px; font-weight: 700; color: #1b1c1c; line-height: 1.1; }
+.stat-body { flex: 1; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-width: 0; }
+.stat-label { font-size: 13px; color: #757575; white-space: nowrap; }
+.stat-value { font-size: 24px; font-weight: 700; color: #1b1c1c; line-height: 1.1; white-space: nowrap; }
 .btn-create { display: flex; align-items: center; gap: 5px; padding: 10px 22px; background: $primary; color: #fff; border: none; border-radius: 3px; font-weight: 600; font-size: 13px; cursor: pointer; box-shadow: 0 2px 8px rgba(var(--color-primary-rgb),0.25); transition: all .2s;
   &:hover { opacity: 0.9; transform: translateY(-1px); }
-}
-.header-actions { display: flex; align-items: center; gap: 10px; }
-.btn-tpl { display: flex; align-items: center; gap: 5px; padding: 10px 16px; background: #fff; border: 1px solid $border; border-radius: 3px; color: var(--color-primary); font-weight: 600; font-size: 13px; cursor: pointer; transition: all .2s;
-  i { color: $primary; }
-  &:hover { border-color: $primary; color: $primary; background: var(--color-primary-surface); }
 }
 .tip-bar { display: flex; align-items: center; gap: 8px; background: var(--color-primary-light); border: 1px solid $border; color: var(--color-primary-hover); font-size: 13px; border-radius: 3px; padding: 10px 14px;
   i { color: $primary; }
@@ -932,8 +970,8 @@ $border: #CBD5E1;
 .filter-select, .filter-input { height: 36px; border: 1px solid #dcdfe6; border-radius: 2px; padding: 0 10px; font-size: 13px; outline: none; background: #fff; transition: all .2s;
   &:focus { border-color: $primary; box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb),0.12); }
 }
-.filter-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(var(--color-primary-rgb),0.08); }
-.filter-actions-right { display: flex; gap: 8px; }
+.filter-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(var(--color-primary-rgb),0.08); }
+.filter-actions-left, .filter-actions-right { display: flex; gap: 8px; }
 .btn-reset { padding: 0 16px; height: 36px; border: 1px solid $border; border-radius: 2px; font-size: 13px; color: var(--color-primary); background: #fff; cursor: pointer;
   &:hover { background: var(--color-primary-light); }
 }
@@ -957,17 +995,16 @@ $border: #CBD5E1;
   30% { border-color: $primary; box-shadow: 0 0 0 4px rgba(var(--color-primary-rgb),0.3); }
   60% { border-color: $primary; box-shadow: 0 0 0 7px rgba(var(--color-primary-rgb),0.12); }
 }
-.tp-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; transition: background .2s; }
+.tp-head { display: flex; align-items: center; gap: 10px; padding: 8px 14px; cursor: pointer; transition: background .2s; }
 .tp-head:hover { background: var(--color-primary-surface); }
 .tp-arrow { color: #94A3B8; font-size: 14px; flex-shrink: 0; transition: transform .25s; cursor: pointer; }
 .task-panel:hover .tp-arrow { color: $primary; }
 .task-panel.is-open .tp-arrow { transform: rotate(180deg); }
 .tp-body { border-top: 1px solid $border; }
 .ct-icon { width: 40px; height: 40px; border-radius: 3px; background: var(--color-primary-light); color: $primary; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
-.ct-main { flex: 1; min-width: 0; }
-.ct-name-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.ct-name { font-size: 15px; font-weight: 700; color: #1b1c1c; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ct-sub { font-size: 12px; color: #909399; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ct-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.ct-name { font-size: 15px; font-weight: 700; color: #1b1c1c; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; }
+.ct-meta { font-size: 12px; color: #909399; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 10px; flex-shrink: 1; }
 .ct-status { padding: 2px 12px; border-radius: 4px; font-size: 12px; flex-shrink: 0;
   &.on { background: rgba(var(--color-primary-rgb),0.1); color: $primary; font-weight: 600; }
   &.off { background: #5c5f66; color: #fff; font-weight: 600; }

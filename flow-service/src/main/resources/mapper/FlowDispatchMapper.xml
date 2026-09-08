@@ -33,6 +33,27 @@
             <if test="sample != null">
                 AND d.is_sample = #{sample}
             </if>
+            <!-- 派生进度过滤：进行中=存在进行中的成员任务；已完成=有成员任务且全部非进行中 -->
+            <if test="progress != null and progress != ''">
+                <choose>
+                    <when test="progress == '进行中'">
+                        AND EXISTS (
+                            SELECT 1 FROM flow_task_dispatch ftd
+                            JOIN flow_task ftx ON ftx.dispatch_id = ftd.id
+                            WHERE ftd.task_id = d.id AND ftx.status = '进行中')
+                    </when>
+                    <when test="progress == '已完成'">
+                        AND NOT EXISTS (
+                            SELECT 1 FROM flow_task_dispatch ftd
+                            JOIN flow_task ftx ON ftx.dispatch_id = ftd.id
+                            WHERE ftd.task_id = d.id AND ftx.status = '进行中')
+                        AND EXISTS (
+                            SELECT 1 FROM flow_task_dispatch ftd
+                            JOIN flow_task ftx ON ftx.dispatch_id = ftd.id
+                            WHERE ftd.task_id = d.id)
+                    </when>
+                </choose>
+            </if>
             <if test="creatorName != null and creatorName != ''">
                 AND d.creator_name LIKE CONCAT('%', #{creatorName}, '%')
             </if>
@@ -63,6 +84,27 @@
             <if test="sample != null">
                 AND d.is_sample = #{sample}
             </if>
+            <!-- 派生进度过滤：进行中=存在进行中的成员任务；已完成=有成员任务且全部非进行中 -->
+            <if test="progress != null and progress != ''">
+                <choose>
+                    <when test="progress == '进行中'">
+                        AND EXISTS (
+                            SELECT 1 FROM flow_task_dispatch ftd
+                            JOIN flow_task ftx ON ftx.dispatch_id = ftd.id
+                            WHERE ftd.task_id = d.id AND ftx.status = '进行中')
+                    </when>
+                    <when test="progress == '已完成'">
+                        AND NOT EXISTS (
+                            SELECT 1 FROM flow_task_dispatch ftd
+                            JOIN flow_task ftx ON ftx.dispatch_id = ftd.id
+                            WHERE ftd.task_id = d.id AND ftx.status = '进行中')
+                        AND EXISTS (
+                            SELECT 1 FROM flow_task_dispatch ftd
+                            JOIN flow_task ftx ON ftx.dispatch_id = ftd.id
+                            WHERE ftd.task_id = d.id)
+                    </when>
+                </choose>
+            </if>
             <if test="creatorName != null and creatorName != ''">
                 AND d.creator_name LIKE CONCAT('%', #{creatorName}, '%')
             </if>
@@ -92,6 +134,24 @@
              WHERE d.status = '停用'
              <if test="deptId != null">AND (d.is_sample = 1 OR d.dept_id = #{deptId})</if>
             ) AS stoppedCount,
+            (SELECT COUNT(*) FROM flow_dispatch d
+             WHERE EXISTS (
+                 SELECT 1 FROM flow_task_dispatch ftd
+                 JOIN flow_task ftx ON ftx.dispatch_id = ftd.id
+                 WHERE ftd.task_id = d.id AND ftx.status = '进行中')
+             <if test="deptId != null">AND (d.is_sample = 1 OR d.dept_id = #{deptId})</if>
+            ) AS runningCount,
+            (SELECT COUNT(*) FROM flow_dispatch d
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM flow_task_dispatch ftd
+                 JOIN flow_task ftx ON ftx.dispatch_id = ftd.id
+                 WHERE ftd.task_id = d.id AND ftx.status = '进行中')
+               AND EXISTS (
+                 SELECT 1 FROM flow_task_dispatch ftd
+                 JOIN flow_task ftx ON ftx.dispatch_id = ftd.id
+                 WHERE ftd.task_id = d.id)
+             <if test="deptId != null">AND (d.is_sample = 1 OR d.dept_id = #{deptId})</if>
+            ) AS finishedCount,
             (SELECT COUNT(*) FROM flow_dispatch d
              WHERE d.is_sample = 1
             ) AS sampleCount,

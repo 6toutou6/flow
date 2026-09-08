@@ -51,7 +51,7 @@
               <div v-if="templateFieldRows.length > 0" class="pd-tpl">
                 <div class="tpl-header"><i class="el-icon-collection" /> 任务基础信息 <span class="chain-hint">创建人下发时赋值，处理人节点填写同步展示</span></div>
                 <div class="tpl-grid">
-                  <div v-for="r in templateFieldRows" :key="r.id" class="tpl-item">
+                  <div v-for="r in templateFieldRows" :key="r.id" class="tpl-item" :class="{ 'tpl-wide': r.longText }">
                     <span class="tpl-label">
                       {{ r.label }}
                       <span v-if="r.role === 2" class="tpl-handler-note"><i class="el-icon-user" /> {{ r.roleTip || '处理人填写' }}</span>
@@ -109,7 +109,7 @@
                       :required="f.required === 1"
                     >
                       <el-input v-if="f.fieldType === 'text'" v-model="handlerBaseForm[f.id]" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" />
-                      <el-input v-else-if="f.fieldType === 'textarea'" v-model="handlerBaseForm[f.id]" type="textarea" :rows="3" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" />
+                      <el-input v-else-if="f.fieldType === 'textarea'" v-model="handlerBaseForm[f.id]" type="textarea" :autosize="{ minRows: 2, maxRows: 6 }" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" />
                       <el-input-number v-else-if="f.fieldType === 'number'" v-model="handlerBaseForm[f.id]" :placeholder="f.placeholder || '请输入'" controls-position="right" style="width: 100%" />
                       <el-date-picker v-else-if="f.fieldType === 'date'" v-model="handlerBaseForm[f.id]" type="date" placeholder="选择日期" value-format="yyyy-MM-dd" style="width: 100%" />
                       <el-radio-group v-else-if="f.fieldType === 'radio'" v-model="handlerBaseForm[f.id]">
@@ -167,7 +167,7 @@
                       :required="f.required === 1"
                     >
                       <el-input v-if="f.fieldType === 'text'" v-model="formData[f.id]" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" />
-                      <el-input v-else-if="f.fieldType === 'textarea'" v-model="formData[f.id]" type="textarea" :rows="3" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" />
+                      <el-input v-else-if="f.fieldType === 'textarea'" v-model="formData[f.id]" type="textarea" :autosize="{ minRows: 2, maxRows: 6 }" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" />
                       <el-input-number v-else-if="f.fieldType === 'number'" v-model="formData[f.id]" :placeholder="f.placeholder || '请输入'" controls-position="right" style="width: 100%" />
                       <el-date-picker v-else-if="f.fieldType === 'date'" v-model="formData[f.id]" type="date" placeholder="选择日期" value-format="yyyy-MM-dd" style="width: 100%" />
                       <el-radio-group v-else-if="f.fieldType === 'radio'" v-model="formData[f.id]">
@@ -463,7 +463,14 @@ export default {
           roleTip: f.fieldRole === 2
             ? (srcText || (node ? `在「${node.nodeName}」节点由处理人填写` : '由处理人填写'))
             : '创建人填写',
-          value: map[f.id] !== undefined && map[f.id] !== null ? String(map[f.id]) : ''
+          value: map[f.id] !== undefined && map[f.id] !== null ? String(map[f.id]) : '',
+          // 多行文本值过长（>60 字或含换行）时该项独占整行，避免挤在半列内显示
+          longText: f.fieldType === 'textarea' && (() => {
+            const v = map[f.id]
+            if (v === undefined || v === null) return false
+            const s = String(v)
+            return s.length > 60 || s.indexOf('\n') >= 0
+          })()
         }
       })
     },
@@ -974,6 +981,7 @@ $border: #CBD5E1;
 .tpl-header { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: $primary; margin: 0 0 12px; }
 .tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 32px; }
 .tpl-item { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.tpl-item.tpl-wide { grid-column: 1 / -1; }
 .tpl-label { font-size: 12px; color: #999; display: inline-flex; align-items: center; gap: 4px; }
 .tpl-value { font-size: 14px; color: var(--color-primary); font-weight: 500; word-break: break-all; line-height: 1.5; white-space: pre-wrap; }
 .tpl-handler-note { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 400; color: var(--color-primary); background: rgba(var(--color-primary-rgb), 0.08); padding: 0 6px; border-radius: 3px; vertical-align: 1px; }

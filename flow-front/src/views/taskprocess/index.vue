@@ -17,26 +17,26 @@
           </div>
         </div>
 
-        <!-- 统计卡（点击筛选：待处理/已完成，点「我的任务」恢复全部） -->
+        <!-- 统计卡（点击筛选：待我处理 / 已完成，点「全部」恢复） -->
         <section class="stats-grid">
-          <div class="stat-card clickable" :class="{ active: statActive('all') }" title="点击显示全部我的任务" @click="toggleStat('all')">
+          <div class="stat-card clickable" :class="{ active: statActive('all') }" title="点击显示全部任务" @click="toggleStat('all')">
             <div class="stat-icon icon-total"><i class="el-icon-s-order" /></div>
             <div class="stat-body">
-              <div class="stat-label">我的任务</div>
+              <div class="stat-label">全部</div>
               <div class="stat-value">{{ stats.taskCount || 0 }}</div>
             </div>
           </div>
-          <div class="stat-card clickable" :class="{ active: statActive('pending') }" title="点击筛选待处理节点，再点取消" @click="toggleStat('pending')">
+          <div class="stat-card clickable" :class="{ active: statActive('pending') }" title="点击筛选还有待我处理的节点，再点取消" @click="toggleStat('pending')">
             <div class="stat-icon icon-pending"><i class="el-icon-alarm-clock" /></div>
             <div class="stat-body">
-              <div class="stat-label">待处理节点</div>
+              <div class="stat-label">待我处理</div>
               <div class="stat-value">{{ stats.pendingNodeCount || 0 }}</div>
             </div>
           </div>
-          <div class="stat-card clickable" :class="{ active: statActive('done') }" title="点击筛选已完成节点，再点取消" @click="toggleStat('done')">
+          <div class="stat-card clickable" :class="{ active: statActive('done') }" title="点击筛选我已处理完成的节点，再点取消" @click="toggleStat('done')">
             <div class="stat-icon icon-done"><i class="el-icon-circle-check" /></div>
             <div class="stat-body">
-              <div class="stat-label">已完成节点</div>
+              <div class="stat-label">已完成</div>
               <div class="stat-value">{{ stats.doneNodeCount || 0 }}</div>
             </div>
           </div>
@@ -53,7 +53,7 @@
               <label class="filter-label">处理状态</label>
               <select v-model="filters.status" class="filter-select">
                 <option value="">全部</option>
-                <option :value="1">待处理</option>
+                <option :value="1">待我处理</option>
                 <option :value="0">已完成</option>
               </select>
             </div>
@@ -105,14 +105,9 @@
             <div class="tp-head" @click="toggleTask(g)">
               <div class="ct-icon"><i class="el-icon-s-order" /></div>
               <div class="ct-main">
-                <div class="ct-name-row">
-                  <span class="ct-name">{{ g.taskName }}</span>
-                  <span v-if="g.pendingCount > 0" class="pending-tag">{{ g.pendingCount }} 待处理</span>
-                </div>
-                <div class="ct-sub">
-                  <template v-if="g.templateName">{{ g.templateName }} · </template>
-                  {{ g.periodCount || 0 }} 期次 · 创建时间 {{ g.taskCreateTime }}
-                </div>
+                <span class="ct-name" :title="g.taskName">{{ g.taskName }}</span>
+                <span v-if="g.pendingCount > 0" class="pending-tag">{{ g.pendingCount }} 待处理</span>
+                <span class="ct-meta" :title="ctMetaText(g)">{{ ctMetaText(g) }}</span>
               </div>
               <i class="el-icon-arrow-down tp-arrow" />
             </div>
@@ -136,22 +131,24 @@
                     </thead>
                     <tbody>
                       <template v-for="per in g.periods">
-                        <tr v-if="per.todos && per.todos.length === 0" :key="(per.dispatchId || per.periodName || 'none') + '-empty'" class="hover-row">
+                        <!-- 无筛选时：无待办的期次给一行占位提示；有筛选时该期次无匹配行则不展示 -->
+                        <tr v-if="!statActive('pending') && !statActive('done') && per.todos && per.todos.length === 0" :key="(per.dispatchId || per.periodName || 'none') + '-empty'" class="hover-row">
                           <td class="font-bold">{{ per.periodName || '无期次' }}</td>
                           <td class="text-muted">—</td>
                           <td>{{ per.startTime ? per.startTime + ' ~ ' + (per.endTime || '—') : '—' }}</td>
                           <td colspan="4" class="text-muted">该期次无待办任务</td>
                         </tr>
-                        <!-- 每条待办 = 完完整整独立一行（不合并单元格），各自进度链与操作 -->
+                        <!-- 每条待办 = 完完整整独立一行（不合并单元格），各自进度链与操作；
+                             点「待我处理/已完成」卡后仅保留匹配行（其余期次/行不再展示） -->
                         <tr
-                          v-for="(td, tdi) in per.todos"
-                          v-else
+                          v-for="(td, tdi) in visibleTodos(per)"
                           :key="td.taskNodeId || ((per.dispatchId || per.periodName || 'none') + '-' + tdi)"
                           class="hover-row"
                         >
                           <td class="font-bold">
                             {{ per.periodName || '无期次' }}
                             <span v-if="per.periodNo" class="period-no">第 {{ per.periodNo }} 期</span>
+                            <span class="ptag" :class="perTagCls(per)">{{ perTagText(per) }}</span>
                           </td>
                           <td>
                             <!-- 员工任务名称（该待办所属成员任务实例名，如「技术部-张三的问题整改处理」） -->
@@ -161,7 +158,7 @@
                             {{ per.startTime ? per.startTime + ' ~ ' + (per.endTime || '—') : '—' }}
                           </td>
                           <td class="text-center">
-                            <span class="status-badge" :class="td.todoStatus === 0 ? 'st-todo' : 'st-done'">{{ td.todoStatus === 0 ? '待处理' : '已处理' }}</span>
+                            <span class="status-badge" :class="td.todoStatus === 0 ? 'st-todo' : 'st-done'">{{ td.todoStatus === 0 ? '待我处理' : '已完成' }}</span>
                             <span v-if="rowOverdueTag(td, per)" class="overdue-tag"><i class="el-icon-alarm-clock" /> {{ rowOverdueTag(td, per) }}</span>
                           </td>
                           <td>
@@ -283,6 +280,28 @@ export default {
       if (isNaN(fin.getTime())) return ''
       return fin.getTime() > end.getTime() ? '超期完成' : ''
     },
+    /** 任务组头单行摘要（模板 · N 期次 · 创建时间） */
+    ctMetaText(g) {
+      const tpl = g.templateName ? g.templateName + ' · ' : ''
+      return `${tpl}${g.periodCount || 0} 期次 · 创建 ${g.taskCreateTime || '—'}`
+    },
+    /** 期次级本人状态标签：该期次下我的节点是否还有待我处理 */
+    perTagText(per) {
+      return this.perHasTodo(per) ? '待我处理' : '已完成'
+    },
+    perTagCls(per) {
+      return this.perHasTodo(per) ? 'pt-todo' : 'pt-done'
+    },
+    perHasTodo(per) {
+      return !!(per && per.todos && per.todos.some(t => t.todoStatus === 0))
+    },
+    /** 展开行过滤：点「待我处理」只保留待处理行、点「已完成」只保留已完成行（全部时返回全部） */
+    visibleTodos(per) {
+      const todos = (per && per.todos) || []
+      if (this.statActive('pending')) return todos.filter(t => t.todoStatus === 0)
+      if (this.statActive('done')) return todos.filter(t => t.todoStatus !== 0)
+      return todos
+    },
     isTaskOpen(id) { return this.openTaskIds.indexOf(id) >= 0 },
     toggleTask(g) {
       const idx = this.openTaskIds.indexOf(g.taskId)
@@ -386,9 +405,9 @@ $border: #CBD5E1;
   &.icon-pending { background: #B45309; }
   &.icon-done { background: #15803D; }
 }
-.stat-body { flex: 1; }
-.stat-label { font-size: 13px; color: #757575; margin-bottom: 4px; }
-.stat-value { font-size: 28px; font-weight: 700; color: #1b1c1c; line-height: 1.1; }
+.stat-body { flex: 1; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-width: 0; }
+.stat-label { font-size: 13px; color: #757575; white-space: nowrap; }
+.stat-value { font-size: 24px; font-weight: 700; color: #1b1c1c; line-height: 1.1; white-space: nowrap; }
 
 // 筛选区
 .filter-section { background: #fff; border: 1px solid $border; border-radius: 3px; padding: 16px; }
@@ -424,7 +443,7 @@ $border: #CBD5E1;
 
 // 折叠面板（卡片式，同任务管理）
 .task-panel { background: #fff; border: 1px solid $border; border-radius: 3px; margin-bottom: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
-.tp-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; transition: background .2s;
+.tp-head { display: flex; align-items: center; gap: 10px; padding: 8px 14px; cursor: pointer; transition: background .2s;
   &:hover { background: var(--color-primary-surface); }
 }
 .tp-arrow { color: #94A3B8; font-size: 14px; flex-shrink: 0; transition: transform .25s; cursor: pointer; }
@@ -432,11 +451,10 @@ $border: #CBD5E1;
 .task-panel.is-open .tp-arrow { transform: rotate(180deg); }
 .tp-body { border-top: 1px solid $border; }
 .ct-icon { width: 40px; height: 40px; border-radius: 3px; background: var(--color-primary-light); color: $primary; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
-.ct-main { flex: 1; min-width: 0; }
-.ct-name-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.ct-name { font-size: 15px; font-weight: 700; color: #1b1c1c; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ct-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.ct-name { font-size: 15px; font-weight: 700; color: #1b1c1c; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; }
 .pending-tag { padding: 2px 10px; background: rgba(var(--color-primary-rgb),0.1); color: $primary; border-radius: 3px; font-size: 12px; font-weight: 600; flex-shrink: 0; }
-.ct-sub { font-size: 12px; color: #909399; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ct-meta { font-size: 12px; color: #909399; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 10px; flex-shrink: 1; }
 
 .task-detail { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
 // 期次块（同任务管理期次列表样式）
@@ -446,6 +464,11 @@ $border: #CBD5E1;
 }
 .sec-sub { font-size: 12px; color: #999; font-weight: 400; }
 .period-no { font-size: 11px; color: $primary; background: rgba(var(--color-primary-rgb),0.1); border-radius: 3px; padding: 1px 8px; font-weight: 600; margin-left: 6px; }
+// 期次级本人状态标签（按期次区分 待我处理/已完成）
+.ptag { display: inline-block; padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; margin-left: 6px; vertical-align: 1px;
+  &.pt-todo { background: rgba(var(--color-primary-rgb),0.1); color: $primary; }
+  &.pt-done { background: rgba(21, 128, 61,0.1); color: #15803D; }
+}
 // 员工任务名称列：长名省略，hover 以 title 查看完整
 .emp-task-name { display: inline-block; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; color: #1b1c1c; }
 .period-empty { text-align: center; padding: 24px; color: #bbb; font-size: 13px;

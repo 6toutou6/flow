@@ -125,10 +125,11 @@ public class FlowDispatchController {
                                                  @RequestParam(required = false) String taskName,
                                                  @RequestParam(required = false) String status,
                                                  @RequestParam(required = false) Integer sample,
+                                                 @RequestParam(required = false) String progress,
                                                  @RequestParam(required = false) String creatorName,
                                                  @RequestParam(required = false) String createStart,
                                                  @RequestParam(required = false) String createEnd) {
-        return Result.success("获取成功", flowDispatchService.getPage(page, limit, taskName, status, sample, creatorName, createStart, createEnd));
+        return Result.success("获取成功", flowDispatchService.getPage(page, limit, taskName, status, sample, progress, creatorName, createStart, createEnd));
     }
 
     /** 任务管理页统计卡 */

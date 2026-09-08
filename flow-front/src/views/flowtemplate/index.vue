@@ -10,7 +10,6 @@
               <span>/</span>
               <span class="active">模板管理</span>
             </nav>
-            <h3 class="page-heading">流程模板管理</h3>
           </div>
         </div>
 
@@ -143,7 +142,7 @@
                 </td>
               </tr>
               <tr v-if="!loading && list.length === 0">
-                <td colspan="8" class="text-center" style="padding: 32px; color: #999;">暂无模板，点击右上角「新建模板」开始</td>
+                <td colspan="8" class="text-center" style="padding: 32px; color: #999;">暂无模板，点击查询栏左下角「新建模板」开始</td>
               </tr>
             </tbody>
           </table>
@@ -386,7 +385,6 @@ $primary: var(--color-primary);
 .breadcrumb { display: flex; gap: 8px; font-size: 12px; line-height: 20px; color: #414755; margin-bottom: 8px;
   .active { color: $primary; font-weight: 600; }
 }
-.page-heading { font-size: 24px; line-height: 32px; font-weight: 600; color: #1b1c1c; }
 
 // 统计卡
 .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
