@@ -215,9 +215,24 @@
 
               </div><!-- /pd-left -->
 
-              <!-- 右侧：完整操作历史（通过/退回步骤） -->
+              <!-- 右侧：关联我的任务（来源期次）+ 操作历史 -->
               <div class="pd-right">
-                <div class="section-title">操作历史 <span class="chain-hint">完整的通过/退回记录</span></div>
+                <div class="section-title">关联我的任务 <span class="chain-hint">我创建的任务期次关联到了本任务</span></div>
+                <div v-if="linkIns.length === 0" class="history-empty">暂无任务期次关联本任务</div>
+                <div v-else class="collect-list">
+                  <div v-for="lk in linkIns" :key="lk.id" class="collect-card">
+                    <div class="cc-head">
+                      <span class="cc-name"><i class="el-icon-link" /> {{ lk.sourceDispatchName || '某任务' }}<template v-if="lk.sourcePeriodName"> / {{ lk.sourcePeriodName }}</template></span>
+                    </div>
+                    <div v-if="lk.remark" class="cc-remark" :title="lk.remark"><i class="el-icon-chat-line-square" /> {{ lk.remark }}</div>
+                    <div class="cc-meta"><template v-if="lk.createTime">关联时间：{{ lk.createTime }}</template><template v-else>&nbsp;</template></div>
+                    <div class="cc-foot">
+                      <span class="cc-status cc-wait">在来源任务的期次下可查看/解除此关联</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="section-title" style="margin-top: 16px">操作历史 <span class="chain-hint">完整的通过/退回记录</span></div>
                 <div v-if="allHistory.length > 0" class="history-timeline">
                   <div
                     v-for="(h, hi) in allHistory"
@@ -322,6 +337,7 @@ import AttachField from '@/components/AttachField.vue'
 import FlowChain from '@/components/FlowChain.vue'
 import UserPicker from '@/components/UserPicker'
 import { getTaskDetail, submitTask, saveDraftTask, transferTask } from '@/service/sys/TaskService'
+import { getTaskLinksByTarget } from '@/service/sys/FlowDispatchService'
 import { NODE_TYPE, evalCondAll } from '@/constants/dict'
 
 export default {
@@ -351,7 +367,9 @@ export default {
       confirmAction: 'pass',
       confirmSummary: '',
       pendingRejectToNodeId: null,
-      pendingRejectReason: null
+      pendingRejectReason: null,
+      // 任务关联：被哪些任务期次关联到我（反链展示）
+      linkIns: []
     }
   },
   computed: {
@@ -646,11 +664,23 @@ export default {
         this.detail = res.data
         this.buildTodo()
         this.$nextTick(() => this.initForm())
+        this.loadLinkIns()
       } catch (e) {
         console.error(e)
         this.$message.error((e && e.message) || '任务加载失败')
       } finally {
         this.loading = false
+      }
+    },
+    /** 加载「被哪些我创建的任务期次关联到本任务」（反链展示） */
+    async loadLinkIns() {
+      if (!this.taskId) return
+      try {
+        const res = await getTaskLinksByTarget(this.taskId)
+        this.linkIns = (res && res.data) || []
+      } catch (e) {
+        console.error(e)
+        this.linkIns = []
       }
     },
     /** 依据路由参数（mode=view 表示已处理回看）与当前登录人定位待办，组装 todo */
@@ -1126,4 +1156,22 @@ $border: #CBD5E1;
 .tl-comment { margin-top: 5px; color: #15803D; line-height: 1.5; word-break: break-all; white-space: pre-wrap; }
 .tl-reason { margin-top: 5px; color: #B45309; line-height: 1.5; word-break: break-all; white-space: pre-wrap; }
 .history-empty { font-size: 13px; color: #bbb; text-align: center; padding: 32px 0; }
+// 任务关联（被哪些期次关联到我）反链卡片
+.collect-list { display: flex; flex-direction: column; gap: 10px; }
+.collect-card { border: 1px solid #e4e7ed; border-radius: 4px; padding: 10px 12px;
+  &.collect-done { border-color: rgba(21, 128, 61, 0.4); }
+}
+.cc-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cc-name { font-size: 13px; font-weight: 700; color: #1b1c1c; display: inline-flex; align-items: center; gap: 4px;
+  i { color: $primary; }
+}
+.cc-meta { font-size: 12px; color: #8a93a5; margin-top: 4px; }
+.cc-remark { font-size: 12px; color: #6b7280; background: #f7f8fa; border-left: 2px solid rgba(var(--color-primary-rgb), 0.35); border-radius: 2px; padding: 4px 8px; margin-top: 6px; line-height: 1.5;
+  i { color: var(--color-primary); margin-right: 3px; }
+}
+.cc-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+.cc-status { padding: 1px 8px; border-radius: 3px; font-size: 11px; font-weight: 600;
+  &.cc-ok { background: rgba(21, 128, 61, 0.12); color: #15803D; }
+  &.cc-wait { background: rgba(180, 83, 9, 0.12); color: #B45309; }
+}
 </style>

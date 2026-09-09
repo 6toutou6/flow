@@ -211,3 +211,40 @@ export function getPeriodInfo(dispatchId) {
     method: 'get'
   })
 }
+
+// ===== 任务关联（汇总 ← 收集） =====
+
+// 建立关联（配置级/成员级）
+export function createTaskLink(data) {
+  return request({
+    url: '/flow-task-link',
+    method: 'post',
+    data
+  })
+}
+
+// 按来源查询（管理端：dispatchId=任务配置取全部期次关联；periodId=精确到某期次）
+export function getTaskLinksBySource(taskId, dispatchId, periodId) {
+  return request({
+    url: '/flow-task-link/by-source',
+    method: 'get',
+    params: { taskId, dispatchId, periodId }
+  })
+}
+
+// 按目标反查（收到任务侧查「被哪些期次关联」：taskId=当前收到的成员任务）
+export function getTaskLinksByTarget(taskId, dispatchId, periodId) {
+  return request({
+    url: '/flow-task-link/by-target',
+    method: 'get',
+    params: { taskId, dispatchId, periodId }
+  })
+}
+
+// 解除关联
+export function removeTaskLink(id) {
+  return request({
+    url: `/flow-task-link/${id}`,
+    method: 'delete'
+  })
+}

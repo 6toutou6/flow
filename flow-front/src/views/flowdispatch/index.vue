@@ -263,6 +263,7 @@
                           <button class="action-link" @click="openEndTimeDialog(t, p)"><i class="el-icon-time" /> 改截止</button>
                           <button class="action-link" :title="'复制本期次：打开生成期次弹窗，成员已回填，期次名称/起止时间请自行填写' " @click="openCopyPeriod(t, p)"><i class="el-icon-copy-document" /> 复制期次</button>
                           <button class="action-link" @click="openPeriodUsers(t, p)"><i class="el-icon-user" /> 查看人员</button>
+                          <button class="action-link" :title="'关联本期次到我收到的一条具体任务'" @click="openRelate(t, p)"><i class="el-icon-link" /> 关联</button>
                           <button class="action-link text-error" @click="onDeletePeriod(t, p)"><i class="el-icon-delete" /> 删除</button>
                         </td>
                       </tr>
@@ -315,6 +316,17 @@
       @edit-config="onEditConfig"
     />
 
+    <!-- 关联任务弹窗（来源=本任务的某一期次，目标=我收到的具体任务） -->
+    <RelateTaskModal
+      :visible="relateVisible"
+      :source-dispatch-id="relateTask ? relateTask.id : ''"
+      :source-dispatch-name="relateTask ? (relateTask.taskName || '') : ''"
+      :source-period-id="relatePeriod ? relatePeriod.dispatchId : ''"
+      :source-period-name="relatePeriod ? (relatePeriod.periodName || relatePeriod.taskName || '') : ''"
+      @success="onRelateCreated"
+      @close="relateVisible = false"
+    />
+
     <!-- 修改期次截止时间弹窗 -->
     <el-dialog title="修改期次截止时间" :visible.sync="endTimeVisible" width="440px" :close-on-click-modal="false">
       <div v-if="endTimeTarget" class="et-info">
@@ -350,11 +362,12 @@ import { getDispatchTaskList, getDispatchStats, toggleDispatchPlanStatus, toggle
 import { getTaskList, deleteTaskGroup, getTaskMembers as getPeriodMembers } from '@/service/sys/TaskService'
 import { getTemplateList } from '@/service/sys/TemplateService'
 import GeneratePeriodModal from './components/GeneratePeriodModal.vue'
+import RelateTaskModal from '@/components/RelateTaskModal.vue'
 import { CYCLE_TYPE, CYCLE_TYPE_TEXT } from '@/constants/dict'
 
 export default {
   name: 'FlowDispatch',
-  components: { GeneratePeriodModal },
+  components: { GeneratePeriodModal, RelateTaskModal },
   data() {
     return {
       // 模板中直接引用周期类型枚举，需暴露到实例
@@ -388,7 +401,11 @@ export default {
       endTimeVisible: false,
       endTimeTarget: null,
       endTimeValue: '',
-      endTimeSaving: false
+      endTimeSaving: false,
+      // 任务关联（来源期次 → 我收到的任务）
+      relateVisible: false,
+      relateTask: null,
+      relatePeriod: null
     }
   },
   computed: {
@@ -801,6 +818,17 @@ export default {
     },
     openCreate() {
       this.$router.push('/flow-dispatch/edit')
+    },
+    /** 打开「关联」弹窗：来源 = 当前任务的某一期次（弹窗内展示/新增/解除该期次的关联） */
+    openRelate(t, p) {
+      this.relateTask = t || null
+      this.relatePeriod = p || null
+      this.relateVisible = true
+    },
+    /** 关联弹窗关闭/操作成功后的复位（关联数据由弹窗自身维护，无需重载任务） */
+    onRelateCreated() {
+      this.relateVisible = false
+      this.relatePeriod = null
     },
     openPeriodUsers(t, p) {
       this.saveFlashId(t.id, p.dispatchId)

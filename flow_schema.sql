@@ -363,3 +363,26 @@ CREATE TABLE `flow_dispatch_config_template` (
   PRIMARY KEY (`id`),
   KEY `idx_dept_sample` (`dept_id`,`is_sample`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='下发配置模板（新建任务时可拉取复用）';
+
+-- ============================================================
+-- 表18：flow_task_link 任务关联（汇总 ← 收集）
+-- 一个汇总任务（成员任务或任务配置）可关联多个收集任务（配置/期次），双向跳转与进度查看。
+-- 注：本表按实库采用 varchar(32) 主键（业务主键由应用层生成），与 flow_task 系列一致。
+-- ============================================================
+CREATE TABLE `flow_task_link` (
+  `id` varchar(32) NOT NULL,
+  `source_dispatch_id` varchar(32) DEFAULT NULL COMMENT '来源任务配置ID（flow_dispatch.id，配置级关联）',
+  `source_task_id` varchar(32) DEFAULT NULL COMMENT '来源成员任务ID（flow_task.id，成员级关联）',
+  `source_period_id` varchar(32) DEFAULT NULL COMMENT '来源期次ID（flow_task_dispatch.id，冗余）',
+  `target_dispatch_id` varchar(32) NOT NULL COMMENT '目标收集任务配置ID（flow_dispatch.id）',
+  `target_period_id` varchar(32) DEFAULT NULL COMMENT '目标期次ID（flow_task_dispatch.id）',
+  `target_task_id` varchar(32) DEFAULT NULL COMMENT '目标成员任务ID（flow_task.id，直接关联到我收到的某条任务时填写）',
+  `link_type` varchar(32) NOT NULL DEFAULT 'collect' COMMENT '关联类型 collect=汇总收集',
+  `remark` varchar(255) DEFAULT NULL COMMENT '备注',
+  `creator_id` varchar(32) DEFAULT NULL COMMENT '创建人用户号',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_source_task` (`source_task_id`),
+  KEY `idx_source_dispatch` (`source_dispatch_id`),
+  KEY `idx_target` (`target_dispatch_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='任务关联（汇总收集）';
