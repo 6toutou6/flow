@@ -36,6 +36,8 @@ public class FlowTaskDispatchNode {
     private String guideFiles;
     /** 下一步处理人提示（快照） */
     private String nextHandlerTip;
+    /** 条件分支配置快照 JSON */
+    private String branchConfig;
     /** 节点字段定义 JSON（快照，含绑定该节点的处理人字段 fieldRole=2） */
     private String fieldsJson;
 

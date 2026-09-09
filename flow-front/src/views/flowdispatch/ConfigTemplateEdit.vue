@@ -46,27 +46,27 @@
             <div class="form-row">
               <label class="form-label"><span class="req">*</span> 周期类型</label>
               <el-radio-group v-model="form.cycleType" @change="onCycleChange">
-                <el-radio-button :label="1">每周</el-radio-button>
-                <el-radio-button :label="2">每月</el-radio-button>
-                <el-radio-button :label="3">每季度</el-radio-button>
-                <el-radio-button :label="4">单次下发</el-radio-button>
+                <el-radio-button :label="CYCLE_TYPE.WEEK">每周</el-radio-button>
+                <el-radio-button :label="CYCLE_TYPE.MONTH">每月</el-radio-button>
+                <el-radio-button :label="CYCLE_TYPE.QUARTER">每季度</el-radio-button>
+                <el-radio-button :label="CYCLE_TYPE.ONCE">单次下发</el-radio-button>
               </el-radio-group>
             </div>
-            <div v-if="form.cycleType === 1" class="form-row">
+            <div v-if="form.cycleType === CYCLE_TYPE.WEEK" class="form-row">
               <label class="form-label"><span class="req">*</span> 每周几触发</label>
               <el-select v-model="form.cycleDay" placeholder="选择触发日（周几）" style="width:100%">
                 <el-option v-for="d in weekDays" :key="d.value" :label="d.label" :value="d.value" />
               </el-select>
             </div>
-            <div v-else-if="form.cycleType === 2 || form.cycleType === 3" class="form-row">
+            <div v-else-if="form.cycleType === CYCLE_TYPE.MONTH || form.cycleType === CYCLE_TYPE.QUARTER" class="form-row">
               <label class="form-label"><span class="req">*</span> 每月几号触发</label>
               <el-select v-model="form.cycleDay" placeholder="选择触发日（几号）" style="width:100%">
                 <el-option v-for="n in 31" :key="n" :label="n + ' 号'" :value="n" />
               </el-select>
             </div>
-            <div v-if="form.cycleType === 4" class="rule-tip"><i class="el-icon-info" /> 单次下发：不按周期，每次手动生成期次为一个独立期次</div>
+            <div v-if="form.cycleType === CYCLE_TYPE.ONCE" class="rule-tip"><i class="el-icon-info" /> 单次下发：不按周期，每次手动生成期次为一个独立期次</div>
             <!-- 效果预览 -->
-            <div v-if="form.cycleType !== 4" class="preview-bar">
+            <div v-if="form.cycleType !== CYCLE_TYPE.ONCE" class="preview-bar">
               <i class="el-icon-right" />
               <span>下期触发：<b>{{ triggerPreview || '—' }}</b></span>
             </div>
@@ -79,11 +79,11 @@
               <label class="form-label"><span class="req">*</span> 截止天数</label>
               <div class="inline-control">
                 <el-input-number v-model="form.deadlineDays" :min="1" :max="365" />
-                <span class="field-tip">{{ form.cycleType === 4 ? '下发后 N 天内完成' : '触发后 N 天内完成' }}</span>
+                <span class="field-tip">{{ form.cycleType === CYCLE_TYPE.ONCE ? '下发后 N 天内完成' : '触发后 N 天内完成' }}</span>
               </div>
             </div>
             <!-- 效果预览 -->
-            <div v-if="form.cycleType !== 4" class="preview-bar">
+            <div v-if="form.cycleType !== CYCLE_TYPE.ONCE" class="preview-bar">
               <i class="el-icon-right" />
               <span>下期截止：<b>{{ deadlinePreview || '—' }}</b>（触发后 {{ form.deadlineDays }} 天）</span>
             </div>
@@ -91,7 +91,7 @@
 
           <!-- 催办规则 -->
           <div class="form-card">
-            <div class="card-title"><i class="el-icon-bell" /> 催办规则 <span class="card-sub">截止前提前提醒处理人（仅记录日志，不真实通知）</span></div>
+            <div class="card-title"><i class="el-icon-bell" /> 催办规则 <span class="card-sub">截止前自动催办，提醒处理人</span></div>
             <div class="form-row">
               <label class="form-label">提前催办</label>
               <div class="inline-control">
@@ -100,11 +100,11 @@
               </div>
             </div>
             <!-- 效果预览 -->
-            <div v-if="form.cycleType !== 4 && form.urgeDays > 0" class="preview-bar">
+            <div v-if="form.cycleType !== CYCLE_TYPE.ONCE && form.urgeDays > 0" class="preview-bar">
               <i class="el-icon-right" />
               <span>下期提醒：<b>{{ urgePreview || '—' }}</b>（截止前 {{ form.urgeDays }} 天）</span>
             </div>
-            <div v-else-if="form.cycleType !== 4" class="preview-bar muted">
+            <div v-else-if="form.cycleType !== CYCLE_TYPE.ONCE" class="preview-bar muted">
               <i class="el-icon-minus" />
               <span>不催办</span>
             </div>
@@ -126,11 +126,14 @@
 
 <script>
 import { getConfigTemplate, saveConfigTemplate } from '@/service/sys/FlowDispatchService'
+import { CYCLE_TYPE } from '@/constants/dict'
 
 export default {
   name: 'ConfigTemplateEdit',
   data() {
     return {
+      // 模板中直接引用周期类型枚举，需暴露到实例
+      CYCLE_TYPE,
       loading: false,
       saving: false,
       weekDays: [
@@ -200,7 +203,7 @@ export default {
       }
     },
     onCycleChange() {
-      if (this.form.cycleType === 4) this.form.cycleDay = null
+      if (this.form.cycleType === CYCLE_TYPE.ONCE) this.form.cycleDay = null
       else if (!this.form.cycleDay) this.form.cycleDay = 1
     },
     async handleSubmit() {
@@ -209,7 +212,7 @@ export default {
         this.$message.warning('请填写配置名称')
         return
       }
-      if (this.form.cycleType !== 4 && !this.form.cycleDay) {
+      if (this.form.cycleType !== CYCLE_TYPE.ONCE && !this.form.cycleDay) {
         this.$message.warning('请选择触发日')
         return
       }
@@ -223,7 +226,7 @@ export default {
           id: this.form.id,
           configName: this.form.configName.trim(),
           cycleType: this.form.cycleType,
-          cycleDay: this.form.cycleType === 4 ? null : this.form.cycleDay,
+          cycleDay: this.form.cycleType === CYCLE_TYPE.ONCE ? null : this.form.cycleDay,
           deadlineDays: this.form.deadlineDays,
           urgeDays: this.form.urgeDays,
           remark: this.form.remark
@@ -251,11 +254,11 @@ export default {
 
 // ===== 周期触发日期计算（与后端 FlowDispatchService.nextWindow 口径一致） =====
 function calcTrigger(cycleType, cycleDay) {
-  if (cycleType === 4 || !cycleDay) return null
+  if (cycleType === CYCLE_TYPE.ONCE || !cycleDay) return null
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const day = Math.max(1, cycleDay)
-  if (cycleType === 1) {
+  if (cycleType === CYCLE_TYPE.WEEK) {
     const dow = (today.getDay() + 6) % 7 // 周一=0..周日=6
     const monday = new Date(today)
     monday.setDate(today.getDate() - dow)
@@ -267,7 +270,7 @@ function calcTrigger(cycleType, cycleDay) {
     }
     return d
   }
-  if (cycleType === 2) {
+  if (cycleType === CYCLE_TYPE.MONTH) {
     const y = today.getFullYear()
     const m = today.getMonth()
     const last = new Date(y, m + 1, 0).getDate()

@@ -64,6 +64,7 @@
               </div>
               <div class="node-item-meta">
                 <span><i class="el-icon-edit" /> {{ (item.fields || []).length }} 个字段</span>
+                <span v-if="hasBranchConfig(item.node.branchConfig)" class="cfg-tag tag-branch" title="已配置条件分支"><i class="el-icon-share" /> 分支</span>
               </div>
               <div class="node-item-actions">
                 <button class="op-btn" :disabled="idx === 0" title="上移" @click.stop="selectNode(idx); moveNode(idx, -1)"><i class="el-icon-top" /></button>
@@ -115,6 +116,8 @@
                 <span v-if="field.required === 1" class="req">*</span>
                 {{ field.fieldLabel }}
                 <span class="field-type-tag">{{ typeLabel(field.fieldType) }}</span>
+                <span v-if="field.visibleWhen" class="cfg-tag tag-visible" title="已配置显隐条件（满足条件才显示）"><i class="el-icon-view" /> 显隐</span>
+                <span v-if="field.editableWhen" class="cfg-tag tag-editable" title="已配置只读条件（满足条件则锁定）"><i class="el-icon-lock" /> 只读</span>
               </div>
               <div class="field-item-ph">{{ field.placeholder || `请输入${field.fieldLabel}` }}</div>
             </div>
@@ -182,7 +185,35 @@
               <textarea v-model="currentNode.node.nextHandlerTip" class="prop-textarea" rows="2" placeholder="告诉处理人提交后应交给谁（如：请选择需求负责人作为下一步处理人）"></textarea>
               <div class="role-tip">处理人提交本节点、选择下一处理人时展示</div>
             </div>
-            <p v-if="currentNode.node.nodeType === 3" class="prop-hint">结束节点提交后任务即完成，无需指定下一处理人</p>
+            <div v-if="currentNode.node.nodeType !== NODE_TYPE.END" class="prop-group">
+              <label class="prop-label">条件分支</label>
+              <div v-for="(br, bi) in branchForm.branches" :key="bi" class="branch-item">
+                <div class="branch-head">
+                  <span class="branch-title">分支 {{ bi + 1 }}</span>
+                  <button class="enum-del" title="删除分支" @click="removeBranch(bi)"><i class="el-icon-close" /></button>
+                </div>
+                <div class="branch-conds">
+                  <CondGroupEditor :group="br" :fields="currentFields" @change="onBranchChange" />
+                </div>
+                <div class="branch-target">
+                  <span class="branch-target-label">流转到</span>
+                  <select v-model="br.targetNodeId" class="cond-select" @change="onBranchChange">
+                    <option value="">目标节点</option>
+                    <option v-for="n in nodes" :key="n.node.id || n.node.nodeName" :value="n.node.id">{{ n.node.nodeName }}</option>
+                  </select>
+                </div>
+              </div>
+              <button class="btn-add-cond" @click="addBranch"><i class="el-icon-plus" /> 添加分支</button>
+              <div v-if="branchForm.branches.length > 0" class="branch-default">
+                <label class="cond-label">都不命中时流转到</label>
+                <select v-model="branchForm.defaultNodeId" class="cond-select" @change="onBranchChange">
+                  <option value="">（按顺序流转）</option>
+                  <option v-for="n in nodes" :key="n.node.id || n.node.nodeName" :value="n.node.id">{{ n.node.nodeName }}</option>
+                </select>
+              </div>
+              <div class="role-tip">仅数字/日期/单选/多选字段可作判断依据；按分支顺序匹配，同一分支内条件可按「且/或」任意嵌套组合（如 A且(B或C)），命中第一个分支流转到其目标节点；都不命中走默认目标；未配置则按顺序流转</div>
+            </div>
+            <p v-if="currentNode.node.nodeType === NODE_TYPE.END" class="prop-hint">结束节点提交后任务即完成，无需指定下一处理人</p>
           </div>
           </div>
         </div>
@@ -207,6 +238,20 @@
             <div class="prop-group prop-row">
               <label class="prop-label">是否必填</label>
               <el-switch v-model="selectedField.required" :active-value="1" :inactive-value="0" active-color="var(--color-primary)" />
+            </div>
+
+            <!-- 字段显隐条件 -->
+            <div class="prop-group">
+              <label class="prop-label">显隐条件</label>
+              <CondGroupEditor :group="visibleCondForm" :fields="currentFields" @change="persistFieldVisibleCond" />
+              <div class="role-tip">仅数字/日期/单选/多选字段可作判断依据；条件满足时才显示该字段，可「且/或」任意嵌套；无条件恒显示；隐藏的必填字段不参与必填校验</div>
+            </div>
+
+            <!-- 字段只读条件 -->
+            <div class="prop-group">
+              <label class="prop-label">只读条件</label>
+              <CondGroupEditor :group="editableCondForm" :fields="currentFields" @change="persistFieldEditableCond" />
+              <div class="role-tip">仅数字/日期/单选/多选字段可作判断依据；条件满足时该字段只读（不可编辑），可「且/或」任意嵌套；无条件恒可编辑</div>
             </div>
 
             <!-- 任务基础字段：填写方式（创建人填写 / 处理人填写） -->
@@ -284,19 +329,28 @@
 <script>
 import { getTemplateDetail, getTemplateUsage, saveTemplateFlow, saveNodeGuideFiles } from '@/service/sys/TemplateService'
 import { stableBizId } from '@/utils'
+import { NODE_TYPE, NODE_TYPE_TEXT } from '@/constants/dict'
 import SaveFlowModal from './components/SaveFlowModal.vue'
 import VersionListModal from './components/VersionListModal.vue'
 import AttachField from '@/components/AttachField'
+import CondGroupEditor from './components/CondGroupEditor.vue'
 
 export default {
   name: 'FormDesigner',
-  components: { SaveFlowModal, VersionListModal, AttachField },
+  components: { SaveFlowModal, VersionListModal, AttachField, CondGroupEditor },
   data() {
     return {
+      // 模板中直接引用节点类型枚举（v-if 判断用 NODE_TYPE.END），需暴露到实例
+      NODE_TYPE,
       templateId: null,
       templateName: '',
       template: {},
       nodes: [],
+      /** 当前节点的条件分支编辑态（响应式，供属性面板 v-model/v-for 绑定；由 currentNode 切换时同步） */
+      branchForm: { branches: [], defaultNodeId: '' },
+      /** 选中字段的显隐/只读条件编辑态（递归表达式树，logic=and/or + children；由 selectedField 切换时同步） */
+      visibleCondForm: { logic: 'and', children: [] },
+      editableCondForm: { logic: 'and', children: [] },
       /** 模板级字段（不依附节点，如规章制度/采购说明等任务基础信息） */
       templateFields: [],
       templateFieldsSnapshot: [],
@@ -323,6 +377,8 @@ export default {
       advancedFields: [
         { type: 'radio', label: '单选枚举', icon: 'el-icon-circle-check' },
         { type: 'checkbox', label: '多选枚举', icon: 'el-icon-finished' },
+        { type: 'user', label: '人员', icon: 'el-icon-user' },
+        { type: 'dept', label: '部门', icon: 'el-icon-office-building' },
         { type: 'file', label: '文件上传', icon: 'el-icon-paperclip' },
         { type: 'image', label: '图片上传', icon: 'el-icon-picture' }
       ]
@@ -376,11 +432,14 @@ export default {
       } else {
         this.enumOptions = []
       }
+      this.syncFieldCondForm()
     },
     enumOptions: {
       deep: true,
       handler() { this.syncEnumToField() }
-    }
+    },
+    // 切换节点时，同步条件分支编辑态
+    currentNode() { this.syncBranchForm() }
   },
   mounted() {
     this.templateId = this.$route.query.templateId
@@ -390,13 +449,17 @@ export default {
   },
   methods: {
     nodeTypeText(t) {
-      return { 1: '开始', 2: '中间', 3: '结束' }[t] || '中间'
+      return NODE_TYPE_TEXT[t] || '中间'
     },
     nodeTypeClass(t) {
-      return { 1: 'badge-start', 2: 'badge-mid', 3: 'badge-end' }[t] || 'badge-mid'
+      return { [NODE_TYPE.START]: 'badge-start', [NODE_TYPE.MIDDLE]: 'badge-mid', [NODE_TYPE.END]: 'badge-end' }[t] || 'badge-mid'
     },
     typeLabel(type) {
       return this.allFieldTypes.find(f => f.type === type)?.label || type
+    },
+    /** 节点是否配置了条件分支（branchConfig 有非空 JSON 内容即视为已配置） */
+    hasBranchConfig(cfg) {
+      return !!cfg && typeof cfg === 'string' && cfg.trim().length > 0
     },
     /** 处理人填写字段绑定的节点名（bindNodeIndex 为节点链下标） */
     bindNodeName(field) {
@@ -421,9 +484,69 @@ export default {
         } else if (idx === this.nodes.length - 1) {
           item.node.nodeType = 3
         } else {
-          if (item.node.nodeType !== 2) item.node.nodeType = 2
+          if (item.node.nodeType !== NODE_TYPE.MIDDLE) item.node.nodeType = NODE_TYPE.MIDDLE
         }
       })
+    },
+    /** 条件分支：从当前节点 branchConfig 同步到 branchForm（响应式编辑态） */
+    syncBranchForm() {
+      const node = this.currentNode && this.currentNode.node
+      if (!node || !node.branchConfig) {
+        this.branchForm = { branches: [], defaultNodeId: '' }
+        return
+      }
+      try {
+        const obj = JSON.parse(node.branchConfig)
+        const branches = (obj.branches || []).map(br => {
+          const root = asGroup(parseCondGroup(br))
+          return { logic: root.logic, children: root.children, targetNodeId: (br && br.targetNodeId) || '' }
+        })
+        this.branchForm = { branches, defaultNodeId: obj.defaultNodeId || '' }
+      } catch (e) {
+        this.branchForm = { branches: [], defaultNodeId: '' }
+      }
+    },
+    /** 条件分支：添加一条分支 */
+    addBranch() {
+      this.branchForm.branches.push({ logic: 'and', children: [{ fieldKey: '', op: 'eq', value: '' }], targetNodeId: '' })
+      this.persistBranchConfig()
+    },
+    /** 条件分支：删除一条分支 */
+    removeBranch(i) {
+      this.branchForm.branches.splice(i, 1)
+      this.persistBranchConfig()
+    },
+    /** 条件分支：把编辑结果序列化写回节点 branchConfig */
+    onBranchChange() {
+      this.persistBranchConfig()
+    },
+    persistBranchConfig() {
+      const node = this.currentNode && this.currentNode.node
+      if (!node) return
+      const branches = this.branchForm.branches
+        .map(br => {
+          const cleaned = cleanGroup(br)
+          return cleaned ? { logic: cleaned.logic, children: cleaned.children, targetNodeId: br.targetNodeId || '' } : null
+        })
+        .filter(Boolean)
+      if (branches.length === 0 && !this.branchForm.defaultNodeId) {
+        node.branchConfig = null
+      } else {
+        node.branchConfig = JSON.stringify({ branches, defaultNodeId: this.branchForm.defaultNodeId || '' })
+      }
+    },
+    /** 字段显隐/只读条件：从选中字段同步到编辑态（递归表达式树） */
+    syncFieldCondForm() {
+      this.visibleCondForm = parseCondList(this.selectedField ? this.selectedField.visibleWhen : null)
+      this.editableCondForm = parseCondList(this.selectedField ? this.selectedField.editableWhen : null)
+    },
+    /** 字段显隐条件：把编辑结果写回 visibleWhen */
+    persistFieldVisibleCond() {
+      if (this.selectedField) this.selectedField.visibleWhen = serializeCondList(this.visibleCondForm)
+    },
+    /** 字段只读条件：把编辑结果写回 editableWhen */
+    persistFieldEditableCond() {
+      if (this.selectedField) this.selectedField.editableWhen = serializeCondList(this.editableCondForm)
     },
     initDefaultNodes() {
       // 不自动创建节点：用户手动添加，首位自动标"开始"、末位自动标"结束"
@@ -459,6 +582,7 @@ export default {
         }
         this.selectedNodeIndex = 0
         this.selectedFieldIndex = -1
+        this.syncBranchForm()
       } catch (e) {
         console.error('加载模板失败:', e)
         this.initDefaultNodes()
@@ -486,7 +610,8 @@ export default {
           nodeTips: '',
           guideText: '',
           guideFiles: null,
-          nextHandlerTip: ''
+          nextHandlerTip: '',
+          branchConfig: null
         },
         fields: []
       })
@@ -506,7 +631,8 @@ export default {
           nodeTips: src.node.nodeTips || '',
           guideText: src.node.guideText || '',
           guideFiles: src.node.guideFiles || null,
-          nextHandlerTip: src.node.nextHandlerTip || ''
+          nextHandlerTip: src.node.nextHandlerTip || '',
+          branchConfig: null
         },
         fields: (src.fields || []).map(f => ({
           id: null,
@@ -737,6 +863,59 @@ export default {
     }
   }
 }
+
+// 字段联动条件解析/序列化（递归表达式树，与后端 ConditionEvaluator.matchesAll 口径一致）
+// 结构：叶子 {fieldKey,op,value}；分组 {logic:'and'|'or', children:[叶子|分组,...]}
+
+// 递归解析节点：分组（children/conds）或叶子（fieldKey）
+function parseCondGroup(o) {
+  if (!o) return { logic: 'and', children: [] }
+  let children = o.children
+  if (!Array.isArray(children)) children = o.conds
+  if (Array.isArray(children)) {
+    return {
+      logic: o.logic === 'or' ? 'or' : 'and',
+      children: children.map(c => parseCondGroup(c))
+    }
+  }
+  return { fieldKey: (o && o.fieldKey) || '', op: (o && o.op) || 'eq', value: o && o.value != null ? String(o.value) : '' }
+}
+
+// 把节点转成分组根（叶子包一层 and 组）
+function asGroup(node) {
+  if (node.children) return { logic: node.logic === 'or' ? 'or' : 'and', children: node.children }
+  return { logic: 'and', children: [node] }
+}
+
+// 解析 JSON 字符串为分组根（永远返回 {logic, children}）
+function parseCondList(json) {
+  try {
+    return asGroup(parseCondGroup(json ? JSON.parse(json) : null))
+  } catch (e) {
+    return { logic: 'and', children: [] }
+  }
+}
+
+// 递归清理：剔除未配置字段的叶子与空子组，返回干净表达式树（无有效条件返回 null）
+function cleanGroup(g) {
+  if (!g || !Array.isArray(g.children)) return null
+  const children = []
+  for (const c of g.children) {
+    if (c && c.children) {
+      const sub = cleanGroup(c)
+      if (sub) children.push(sub)
+    } else if (c && c.fieldKey) {
+      children.push({ fieldKey: c.fieldKey, op: c.op || 'eq', value: c.value != null ? String(c.value) : '' })
+    }
+  }
+  if (children.length === 0) return null
+  return { logic: g.logic === 'or' ? 'or' : 'and', children }
+}
+
+function serializeCondList(form) {
+  const cleaned = cleanGroup(form)
+  return cleaned ? JSON.stringify(cleaned) : null
+}
 </script>
 
 <style lang="scss" scoped>
@@ -843,6 +1022,13 @@ $border: #CBD5E1;
 .field-item-label { font-size: 14px; font-weight: 600; color: #1b1c1c; display: flex; align-items: center; gap: 6px; }
 .req { color: $primary; font-weight: 700; }
 .field-type-tag { padding: 1px 6px; background: #f0f3ff; color: #545f72; border-radius: 3px; font-size: 11px; font-weight: 500; }
+// 节点/字段高级配置标记（条件分支/显隐/只读）
+.cfg-tag { display: inline-flex; align-items: center; gap: 2px; padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: 500; line-height: 16px; flex-shrink: 0;
+  i { font-size: 11px; }
+}
+.tag-branch { background: rgba(21, 128, 61, 0.12); color: #15803D; } // 条件分支（绿）
+.tag-visible { background: rgba(51, 65, 85, 0.1); color: $primary; } // 显隐条件（主题蓝）
+.tag-editable { background: rgba(71, 85, 105, 0.14); color: #475569; } // 只读条件（深灰）
 .field-item-ph { font-size: 12px; color: #999; margin-top: 4px; }
 .field-item-actions { display: flex; gap: 4px; align-items: center; }
 .role-hint-icon { width: 22px; height: 22px; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: help; font-size: 13px;
@@ -912,6 +1098,89 @@ $border: #CBD5E1;
 .enum-del { width: 28px; height: 28px; border: 1px solid #dcdfe6; background: #fff; border-radius: 4px; cursor: pointer; color: #DC2626; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .enum-add { width: 100%; padding: 6px; border: 1px dashed #cbd5e0; background: transparent; border-radius: 4px; cursor: pointer; color: $primary; font-size: 12px;
   &:hover { border-color: $primary; background: var(--color-primary-light); }
+}
+
+// 条件分支
+.branch-item {
+  border: 1px solid #e8edf3;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: #fbfcfe;
+  transition: all 0.15s;
+  &:hover { border-color: #d8dee8; }
+}
+.branch-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.branch-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+.branch-conds { display: flex; flex-direction: column; gap: 4px; }
+.branch-target {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e2e8f0;
+}
+.branch-target-label {
+  font-size: 12px;
+  color: #909399;
+  white-space: nowrap;
+}
+.cond-select {
+  height: 30px;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 12px;
+  outline: none;
+  background: #fff;
+  min-width: 0;
+  transition: all 0.15s;
+  &:hover { border-color: #c0c4cc; }
+  &:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.12);
+  }
+}
+.branch-target .cond-select { flex: 1; }
+.btn-add-cond {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 7px;
+  border: 1px dashed #cbd5e0;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--color-primary);
+  font-size: 12px;
+  margin-bottom: 8px;
+  transition: all 0.15s;
+  &:hover { border-color: var(--color-primary); background: var(--color-primary-light); }
+}
+.branch-default {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #f6f8fa;
+  border-radius: 6px;
+}
+.cond-label {
+  font-size: 12px;
+  color: #757575;
+  white-space: nowrap;
 }
 
 .designer-readonly-tip { display: flex; align-items: center; gap: 6px; padding: 8px 16px; background: rgba(180, 83, 9, 0.1); color: #B45309; font-size: 13px; border-bottom: 1px solid rgba(180, 83, 9, 0.2); }

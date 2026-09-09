@@ -53,6 +53,8 @@ public class JobService {
     private FlowTaskNodeMapper flowTaskNodeMapper;
     @Autowired
     private FlowTaskLogMapper flowTaskLogMapper;
+    @Autowired
+    private com.company.flow.sys.flowtask.service.FlowNotifyService flowNotifyService;
 
     // ==================== 1. 期次自动下发 ====================
 
@@ -158,6 +160,11 @@ public class JobService {
                     try {
                         flowTaskLogMapper.insert(l);
                         count++;
+                        // 通知该任务当前待处理人（预留消息通道）
+                        if (node != null && node.getHandlerUserId() != null) {
+                            flowNotifyService.notifyUrge(task.getTaskName(), node.getNodeName(),
+                                    java.util.Collections.singletonList(node.getHandlerUserId()));
+                        }
                     } catch (Exception ignored) {
                     }
                 }

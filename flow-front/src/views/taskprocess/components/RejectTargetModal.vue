@@ -52,6 +52,8 @@
 </template>
 
 <script>
+import { NODE_TYPE, NODE_TYPE_TEXT } from '@/constants/dict'
+
 export default {
   name: 'RejectTargetModal',
   props: {
@@ -80,8 +82,8 @@ export default {
     }
   },
   methods: {
-    nodeTypeText(t) { return { 1: '开始', 2: '中间', 3: '结束' }[t] || '中间' },
-    badgeClass(t) { return { 1: 'badge-start', 3: 'badge-end' }[t] || 'badge-mid' },
+    nodeTypeText(t) { return NODE_TYPE_TEXT[t] || '中间' },
+    badgeClass(t) { return { [NODE_TYPE.START]: 'badge-start', [NODE_TYPE.END]: 'badge-end' }[t] || 'badge-mid' },
     handleConfirm() {
       if (!this.selectedNodeId) {
         this.$message.warning('请选择退回目标节点')

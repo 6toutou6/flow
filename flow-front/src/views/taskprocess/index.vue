@@ -209,6 +209,7 @@
 
 <script>
 import { getMyTodoGrouped, getMyTodoStats } from '@/service/sys/TaskService'
+import { NODE_TYPE } from '@/constants/dict'
 
 export default {
   name: 'TaskProcess',
@@ -235,8 +236,8 @@ export default {
     this.fetchStats()
   },
   methods: {
-    nodeTypeText(t) { return { 1: '开始', 2: '', 3: '结束' }[t] || '' },
-    nodeTypeClass(t) { return { 1: 'badge-start', 3: 'badge-end' }[t] || 'badge-mid' },
+    nodeTypeText(t) { return { [NODE_TYPE.START]: '开始', [NODE_TYPE.END]: '结束' }[t] || '' },
+    nodeTypeClass(t) { return { [NODE_TYPE.START]: 'badge-start', [NODE_TYPE.END]: 'badge-end' }[t] || 'badge-mid' },
     /** 节点状态→chip 样式：1已完成 / 2进行中(当前) / 0未开始 */
     nodeChipClass(s) {
       return { 1: 'chip-done', 2: 'chip-current', 0: 'chip-pending' }[s] || 'chip-pending'

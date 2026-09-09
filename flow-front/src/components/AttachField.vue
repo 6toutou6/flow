@@ -6,6 +6,7 @@
         ref="up"
         class="af-upload-wrap"
         :accept="acceptAttr"
+        action="#"
         multiple
         :auto-upload="true"
         :show-file-list="false"

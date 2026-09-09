@@ -5,6 +5,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.company.flow.sys.base.attach.entity.Attach;
 import com.company.flow.sys.base.attach.service.AttachService;
+import com.company.flow.sys.base.enums.CycleType;
+import com.company.flow.sys.base.enums.NodeType;
 import com.company.flow.sys.flowtask.entity.FlowDispatch;
 import com.company.flow.sys.flowtask.entity.FlowDispatchConfig;
 import com.company.flow.sys.flowtask.entity.FlowTask;
@@ -73,15 +75,6 @@ import java.util.stream.Collectors;
 @Service
 public class FlowDispatchService {
 
-    /** 周期类型：每周 */
-    public static final int CYCLE_WEEK = 1;
-    /** 周期类型：每月 */
-    public static final int CYCLE_MONTH = 2;
-    /** 周期类型：每季度 */
-    public static final int CYCLE_QUARTER = 3;
-    /** 周期类型：单次下发 */
-    public static final int CYCLE_ONCE = 4;
-
     private static final Logger log = LoggerFactory.getLogger(FlowDispatchService.class);
 
     @Autowired
@@ -95,6 +88,8 @@ public class FlowDispatchService {
 
     @Autowired
     private RobotService robotService;
+    @Autowired
+    private FlowNotifyService flowNotifyService;
     @Autowired
     private FlowTaskMapper flowTaskMapper;
     @Autowired
@@ -155,7 +150,7 @@ public class FlowDispatchService {
             task.setDeadlineDays(cfg.getDeadlineDays());
             task.setUrgeDays(cfg.getUrgeDays());
         } else {
-            task.setCycleType(CYCLE_ONCE);
+            task.setCycleType(CycleType.ONCE.getCode());
         }
         return task;
     }
@@ -166,7 +161,7 @@ public class FlowDispatchService {
         FlowDispatchConfig cfg = getConfig(taskId);
         if (cfg == null) cfg = new FlowDispatchConfig();
         cfg.setTaskId(taskId);
-        cfg.setCycleType(cycleType == null ? CYCLE_ONCE : cycleType);
+        cfg.setCycleType(cycleType == null ? CycleType.ONCE.getCode() : cycleType);
         cfg.setCycleDay(cycleDay);
         cfg.setDeadlineDays(deadlineDays);
         cfg.setUrgeDays(urgeDays);
@@ -372,8 +367,8 @@ public class FlowDispatchService {
         if (fieldCount == null || fieldCount == 0) {
             throw new RuntimeException("该模板「" + tpl.getTemplateName() + "」未配置表单字段，不允许引用，请先在设计模板时添加字段");
         }
-        Integer cycle = dto.getCycleType() == null ? CYCLE_ONCE : dto.getCycleType();
-        if (cycle != CYCLE_ONCE && dto.getCycleDay() == null) throw new RuntimeException("请选择触发日");
+        Integer cycle = dto.getCycleType() == null ? CycleType.ONCE.getCode() : dto.getCycleType();
+        if (cycle != CycleType.ONCE.getCode() && dto.getCycleDay() == null) throw new RuntimeException("请选择触发日");
     }
 
     public boolean toggleStatus(String id) {
@@ -518,7 +513,7 @@ public class FlowDispatchService {
     private PeriodWindow nextWindow(int cycle, Integer cycleDay, LocalDate from, boolean current) {
         PeriodWindow pw = new PeriodWindow();
         int day = cycleDay == null ? 1 : Math.max(1, cycleDay);
-        if (cycle == CYCLE_WEEK) {
+        if (cycle == CycleType.WEEK.getCode()) {
             int iso = from.getDayOfWeek().getValue(); // Mon=1..Sun=7
             LocalDate monday = from.minusDays(iso - 1);
             if (!current) monday = monday.plusWeeks(1);
@@ -528,7 +523,7 @@ public class FlowDispatchService {
             pw.start = start;
             pw.key = year + "-W" + String.format("%02d", weekNo);
             pw.name = year + "年第" + weekNo + "周";
-        } else if (cycle == CYCLE_MONTH) {
+        } else if (cycle == CycleType.MONTH.getCode()) {
             LocalDate first = from.withDayOfMonth(1);
             if (!current) first = first.plusMonths(1);
             LocalDate start = first.withDayOfMonth(Math.min(day, first.lengthOfMonth()));
@@ -536,7 +531,7 @@ public class FlowDispatchService {
             pw.start = start;
             pw.key = ym;
             pw.name = ym;
-        } else { // CYCLE_QUARTER
+        } else { // 每季度
             int curQ = (from.getMonthValue() - 1) / 3 + 1;
             int q = current ? curQ : (curQ == 4 ? 1 : curQ + 1);
             int month = (q - 1) * 3 + 1;
@@ -607,12 +602,12 @@ public class FlowDispatchService {
         }
         FlowDispatchConfig cfg = getConfig(taskId);
         if (cfg == null) cfg = new FlowDispatchConfig();
-        int cycle = cfg.getCycleType() == null ? CYCLE_ONCE : cfg.getCycleType();
+        int cycle = cfg.getCycleType() == null ? CycleType.ONCE.getCode() : cfg.getCycleType();
         Integer day = cfg.getCycleDay();
         vo.setPeriodNo(nextPeriodNo(taskId));
         vo.setUrgeDays(cfg.getUrgeDays());
         LocalDate now = LocalDate.now();
-        if (cycle == CYCLE_ONCE) {
+        if (cycle == CycleType.ONCE.getCode()) {
             // 单次下发：期次名由用户填，截止 = 下发日 + deadlineDays
             vo.setPeriodName(null);
             vo.setStartTime(new Date());
@@ -670,7 +665,7 @@ public class FlowDispatchService {
     /**
      * 检索当前是否有任务的期次应该下发：
      * 启用中且非样例的周期任务（周/月/季），其下一个未下发期次窗口开始时间已到（≤ 当前时间）即视为「到期待下发」。
-     * 单次（CYCLE_ONCE）任务由用户手动触发下发，不参与自动检测。
+     * 单次（CycleType.ONCE）任务由用户手动触发下发，不参与自动检测。
      */
     public List<DueDispatchVO> checkDueDispatches() {
         List<FlowDispatch> tasks = flowDispatchMapper.selectList(new LambdaQueryWrapper<FlowDispatch>()
@@ -681,8 +676,8 @@ public class FlowDispatchService {
         for (FlowDispatch t : tasks) {
             try {
                 FlowDispatchConfig cfg = getConfig(t.getId());
-                int cycle = cfg == null || cfg.getCycleType() == null ? CYCLE_ONCE : cfg.getCycleType();
-                if (cycle == CYCLE_ONCE) continue;
+                int cycle = cfg == null || cfg.getCycleType() == null ? CycleType.ONCE.getCode() : cfg.getCycleType();
+                if (cycle == CycleType.ONCE.getCode()) continue;
                 PeriodPreviewVO pv = previewPeriod(t.getId(), false);
                 if (pv.getStartTime() != null && !pv.getStartTime().after(now)) {
                     DueDispatchVO vo = new DueDispatchVO();
@@ -809,9 +804,15 @@ public class FlowDispatchService {
             return generatePeriod(taskId, immediate, periodName, manual, memberIds, manualStartTime, manualEndTime, null);
         }
 
-        /** 生成期次（memberTaskNames：本期次人员任务名临时覆盖，仅本期生效，不改任务配置名单） */
+        /** 生成期次（memberTaskNames：本期次人员任务名临时覆盖，仅本期生效，不改任务配置名单；默认通知处理人） */
         public PeriodGenerateVO generatePeriod(String taskId, boolean immediate, String periodName, boolean manual, List<String> memberIds,
                                            Date manualStartTime, Date manualEndTime, Map<String, String> memberTaskNames) {
+            return generatePeriod(taskId, immediate, periodName, manual, memberIds, manualStartTime, manualEndTime, memberTaskNames, true);
+        }
+
+        /** 生成期次（notifyMembers：是否下发后通知各处理人，手动下发由前端勾选，自动下发默认通知） */
+        public PeriodGenerateVO generatePeriod(String taskId, boolean immediate, String periodName, boolean manual, List<String> memberIds,
+                                           Date manualStartTime, Date manualEndTime, Map<String, String> memberTaskNames, boolean notifyMembers) {
         FlowDispatch task = flowDispatchMapper.selectById(taskId);
         if (task == null) throw new RuntimeException("任务不存在");
         if (task.getStatus() != null && "停用".equals(task.getStatus())) {
@@ -837,7 +838,7 @@ public class FlowDispatchService {
         // 开始节点
         LambdaQueryWrapper<FlowTemplateNode> sw = new LambdaQueryWrapper<>();
         sw.eq(FlowTemplateNode::getTemplateId, task.getTemplateId())
-          .eq(FlowTemplateNode::getNodeType, 1).last("LIMIT 1");
+          .eq(FlowTemplateNode::getNodeType, NodeType.START.getCode()).last("LIMIT 1");
         FlowTemplateNode firstNode = flowTemplateNodeMapper.selectOne(sw);
         if (firstNode == null) throw new RuntimeException("模板未设计流程节点（缺少开始节点）");
         // 本期次人员：优先用调用方临时指定的人员（临时增删不影响任务配置），否则抄用任务配置人员
@@ -854,7 +855,7 @@ public class FlowDispatchService {
         LoginUser loginUser = SecurityUtils.getLoginUser();
         FlowDispatchConfig cfg = getConfig(taskId);
         if (cfg == null) cfg = new FlowDispatchConfig();
-        int cycle = cfg.getCycleType() == null ? CYCLE_ONCE : cfg.getCycleType();
+        int cycle = cfg.getCycleType() == null ? CycleType.ONCE.getCode() : cfg.getCycleType();
         Integer day = cfg.getCycleDay();
         // 期次信息：自动按周期预览；手动临时期次由用户命名
         Integer periodNo = nextPeriodNo(taskId);
@@ -884,7 +885,7 @@ public class FlowDispatchService {
         }
         if (!StringUtils.hasText(periodNameFinal)) periodNameFinal = "第" + periodNo + "期";
         // 手动临时期次也算出下次自动下发时间（非单次周期任务）
-        if (cycle != CYCLE_ONCE && nextDispatchTime == null) {
+        if (cycle != CycleType.ONCE.getCode() && nextDispatchTime == null) {
             LocalDate base = startTime.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
             PeriodWindow after = nextUndispatchedWindow(cycle, day, base, false, taskId);
             nextDispatchTime = toDate(after.start);
@@ -973,6 +974,10 @@ public class FlowDispatchService {
             n.setAction(0);
             flowTaskNodeMapper.insert(n);
         }
+        // 下发后通知各处理人（手动下发可取消勾选；自动下发默认通知）
+        if (notifyMembers) {
+            flowNotifyService.notifyDispatch(task.getTaskName(), periodNameFinal, memberUids);
+        }
         PeriodGenerateVO vo = new PeriodGenerateVO();
         vo.setPeriodId(dispatch.getId());
         vo.setPeriodName(periodNameFinal);
@@ -1009,7 +1014,7 @@ public class FlowDispatchService {
             if (tpl == null) throw new RuntimeException("模板不存在");
             LambdaQueryWrapper<FlowTemplateNode> sw = new LambdaQueryWrapper<>();
             sw.eq(FlowTemplateNode::getTemplateId, dispatch.getTemplateId())
-              .eq(FlowTemplateNode::getNodeType, 1).last("LIMIT 1");
+              .eq(FlowTemplateNode::getNodeType, NodeType.START.getCode()).last("LIMIT 1");
             FlowTemplateNode firstNode = flowTemplateNodeMapper.selectOne(sw);
             if (firstNode == null) throw new RuntimeException("模板未设计流程节点（缺少开始节点）");
             firstNodeId = firstNode.getId();
@@ -1068,6 +1073,11 @@ public class FlowDispatchService {
             count++;
         }
         if (count == 0) throw new RuntimeException("所选人员均已在该期次中，无需重复新增");
+        // 补人后通知新增处理人（接收人 = 实际新增者）
+        List<String> addedIds = uids.stream().filter(uid -> !existing.contains(uid)).collect(Collectors.toList());
+        if (!addedIds.isEmpty()) {
+            flowNotifyService.notifyDispatch(dispatch.getTaskName(), null, addedIds);
+        }
         return count;
     }
 
@@ -1094,6 +1104,7 @@ public class FlowDispatchService {
             // 说明文件复制为期次维度附件（防模板删除文件导致历史期次悬空引用）
             s.setGuideFiles(copyGuideFilesForDispatch(dispatchId, nd.getGuideFiles()));
             s.setNextHandlerTip(nd.getNextHandlerTip());
+            s.setBranchConfig(nd.getBranchConfig());
             // 字段定义快照：该节点字段 + 绑定该节点的处理人字段（fieldRole=2）
             List<FlowTemplateField> fields = flowTemplateFieldMapper.selectList(
                     new LambdaQueryWrapper<FlowTemplateField>()

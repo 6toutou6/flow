@@ -31,6 +31,8 @@ public class FlowTemplateNode {
     private String guideFiles;
     /** 下一步处理人提示（创建人配置，提交节点选择下一处理人时展示） */
     private String nextHandlerTip;
+    /** 条件分支配置 JSON {"branches":[...],"defaultNodeId":""}；为空则按 sort_num 顺序流转 */
+    private String branchConfig;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;

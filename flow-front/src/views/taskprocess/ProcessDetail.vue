@@ -107,19 +107,22 @@
                       :key="f.id"
                       :label="f.fieldLabel"
                       :required="f.required === 1"
+                      v-show="isFieldVisible(f)"
                     >
-                      <el-input v-if="f.fieldType === 'text'" v-model="handlerBaseForm[f.id]" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" />
-                      <el-input v-else-if="f.fieldType === 'textarea'" v-model="handlerBaseForm[f.id]" type="textarea" :autosize="{ minRows: 2, maxRows: 6 }" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" />
-                      <el-input-number v-else-if="f.fieldType === 'number'" v-model="handlerBaseForm[f.id]" :placeholder="f.placeholder || '请输入'" controls-position="right" style="width: 100%" />
-                      <el-date-picker v-else-if="f.fieldType === 'date'" v-model="handlerBaseForm[f.id]" type="date" placeholder="选择日期" value-format="yyyy-MM-dd" style="width: 100%" />
-                      <el-radio-group v-else-if="f.fieldType === 'radio'" v-model="handlerBaseForm[f.id]">
+                      <el-input v-if="f.fieldType === 'text'" v-model="handlerBaseForm[f.id]" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" :disabled="isFieldReadonly(f)" />
+                      <el-input v-else-if="f.fieldType === 'textarea'" v-model="handlerBaseForm[f.id]" type="textarea" :autosize="{ minRows: 2, maxRows: 6 }" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" :disabled="isFieldReadonly(f)" />
+                      <el-input-number v-else-if="f.fieldType === 'number'" v-model="handlerBaseForm[f.id]" :placeholder="f.placeholder || '请输入'" controls-position="right" style="width: 100%" :disabled="isFieldReadonly(f)" />
+                      <el-date-picker v-else-if="f.fieldType === 'date'" v-model="handlerBaseForm[f.id]" type="date" placeholder="选择日期" value-format="yyyy-MM-dd" style="width: 100%" :disabled="isFieldReadonly(f)" />
+                      <el-radio-group v-else-if="f.fieldType === 'radio'" v-model="handlerBaseForm[f.id]" :disabled="isFieldReadonly(f)">
                         <el-radio v-for="opt in parseEnum(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-radio>
                       </el-radio-group>
-                      <el-checkbox-group v-else-if="f.fieldType === 'checkbox'" v-model="handlerBaseForm[f.id]">
+                      <el-checkbox-group v-else-if="f.fieldType === 'checkbox'" v-model="handlerBaseForm[f.id]" :disabled="isFieldReadonly(f)">
                         <el-checkbox v-for="opt in parseEnum(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-checkbox>
                       </el-checkbox-group>
-                      <AttachField v-else-if="f.fieldType === 'file' || f.fieldType === 'image'" :ref="'af_' + f.id" v-model="handlerBaseForm[f.id]" :field-type="f.fieldType" :biz-id="bizIdFor(f)" />
-                      <el-input v-else v-model="handlerBaseForm[f.id]" :placeholder="f.placeholder || (f.fieldType === 'image' ? '请输入图片名称' : '请输入文件名称')" />
+                      <el-input v-else-if="f.fieldType === 'user'" v-model="handlerBaseForm[f.id]" :placeholder="f.placeholder || '输入用户号'" :disabled="isFieldReadonly(f)" />
+                      <el-input v-else-if="f.fieldType === 'dept'" v-model="handlerBaseForm[f.id]" :placeholder="f.placeholder || '输入部门'" :disabled="isFieldReadonly(f)" />
+                      <AttachField v-else-if="f.fieldType === 'file' || f.fieldType === 'image'" :ref="'af_' + f.id" v-model="handlerBaseForm[f.id]" :field-type="f.fieldType" :biz-id="bizIdFor(f)" :readonly="isFieldReadonly(f)" />
+                      <el-input v-else v-model="handlerBaseForm[f.id]" :placeholder="f.placeholder || (f.fieldType === 'image' ? '请输入图片名称' : '请输入文件名称')" :disabled="isFieldReadonly(f)" />
                       <div v-if="f.fieldTips" class="field-tip">{{ f.fieldTips }}</div>
                     </el-form-item>
                   </el-form>
@@ -165,19 +168,22 @@
                       :key="f.id"
                       :label="f.fieldLabel"
                       :required="f.required === 1"
+                      v-show="isFieldVisible(f)"
                     >
-                      <el-input v-if="f.fieldType === 'text'" v-model="formData[f.id]" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" />
-                      <el-input v-else-if="f.fieldType === 'textarea'" v-model="formData[f.id]" type="textarea" :autosize="{ minRows: 2, maxRows: 6 }" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" />
-                      <el-input-number v-else-if="f.fieldType === 'number'" v-model="formData[f.id]" :placeholder="f.placeholder || '请输入'" controls-position="right" style="width: 100%" />
-                      <el-date-picker v-else-if="f.fieldType === 'date'" v-model="formData[f.id]" type="date" placeholder="选择日期" value-format="yyyy-MM-dd" style="width: 100%" />
-                      <el-radio-group v-else-if="f.fieldType === 'radio'" v-model="formData[f.id]">
+                      <el-input v-if="f.fieldType === 'text'" v-model="formData[f.id]" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" :disabled="isFieldReadonly(f)" />
+                      <el-input v-else-if="f.fieldType === 'textarea'" v-model="formData[f.id]" type="textarea" :autosize="{ minRows: 2, maxRows: 6 }" :placeholder="f.placeholder || '请输入'" :maxlength="f.maxLength || undefined" :disabled="isFieldReadonly(f)" />
+                      <el-input-number v-else-if="f.fieldType === 'number'" v-model="formData[f.id]" :placeholder="f.placeholder || '请输入'" controls-position="right" style="width: 100%" :disabled="isFieldReadonly(f)" />
+                      <el-date-picker v-else-if="f.fieldType === 'date'" v-model="formData[f.id]" type="date" placeholder="选择日期" value-format="yyyy-MM-dd" style="width: 100%" :disabled="isFieldReadonly(f)" />
+                      <el-radio-group v-else-if="f.fieldType === 'radio'" v-model="formData[f.id]" :disabled="isFieldReadonly(f)">
                         <el-radio v-for="opt in parseEnum(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-radio>
                       </el-radio-group>
-                      <el-checkbox-group v-else-if="f.fieldType === 'checkbox'" v-model="formData[f.id]">
+                      <el-checkbox-group v-else-if="f.fieldType === 'checkbox'" v-model="formData[f.id]" :disabled="isFieldReadonly(f)">
                         <el-checkbox v-for="opt in parseEnum(f.enumOptions)" :key="opt.value" :label="opt.value">{{ opt.label }}</el-checkbox>
                       </el-checkbox-group>
-                      <AttachField v-else-if="f.fieldType === 'file' || f.fieldType === 'image'" :ref="'af_' + f.id" v-model="formData[f.id]" :field-type="f.fieldType" :biz-id="bizIdFor(f)" />
-                      <el-input v-else v-model="formData[f.id]" :placeholder="f.placeholder || (f.fieldType === 'image' ? '请输入图片名称' : '请输入文件名称')" />
+                      <el-input v-else-if="f.fieldType === 'user'" v-model="formData[f.id]" :placeholder="f.placeholder || '输入用户号'" :disabled="isFieldReadonly(f)" />
+                      <el-input v-else-if="f.fieldType === 'dept'" v-model="formData[f.id]" :placeholder="f.placeholder || '输入部门'" :disabled="isFieldReadonly(f)" />
+                      <AttachField v-else-if="f.fieldType === 'file' || f.fieldType === 'image'" :ref="'af_' + f.id" v-model="formData[f.id]" :field-type="f.fieldType" :biz-id="bizIdFor(f)" :readonly="isFieldReadonly(f)" />
+                      <el-input v-else v-model="formData[f.id]" :placeholder="f.placeholder || (f.fieldType === 'image' ? '请输入图片名称' : '请输入文件名称')" :disabled="isFieldReadonly(f)" />
                       <div v-if="f.fieldTips" class="field-tip">{{ f.fieldTips }}</div>
                     </el-form-item>
                   </el-form>
@@ -253,6 +259,9 @@
                 <el-button :loading="drafting" @click="onDraftClick">
                   <i class="el-icon-document-add" /> 暂存
                 </el-button>
+                <el-button @click="transferVisible = true">
+                  <i class="el-icon-sort" /> 转办
+                </el-button>
                 <el-button v-if="!isStartNode && processedNodes.length > 0" type="warning" :loading="submitting && isRejecting" @click="onRejectClick">
                   <i class="el-icon-back" /> 退回
                 </el-button>
@@ -280,6 +289,14 @@
           @close="rejectTargetVisible = false"
         />
 
+        <!-- 转办选人弹窗 -->
+        <UserPicker
+          :visible="transferVisible"
+          title="选择转办人（单选）"
+          @confirm="onPickTransferTarget"
+          @close="transferVisible = false"
+        />
+
         <!-- 通过/退回确认弹窗（通过时在弹窗内选择下一处理人） -->
         <ConfirmActionModal
           :visible="confirmVisible"
@@ -303,16 +320,20 @@ import { stableBizId, formatNodeHandlers } from '@/utils'
 import ConfirmActionModal from './components/ConfirmActionModal.vue'
 import AttachField from '@/components/AttachField.vue'
 import FlowChain from '@/components/FlowChain.vue'
-import { getTaskDetail, submitTask, saveDraftTask } from '@/service/sys/TaskService'
+import UserPicker from '@/components/UserPicker'
+import { getTaskDetail, submitTask, saveDraftTask, transferTask } from '@/service/sys/TaskService'
+import { NODE_TYPE, evalCondAll } from '@/constants/dict'
 
 export default {
   name: 'TaskProcessDetail',
-  components: { RejectTargetModal, ConfirmActionModal, AttachField, FlowChain },
+  components: { RejectTargetModal, ConfirmActionModal, AttachField, FlowChain, UserPicker },
   data() {
     return {
       loading: true,
       submitting: false,
       drafting: false,
+      /** 转办选人弹窗 */
+      transferVisible: false,
       /** 当前任务详情（TaskDetailVO） */
       detail: null,
       /** 当前待办（由详情 + 路由参数组装；todoStatus=1 表示只读） */
@@ -371,14 +392,25 @@ export default {
       return (this.detail && this.detail.handlerBaseFields) || []
     },
     isStartNode() {
-      return this.todo && this.todo.nodeType === 1
+      return this.todo && this.todo.nodeType === NODE_TYPE.START
     },
     isEndNode() {
-      return this.todo && this.todo.nodeType === 3
+      return this.todo && this.todo.nodeType === NODE_TYPE.END
     },
     /** 只读模式：该用户已处理完成（todoStatus=1），仅查看详情 */
     isReadonly() {
       return !this.todo || this.todo.todoStatus === 1
+    },
+    /** 字段联动求值上下文：当前节点字段 + 任务基础字段的 fieldKey → value */
+    allFieldValues() {
+      const values = {}
+      const all = [...(this.currentFields || []), ...(this.handlerBaseFields || [])]
+      for (const f of all) {
+        if (!f.fieldKey) continue
+        const v = this.formData[f.id] != null ? this.formData[f.id] : this.handlerBaseForm[f.id]
+        values[f.fieldKey] = v == null ? '' : String(v)
+      }
+      return values
     },
     /** 任务说明（下发时填写，处理人可见；detail.task 优先，兼容待办项带说明的情况） */
     taskDesc() {
@@ -681,6 +713,17 @@ export default {
     parseEnum(str) {
       try { return JSON.parse(str) || [] } catch (e) { return [] }
     },
+    /** 字段显隐：visible_when 条件不满足则隐藏 */
+    isFieldVisible(f) {
+      if (!f || !f.visibleWhen) return true
+      return evalCondAll(f.visibleWhen, this.allFieldValues)
+    },
+    /** 字段只读：只读模式，或 editable_when 条件满足 */
+    isFieldReadonly(f) {
+      if (this.isReadonly) return true
+      if (f && f.editableWhen) return evalCondAll(f.editableWhen, this.allFieldValues)
+      return false
+    },
     /** 节点是否有填写说明（文字或文件） */
     hasGuide(node) {
       return !!(node && (node.guideText || this.guideFileNames(node).length > 0))
@@ -853,6 +896,20 @@ export default {
       this.confirmSummary = `将退回到节点「${targetName}」\n退回原因：${reason}\n表单将回填上次数据可修改重交`
       this.confirmVisible = true
     },
+    /** 转办：把当前待办转给选中人（单选取第一个） */
+    async onPickTransferTarget(users) {
+      this.transferVisible = false
+      const target = users && users[0]
+      if (!target || !target.yyytId) return
+      try {
+        await this.$confirm(`确认将待办转办给「${target.userName}」？`, '转办确认', { type: 'warning' })
+        await transferTask({ taskNodeId: this.todo.taskNodeId, targetUserId: target.yyytId })
+        this.$message.success('转办成功')
+        this.$router.replace('/task-process/index')
+      } catch (e) {
+        if (e !== 'cancel') this.$message.error((e && e.message) || '转办失败')
+      }
+    },
     /** 组装表单与基础字段数据（暂存/提交共用） */
     buildPayload() {
       const formDataList = this.currentFields.map(f => {
@@ -898,7 +955,15 @@ export default {
       try {
         await submitTask(payload)
         const isEnd = this.isEndNode
-        this.$message.success(isReject ? '已退回到目标节点，表单已回填上次数据' : (isEnd ? '已提交，任务已完成' : '提交成功，已流转至下一节点'))
+        let msg
+        if (isReject) {
+          msg = '已退回到目标节点，表单已回填上次数据'
+        } else if (isEnd) {
+          msg = '已提交，任务已完成'
+        } else {
+          msg = '提交成功，已流转至下一节点'
+        }
+        this.$message.success(msg)
         // 提交成功：停留本页，清除 tn/mode 后重新加载最新状态——
         // 本人仍在本任务有新的待办（流转至本人下游 / 退回到本人重做）则自动继续办理，否则转为只读回看，不再跳回列表
         // 注意：当前 vue-router 的 replace 不返回 Promise，用 onComplete 回调保证路由已更新后再拉详情

@@ -93,6 +93,15 @@ export function saveDraftTask(data) {
   })
 }
 
+// 转办（处理人把待办转给他人）
+export function transferTask(data) {
+  return request({
+    url: '/flow-task/transfer',
+    method: 'post',
+    data
+  })
+}
+
 // 我的待办（当前登录用户作为处理人且未处理的任务节点）
 export function getMyTodoList(params) {
   return request({

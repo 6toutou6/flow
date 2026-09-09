@@ -189,42 +189,42 @@
             <div class="form-row">
               <label class="form-label"><span class="req">*</span> 周期类型</label>
               <el-radio-group v-model="form.cycleType" @change="onCycleChange">
-                <el-radio-button :label="1">每周</el-radio-button>
-                <el-radio-button :label="2">每月</el-radio-button>
-                <el-radio-button :label="3">每季度</el-radio-button>
-                <el-radio-button :label="4">单次下发</el-radio-button>
+                <el-radio-button :label="CYCLE_TYPE.WEEK">每周</el-radio-button>
+                <el-radio-button :label="CYCLE_TYPE.MONTH">每月</el-radio-button>
+                <el-radio-button :label="CYCLE_TYPE.QUARTER">每季度</el-radio-button>
+                <el-radio-button :label="CYCLE_TYPE.ONCE">单次下发</el-radio-button>
               </el-radio-group>
             </div>
-            <div v-if="form.cycleType === 1" class="form-row">
+            <div v-if="form.cycleType === CYCLE_TYPE.WEEK" class="form-row">
               <label class="form-label"><span class="req">*</span> 每周几</label>
               <el-select v-model="form.cycleDay" placeholder="选择触发日（周几）" style="width:100%">
                 <el-option v-for="d in weekDays" :key="d.value" :label="d.label" :value="d.value" />
               </el-select>
             </div>
-            <div v-else-if="form.cycleType === 2 || form.cycleType === 3" class="form-row">
+            <div v-else-if="form.cycleType === CYCLE_TYPE.MONTH || form.cycleType === CYCLE_TYPE.QUARTER" class="form-row">
               <label class="form-label"><span class="req">*</span> 每月几号</label>
               <el-select v-model="form.cycleDay" placeholder="选择触发日（几号）" style="width:100%">
                 <el-option v-for="n in 31" :key="n" :label="n + ' 号'" :value="n" />
               </el-select>
             </div>
-            <div v-if="form.cycleType === 4" class="cycle-tip">单次下发：不按周期，每次生成期次为一个独立期次，期次名称在生成时填写</div>
+            <div v-if="form.cycleType === CYCLE_TYPE.ONCE" class="cycle-tip">单次下发：不按周期，每次生成期次为一个独立期次，期次名称在生成时填写</div>
             <div class="form-row">
-              <label class="form-label" :class="{ req: true }">{{ form.cycleType === 4 ? '截止天数' : '截止时间' }}</label>
+              <label class="form-label" :class="{ req: true }">{{ form.cycleType === CYCLE_TYPE.ONCE ? '截止天数' : '截止时间' }}</label>
               <div class="inline-control">
                 <el-input-number v-model="form.deadlineDays" :min="1" :max="365" />
-                <span class="field-tip">{{ form.cycleType === 4 ? '下发后 N 天截止' : '触发日后 N 天截止' }}</span>
+                <span class="field-tip">{{ form.cycleType === CYCLE_TYPE.ONCE ? '下发后 N 天截止' : '触发日后 N 天截止' }}</span>
               </div>
             </div>
             <div class="form-row">
               <label class="form-label">提前催办</label>
               <div class="inline-control">
                 <el-input-number v-model="form.urgeDays" :min="0" :max="180" />
-                <span class="field-tip">截止前 N 天自动催办（仅写后端日志，不真实通知）</span>
+                <span class="field-tip">截止前 N 天自动催办，届时通知处理人</span>
               </div>
             </div>
 
             <!-- 下发效果预览 -->
-            <div v-if="form.cycleType !== 4" class="preview-bar">
+            <div v-if="form.cycleType !== CYCLE_TYPE.ONCE" class="preview-bar">
               <div class="pv-item"><span class="pv-label">下期触发</span><b>{{ triggerPreview || '—' }}</b></div>
               <i class="el-icon-right pv-arrow" />
               <div class="pv-item"><span class="pv-label">下期截止</span><b>{{ deadlinePreview || '—' }}</b></div>
@@ -319,12 +319,15 @@ import { getTemplateDetail, getTemplateList } from '@/service/sys/TemplateServic
 import { saveDispatchPlan, updateDispatchPlan, getTaskMembers, getDispatchTask, getConfigTemplates } from '@/service/sys/FlowDispatchService'
 import UserPicker from '@/components/UserPicker'
 import AttachField from '@/components/AttachField'
+import { CYCLE_TYPE, CYCLE_TYPE_TEXT, NODE_TYPE } from '@/constants/dict'
 
 export default {
   name: 'TaskEditPage',
   components: { UserPicker, AttachField },
   data() {
     return {
+      // 模板中直接引用周期/节点类型枚举，需暴露到实例
+      CYCLE_TYPE,
       loading: false,
       saving: false,
       // 四大板块折叠状态（默认全部展开）
@@ -448,10 +451,10 @@ export default {
     },
     /** 模板下拉展示文案：名称 · 周期 · 触发日 · 截止 */
     tplLabel(t) {
-      const cycle = { 1: '每周', 2: '每月', 3: '每季度', 4: '单次下发' }[t.cycleType] || '—'
+      const cycle = CYCLE_TYPE_TEXT[t.cycleType] || '—'
       let day = '—'
-      if (t.cycleType === 1) day = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'][t.cycleDay] || '—'
-      else if (t.cycleType === 2 || t.cycleType === 3) day = `每月 ${t.cycleDay} 号`
+      if (t.cycleType === CYCLE_TYPE.WEEK) day = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'][t.cycleDay] || '—'
+      else if (t.cycleType === CYCLE_TYPE.MONTH || t.cycleType === CYCLE_TYPE.QUARTER) day = `每月 ${t.cycleDay} 号`
       return `${t.configName}（${cycle}${day !== '—' ? ' · ' + day : ''} · 截止${t.deadlineDays}天）`
     },
     /** 选中模板：一键填充下发配置（可再微调）；不触发 onCycleChange，避免触发日被重置 */
@@ -568,10 +571,10 @@ export default {
       return (nv && nv.node && nv.node.nodeName) || '未命名节点'
     },
     isStartNode(nv) {
-      return nv && nv.node && nv.node.nodeType === 1
+      return nv && nv.node && nv.node.nodeType === NODE_TYPE.START
     },
     isEndNode(nv) {
-      return nv && nv.node && nv.node.nodeType === 3
+      return nv && nv.node && nv.node.nodeType === NODE_TYPE.END
     },
     nodeFields(nv) {
       return (nv && nv.fields) || []
@@ -593,7 +596,7 @@ export default {
       }
     },
     onCycleChange() {
-      this.form.cycleDay = this.form.cycleType === 1 ? 1 : (this.form.cycleType === 4 ? null : 1)
+      this.form.cycleDay = this.form.cycleType === CYCLE_TYPE.WEEK ? 1 : (this.form.cycleType === CYCLE_TYPE.ONCE ? null : 1)
     },
     parseOptions(json) {
       if (!json) return []
@@ -649,7 +652,7 @@ export default {
         this.$message.warning('请选择流程模板')
         return
       }
-      if (this.form.cycleType !== 4 && !this.form.cycleDay) {
+      if (this.form.cycleType !== CYCLE_TYPE.ONCE && !this.form.cycleDay) {
         this.$message.warning('请选择触发日')
         return
       }
@@ -672,7 +675,7 @@ export default {
           taskDesc: this.form.taskDesc,
           templateData,
           cycleType: this.form.cycleType,
-          cycleDay: this.form.cycleType === 4 ? null : this.form.cycleDay,
+          cycleDay: this.form.cycleType === CYCLE_TYPE.ONCE ? null : this.form.cycleDay,
           deadlineDays: this.form.deadlineDays,
           urgeDays: this.form.urgeDays,
           status: this.form.status,
@@ -705,11 +708,11 @@ export default {
 
 // ===== 周期触发日期计算（与后端 FlowDispatchService.nextWindow 口径一致） =====
 function calcTrigger(cycleType, cycleDay) {
-  if (cycleType === 4 || !cycleDay) return null
+  if (cycleType === CYCLE_TYPE.ONCE || !cycleDay) return null
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const day = Math.max(1, cycleDay)
-  if (cycleType === 1) {
+  if (cycleType === CYCLE_TYPE.WEEK) {
     const dow = (today.getDay() + 6) % 7 // 周一=0..周日=6
     const monday = new Date(today)
     monday.setDate(today.getDate() - dow)
@@ -721,7 +724,7 @@ function calcTrigger(cycleType, cycleDay) {
     }
     return d
   }
-  if (cycleType === 2) {
+  if (cycleType === CYCLE_TYPE.MONTH) {
     const y = today.getFullYear()
     const m = today.getMonth()
     const last = new Date(y, m + 1, 0).getDate()

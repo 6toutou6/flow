@@ -283,7 +283,9 @@ public class FlowDispatchController {
             }
             Date startTime = parseDate(body == null ? null : body.get("startTime"));
             Date endTime = parseDate(body == null ? null : body.get("endTime"));
-            PeriodGenerateVO vo = flowDispatchService.generatePeriod(taskId, immediate, periodName, manual, memberIds, startTime, endTime, memberTaskNames);
+            // 是否下发后通知各处理人（手动下发弹窗勾选；未传默认通知）
+            boolean notifyMembers = body == null || !Boolean.FALSE.equals(body.get("notify"));
+            PeriodGenerateVO vo = flowDispatchService.generatePeriod(taskId, immediate, periodName, manual, memberIds, startTime, endTime, memberTaskNames, notifyMembers);
             return Result.success("期次生成成功", vo);
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());

@@ -157,6 +157,7 @@
 
 <script>
 import { getConfigTemplates, getConfigTemplateStats, deleteConfigTemplate, toggleConfigTemplateSample, copyConfigTemplate } from '@/service/sys/FlowDispatchService'
+import { CYCLE_TYPE, CYCLE_TYPE_TEXT } from '@/constants/dict'
 
 export default {
   name: 'FlowDispatchConfigTemplate',
@@ -256,11 +257,11 @@ export default {
       this.fetchList()
     },
     cycleText(row) {
-      return { 1: '每周', 2: '每月', 3: '每季度', 4: '单次下发' }[row.cycleType] || '—'
+      return CYCLE_TYPE_TEXT[row.cycleType] || '—'
     },
     cycleDayText(row) {
-      if (row.cycleType === 4) return '—'
-      if (row.cycleType === 1) return ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'][row.cycleDay] || '—'
+      if (row.cycleType === CYCLE_TYPE.ONCE) return '—'
+      if (row.cycleType === CYCLE_TYPE.WEEK) return ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'][row.cycleDay] || '—'
       return `每月 ${row.cycleDay} 号`
     },
     openCreate() {

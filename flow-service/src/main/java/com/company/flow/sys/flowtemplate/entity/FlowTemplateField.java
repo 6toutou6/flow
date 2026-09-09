@@ -41,6 +41,10 @@ public class FlowTemplateField {
     private Integer maxLength;
     /** 枚举选项 JSON 字符串 [{"label":"","value":""}] */
     private String enumOptions;
+    /** 字段显隐条件 JSON {"fieldKey":"","op":"","value":""}；为空恒显示 */
+    private String visibleWhen;
+    /** 字段只读条件 JSON {"fieldKey":"","op":"","value":""}；为空恒可编辑 */
+    private String editableWhen;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;

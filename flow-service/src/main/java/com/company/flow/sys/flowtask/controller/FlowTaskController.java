@@ -9,6 +9,7 @@ import com.company.flow.sys.flowtask.vo.MyTodoStatsVO;
 import com.company.flow.sys.flowtask.vo.MyTodoTaskVO;
 import com.company.flow.sys.flowtask.vo.MyTodoVO;
 import com.company.flow.sys.flowtask.vo.NodeSubmitDTO;
+import com.company.flow.sys.flowtask.vo.SubmitResultVO;
 import com.company.flow.sys.flowtask.vo.TaskDetailVO;
 import com.company.flow.sys.flowtask.vo.TaskGroupVO;
 import com.company.flow.sys.flowtask.vo.TaskMemberVO;
@@ -93,10 +94,10 @@ public class FlowTaskController {
 
     /** 节点提交并流转 */
     @PostMapping("/submit")
-    public Result<String> submit(@RequestBody NodeSubmitDTO dto) {
+    public Result<SubmitResultVO> submit(@RequestBody NodeSubmitDTO dto) {
         try {
-            String recordId = flowTaskService.submit(dto);
-            return Result.success("提交成功", recordId);
+            SubmitResultVO result = flowTaskService.submit(dto);
+            return Result.success("提交成功", result);
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         }
@@ -108,6 +109,17 @@ public class FlowTaskController {
         try {
             flowTaskService.saveDraft(dto);
             return Result.success("暂存成功", null);
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
+    /** 转办：处理人把待办转给他人 */
+    @PostMapping("/transfer")
+    public Result<Void> transfer(@RequestBody Map<String, String> body) {
+        try {
+            flowTaskService.transfer(body.get("taskNodeId"), body.get("targetUserId"));
+            return Result.success("转办成功");
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         }

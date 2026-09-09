@@ -27,7 +27,7 @@
     <!-- 基础 FROM/JOIN/WHERE（仅 dispatchId，无过滤条件，供无过滤查询复用） -->
     <sql id="memberFromWhereBase">
         FROM flow_task t
-        JOIN flow_task_node s ON s.node_type = 1
+        JOIN flow_task_node s ON s.node_type = 1 <!-- 1=开始节点 -->
              AND s.id = (SELECT MIN(id) FROM flow_task_node WHERE task_id = t.id AND node_type = 1)
         LEFT JOIN aut_user u  ON u.yyyt_id  = s.handler_user_id
         LEFT JOIN aut_user cu ON cu.yyyt_id = t.current_handler_id
@@ -71,7 +71,7 @@
     <select id="selectMembersCount" resultType="java.lang.Long">
         SELECT COUNT(*)
         FROM flow_task t
-        JOIN flow_task_node s ON s.node_type = 1
+        JOIN flow_task_node s ON s.node_type = 1 <!-- 1=开始节点 -->
              AND s.id = (SELECT MIN(id) FROM flow_task_node WHERE task_id = t.id AND node_type = 1)
         LEFT JOIN aut_user u  ON u.yyyt_id  = s.handler_user_id
         WHERE COALESCE(t.dispatch_id, t.id) = #{dispatchId}

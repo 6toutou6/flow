@@ -21,6 +21,7 @@ import com.company.flow.sys.flowtemplate.vo.TemplateDetailVO;
 import com.company.flow.sys.flowtemplate.vo.TemplateFlowSaveDTO;
 import com.company.flow.sys.flowtemplate.vo.TemplateNodeWithFieldsVO;
 import com.company.flow.sys.flowtemplate.vo.TemplateStatsVO;
+import com.company.flow.sys.base.enums.NodeType;
 import com.company.flow.sys.base.autuser.entity.User;
 import com.company.flow.sys.base.autuser.mapper.UserMapper;
 import com.company.flow.sys.base.autuser.vo.LoginUser;
@@ -354,10 +355,10 @@ public class FlowTemplateService {
         }
         FlowTemplateNode first = nodes.get(0).getNode();
         FlowTemplateNode last = nodes.get(nodes.size() - 1).getNode();
-        if (first == null || first.getNodeType() == null || first.getNodeType() != 1) {
+        if (first == null || first.getNodeType() == null || first.getNodeType() != NodeType.START.getCode()) {
             throw new RuntimeException("首个节点必须为开始节点");
         }
-        if (last == null || last.getNodeType() == null || last.getNodeType() != 3) {
+        if (last == null || last.getNodeType() == null || last.getNodeType() != NodeType.END.getCode()) {
             throw new RuntimeException("末个节点必须为结束节点");
         }
         FlowTemplate t = flowTemplateMapper.selectById(templateId);
@@ -498,13 +499,17 @@ public class FlowTemplateService {
         if (old != null) {
             f.setId(old.getId());
             f.setCreateTime(old.getCreateTime());
-            // 需要把归属从节点改到模板级（node_id 清空）时 MP updateById 忽略 null → 用 update wrapper 补清
             boolean clearNode = f.getNodeId() == null && old.getNodeId() != null;
             flowTemplateFieldMapper.updateById(f);
+            // MP updateById 忽略 null 字段：node_id、visible_when/editable_when 可能在本次被清空，需用 wrapper 强制同步
+            LambdaUpdateWrapper<FlowTemplateField> force = new LambdaUpdateWrapper<FlowTemplateField>()
+                    .eq(FlowTemplateField::getId, f.getId())
+                    .set(FlowTemplateField::getVisibleWhen, f.getVisibleWhen())
+                    .set(FlowTemplateField::getEditableWhen, f.getEditableWhen());
             if (clearNode) {
-                flowTemplateFieldMapper.update(null, new LambdaUpdateWrapper<FlowTemplateField>()
-                        .eq(FlowTemplateField::getId, f.getId()).set(FlowTemplateField::getNodeId, null));
+                force.set(FlowTemplateField::getNodeId, null);
             }
+            flowTemplateFieldMapper.update(null, force);
             occupied.add(f.getId());
         } else {
             f.setId(null);

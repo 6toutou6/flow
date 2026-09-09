@@ -52,6 +52,10 @@ public class FlowTaskNode {
     private String rejectReason;
     /** 通过意见（action=0 时填写，非必填） */
     private String passComment;
+    /** 转办原处理人用户号（被转办时记录） */
+    private String transferFromUserId;
+    /** 转办原处理人姓名 */
+    private String transferFromUserName;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;

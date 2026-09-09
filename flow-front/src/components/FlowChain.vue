@@ -127,7 +127,7 @@
             <span v-if="item.latestDone && item.latestDone.handleTime" class="step-time"><i class="el-icon-time" /> {{ item.latestDone.handleTime }}</span>
             <span class="step-badge" :class="'badge-' + item.status">{{ statusLabel(item.status) }}</span>
             <span v-if="item.status === 'current'" class="cur-stage-tag">当前阶段</span>
-            <span v-if="item.latestDone" class="mine-tag">{{ item.latestDone.handlerName || '该人员' }}已处理</span>
+            <span v-if="item.latestDone" class="mine-tag">{{ item.handledText || item.latestDone.handlerName || '该人员' }}已处理</span>
           </div>
           <div class="step-meta">
             <template v-if="item.latestDone">

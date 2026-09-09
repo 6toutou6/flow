@@ -27,7 +27,7 @@
         <i class="el-icon-setting" />
         <span class="gpd-config-label">下发配置</span>
         <span class="gpd-config-item">周期：<b>{{ cycleText }}</b></span>
-        <span v-if="task.cycleType !== 4" class="gpd-config-item">触发日：<b>{{ cycleDayText }}</b></span>
+        <span v-if="task.cycleType !== CYCLE_TYPE.ONCE" class="gpd-config-item">触发日：<b>{{ cycleDayText }}</b></span>
         <span class="gpd-config-item">截止：<b>触发后 {{ task.deadlineDays || '—' }} 天</b></span>
         <span v-if="task.urgeDays" class="gpd-config-item">催办：<b>提前 {{ task.urgeDays }} 天</b></span>
         <button class="gpd-config-edit" @click="$emit('edit-config')">去调整</button>
@@ -148,6 +148,13 @@
           </table>
         </div>
         <div class="gpd-tip"><i class="el-icon-info" /> 临时增删与修改任务名仅影响本期次，不改动任务配置人员</div>
+        <div class="gpd-switch-row" style="border-top: 1px dashed #eef0f2; padding-top: 10px; margin-top: 4px;">
+          <span class="gpd-switch-label">下发通知</span>
+          <div class="gpd-check-group">
+            <el-checkbox v-model="notifyAfterDispatch">下发后通知各处理人</el-checkbox>
+            <span class="gpd-check-hint">{{ notifyAfterDispatch ? '已选：提交后向本期人员发送任务提醒' : '未勾选：仅下发，不发送通知' }}</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -177,6 +184,7 @@
 <script>
 import { getPreviewPeriod, generatePeriod } from '@/service/sys/FlowDispatchService'
 import UserPicker from '@/components/UserPicker'
+import { CYCLE_TYPE, CYCLE_TYPE_TEXT } from '@/constants/dict'
 
 export default {
   name: 'GeneratePeriodModal',
@@ -190,6 +198,8 @@ export default {
   },
   data() {
     return {
+      // 模板中直接引用周期类型枚举，需暴露到实例
+      CYCLE_TYPE,
       mode: 'auto',
       immediate: true,
       periodName: '',
@@ -199,6 +209,8 @@ export default {
       manualStartTime: '',
       manualEndTime: '',
       tempMembers: [],
+      /** 下发后是否通知各处理人（默认通知；手动临时期次可取消勾选） */
+      notifyAfterDispatch: true,
       saving: false,
       pickerVisible: false,
       lastAutoName: ''
@@ -232,12 +244,12 @@ export default {
     },
     // 下发配置摘要（task 由列表接口 JOIN 配置表带出）
     cycleText() {
-      return { 1: '每周', 2: '每月', 3: '每季度', 4: '单次下发' }[this.task && this.task.cycleType] || '—'
+      return CYCLE_TYPE_TEXT[this.task && this.task.cycleType] || '—'
     },
     cycleDayText() {
       const t = this.task
-      if (!t || t.cycleType === 4) return '—'
-      if (t.cycleType === 1) return ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'][t.cycleDay] || '—'
+      if (!t || t.cycleType === CYCLE_TYPE.ONCE) return '—'
+      if (t.cycleType === CYCLE_TYPE.WEEK) return ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'][t.cycleDay] || '—'
       return `每月 ${t.cycleDay || '—'} 号`
     }
   },
@@ -342,6 +354,7 @@ export default {
           immediate: this.mode === 'auto' ? this.immediate : true,
           periodName: this.periodName.trim(),
           manual: this.mode === 'manual',
+          notify: this.notifyAfterDispatch,
           memberIds: this.tempMembers.map(m => m.yyytId),
           memberTaskNames: this.tempMembers.reduce((acc, m) => {
             acc[m.yyytId] = (m.taskName && m.taskName.trim()) ? m.taskName.trim() : this.defaultTaskName(m)

@@ -166,7 +166,7 @@
                     <i class="ov-icon el-icon-time" />
                     <div>
                       <span class="ov-label">周期</span>
-                      <span class="ov-value">{{ cycleText(t) }}<template v-if="t.cycleType !== 4"> · {{ cycleDayText(t) }}</template></span>
+                      <span class="ov-value">{{ cycleText(t) }}<template v-if="t.cycleType !== CYCLE_TYPE.ONCE"> · {{ cycleDayText(t) }}</template></span>
                     </div>
                   </div>
                   <div class="ov-item">
@@ -350,12 +350,15 @@ import { getDispatchTaskList, getDispatchStats, toggleDispatchPlanStatus, toggle
 import { getTaskList, deleteTaskGroup, getTaskMembers as getPeriodMembers } from '@/service/sys/TaskService'
 import { getTemplateList } from '@/service/sys/TemplateService'
 import GeneratePeriodModal from './components/GeneratePeriodModal.vue'
+import { CYCLE_TYPE, CYCLE_TYPE_TEXT } from '@/constants/dict'
 
 export default {
   name: 'FlowDispatch',
   components: { GeneratePeriodModal },
   data() {
     return {
+      // 模板中直接引用周期类型枚举，需暴露到实例
+      CYCLE_TYPE,
       loading: false,
       taskList: [],
       total: 0,
@@ -507,11 +510,11 @@ export default {
       return t ? t.templateName : '—'
     },
     cycleText(row) {
-      return { 1: '每周', 2: '每月', 3: '每季度', 4: '单次下发' }[row.cycleType] || '单次下发'
+      return CYCLE_TYPE_TEXT[row.cycleType] || '单次下发'
     },
     cycleDayText(row) {
-      if (row.cycleType === 4) return '—'
-      if (row.cycleType === 1) return ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'][row.cycleDay] || '—'
+      if (row.cycleType === CYCLE_TYPE.ONCE) return '—'
+      if (row.cycleType === CYCLE_TYPE.WEEK) return ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'][row.cycleDay] || '—'
       return `每月 ${row.cycleDay} 号`
     },
     taskStatusText(s) { return { 0: '空', 1: '进行中', 2: '已完成', 3: '已作废' }[s] || '—' },
@@ -525,7 +528,7 @@ export default {
       const d = this.taskData[t.id]
       if (!d) return '展开查看'
       if (t.status !== '启用') return '任务已停用'
-      if (t.cycleType === 4) return '单次下发，生成时自定期次名'
+      if (t.cycleType === CYCLE_TYPE.ONCE) return '单次下发，生成时自定期次名'
       if (d.nextPreview && d.nextPreview.periodName) {
         return `${d.nextPreview.periodName} · ${d.nextPreview.startTime || '—'} 下发`
       }
@@ -692,7 +695,7 @@ export default {
     /** 卡片头部单行摘要文本（周期 · 期次/人员/创建人） */
     ctMetaText(t) {
       const cycle = this.cycleText(t) || ''
-      const day = (t.cycleType !== 4 && this.cycleDayText(t)) ? ' · ' + this.cycleDayText(t) : ''
+      const day = (t.cycleType !== CYCLE_TYPE.ONCE && this.cycleDayText(t)) ? ' · ' + this.cycleDayText(t) : ''
       return `${cycle}${day} · 已下发 ${t.periodCount || 0} 期 · ${t.memberCount || 0} 人 · 创建人 ${t.creatorName || '—'}（${t.deptName || '—'}）`
     },
     /** 展开期次行过滤：点「进行中/已完成」进度卡后，任务下只保留对应状态的期次（启停/样例等不作用期次） */
