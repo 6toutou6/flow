@@ -9,13 +9,41 @@
   >
     <div class="atl-tip"><i class="el-icon-link" /> 来源期次：<b>{{ sourceDispatchName || '—' }}</b> / {{ sourcePeriodName || '—' }}</div>
     <div class="atl-row">
-      <span class="atl-label"><span class="req">*</span> 我收到的任务</span>
-      <el-select v-model="selMyTask" filterable placeholder="搜索你收到的任务（关联对象）" style="flex:1" value-key="taskId">
-        <el-option v-for="m in availMyTasks" :key="m.taskId" :label="m.taskName" :value="m">
-          <span>{{ m.taskName }}</span>
-          <span v-if="m.periodName" class="atl-opt-sub">{{ m.periodName }}</span>
-          <span v-if="m.taskId" class="atl-opt-sub"> · {{ m.taskId }}</span>
-        </el-option>
+      <span class="atl-label"><span class="req">*</span> 任务</span>
+      <el-select
+        v-model="selPlanId"
+        filterable
+        :loading="loading"
+        placeholder="选择你收到的任务"
+        style="flex:1"
+        @change="onPlanChange"
+      >
+        <el-option v-for="g in groups" :key="g.taskId" :label="g.taskName" :value="g.taskId" />
+      </el-select>
+    </div>
+    <div class="atl-row">
+      <span class="atl-label"><span class="req">*</span> 期次</span>
+      <el-select
+        v-model="selPeriodKey"
+        filterable
+        :disabled="!selGroup"
+        placeholder="选择期次"
+        style="flex:1"
+        @change="onPeriodChange"
+      >
+        <el-option v-for="per in periodOptions" :key="periodKey(per)" :label="periodLabel(per)" :value="periodKey(per)" />
+      </el-select>
+    </div>
+    <div class="atl-row">
+      <span class="atl-label"><span class="req">*</span> 员工任务</span>
+      <el-select
+        v-model="selTaskId"
+        filterable
+        :disabled="!selPeriod"
+        placeholder="选择员工任务"
+        style="flex:1"
+      >
+        <el-option v-for="t in empTaskOptions" :key="t.taskId" :label="t.taskName" :value="t.taskId" />
       </el-select>
     </div>
     <div class="atl-row atl-row-top">
@@ -29,10 +57,10 @@
         placeholder="选填：说明为何关联（如：需引用该任务的收集结果）"
       />
     </div>
-    <div class="atl-hint">已关联过的任务不会出现在选择列表中。</div>
+    <div class="atl-hint">已关联过的员工任务不会出现在选择列表中。</div>
     <div class="atl-footer">
       <el-button @click="dialogVisible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" :disabled="!selMyTask" @click="handleSubmit">
+      <el-button type="primary" :loading="saving" :disabled="!selEmpTask" @click="handleSubmit">
         <i class="el-icon-link" /> 建立关联
       </el-button>
     </div>
@@ -41,7 +69,7 @@
 
 <script>
 import { createTaskLink } from '@/service/sys/FlowDispatchService'
-import { getMyTodoList } from '@/service/sys/TaskService'
+import { getMyTodoGrouped } from '@/service/sys/TaskService'
 
 export default {
   name: 'AddTaskLinkModal',
@@ -58,8 +86,12 @@ export default {
   },
   data() {
     return {
-      myTasks: [],
-      selMyTask: null,
+      loading: false,
+      groups: [],
+      // 级联选择值：任务(planId) → 期次(dispatchId) → 员工任务(flow_task.id)
+      selPlanId: '',
+      selPeriodKey: '',
+      selTaskId: '',
       linkRemark: '',
       saving: false
     }
@@ -69,54 +101,94 @@ export default {
       get() { return this.visible },
       set(val) { if (!val) this.$emit('close') }
     },
-    /** 排除已关联过的目标任务 */
-    availMyTasks() {
+    /** 当前选中任务 */
+    selGroup() {
+      return this.groups.find(g => g.taskId === this.selPlanId) || null
+    },
+    /** 当前任务下的期次 */
+    periodOptions() {
+      return this.selGroup ? (this.selGroup.periods || []) : []
+    },
+    /** 当前选中期次 */
+    selPeriod() {
+      return this.periodOptions.find(p => this.periodKey(p) === this.selPeriodKey) || null
+    },
+    /** 当前期次下「我收到的员工任务」（按 taskId 去重，排除已关联） */
+    empTaskOptions() {
+      const per = this.selPeriod
+      if (!per) return []
       const linked = this.linkedTaskIds || []
-      return this.myTasks.filter(m => linked.indexOf(m.taskId) < 0)
+      const seen = {}
+      const out = []
+      ;(per.todos || []).forEach(t => {
+        if (!t || !t.taskId || seen[t.taskId]) return
+        seen[t.taskId] = true
+        if (linked.indexOf(t.taskId) >= 0) return
+        out.push(t)
+      })
+      return out
+    },
+    /** 当前选中员工任务 */
+    selEmpTask() {
+      return this.empTaskOptions.find(t => t.taskId === this.selTaskId) || null
     }
   },
   watch: {
     visible(val) {
       if (!val) return
-      this.selMyTask = null
-      this.linkRemark = ''
-      this.loadMyTasks()
+      this.reset()
+      this.loadGroups()
     }
   },
   methods: {
-    /** 我收到的任务（成员任务，含已完成，作为关联对象） */
-    async loadMyTasks() {
-      if (this.myTasks.length > 0) return
+    /** 期次唯一键（存量无期次任务 dispatchId 为空，用固定键兜底） */
+    periodKey(per) {
+      return per.dispatchId || '__none__'
+    },
+    periodLabel(per) {
+      const name = per.periodName || '无期次'
+      return per.periodNo ? `${name}（第 ${per.periodNo} 期）` : name
+    },
+    onPlanChange() {
+      this.selPeriodKey = ''
+      this.selTaskId = ''
+    },
+    onPeriodChange() {
+      this.selTaskId = ''
+    },
+    /** 我收到的任务（任务 → 期次 → 员工任务 三层，含已完成） */
+    async loadGroups() {
+      this.loading = true
       try {
-        const res = await getMyTodoList({ page: 1, limit: 200 })
-        const rows = ((res && res.data && res.data.records) || []).filter(m => m && m.taskId)
-        // 同一成员任务去重（可能多个待办节点）
-        const seen = {}
-        this.myTasks = rows.filter(m => (seen[m.taskId] ? false : (seen[m.taskId] = true)))
+        const res = await getMyTodoGrouped({ page: 1, limit: 500 })
+        this.groups = ((res && res.data && res.data.records) || []).filter(g => g && g.taskId)
       } catch (e) {
         console.error(e)
         this.$message.error((e && e.message) || '我的任务加载失败')
+      } finally {
+        this.loading = false
       }
     },
     reset() {
-      this.selMyTask = null
+      this.selPlanId = ''
+      this.selPeriodKey = ''
+      this.selTaskId = ''
       this.linkRemark = ''
     },
     async handleSubmit() {
-      if (!this.selMyTask) {
-        this.$message.warning('请选择要关联的任务')
+      if (!this.selEmpTask) {
+        this.$message.warning('请选择要关联的员工任务')
         return
       }
       this.saving = true
       try {
         const res = await createTaskLink({
           sourcePeriodId: this.sourcePeriodId,
-          targetTaskId: this.selMyTask.taskId,
+          targetTaskId: this.selEmpTask.taskId,
           remark: (this.linkRemark && this.linkRemark.trim()) || null
         })
         this.$message.success(res.message || '关联成功')
-        this.selMyTask = null
-        this.linkRemark = ''
+        this.reset()
         this.$emit('success', (res && res.data) || {})
       } catch (e) {
         console.error(e)

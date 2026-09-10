@@ -8,7 +8,12 @@
             <div class="hl-row1">
               <button class="btn-back" @click="goBack"><i class="el-icon-arrow-left" /> 返回</button>
               <nav class="breadcrumb">
-                <span class="link" @click="goBack">任务处理</span>
+                <template v-if="isFromTaskLink">
+                  <span class="link" @click="goTaskManage">任务管理</span>
+                  <span>/</span>
+                  <span class="link" @click="goBack">期次任务关联</span>
+                </template>
+                <span v-else class="link" @click="goBack">任务处理</span>
                 <span>/</span>
                 <span class="active">{{ flowTitle }}</span>
               </nav>
@@ -376,6 +381,11 @@ export default {
     /** 页面标题：只读为任务详情，否则处理任务 */
     flowTitle() {
       return this.isReadonly ? '任务详情' : '处理任务'
+    },
+    /** 是否从「期次任务关联」页进入：决定面包屑完整路径与返回目标 */
+    isFromTaskLink() {
+      const back = this.$route.query.back || ''
+      return back.indexOf('/flow-dispatch/task-link') >= 0
     },
     task() {
       return this.detail && this.detail.task ? this.detail.task : null
@@ -1001,6 +1011,8 @@ export default {
         if (this.$route.query.taskName) q.taskName = this.$route.query.taskName
         if (this.$route.query.templateName) q.templateName = this.$route.query.templateName
         if (this.$route.query.periodName) q.periodName = this.$route.query.periodName
+        // 保留来源页，提交后停留本页时返回仍回到进入前的页面
+        if (this.$route.query.back) q.back = this.$route.query.back
         // 停留本页重新加载最新流程/表单状态；先复位按钮 loading（若本人仍有新待办将续显示办理表单，按钮须恢复可点）
         this.submitting = false
         this.$router.replace({ path: '/task-process/detail', query: q }, () => this.fetchDetail())
@@ -1010,9 +1022,20 @@ export default {
         this.submitting = false
       }
     },
-    /** 返回任务处理列表（进入列表时自动刷新） */
+    /** 返回来源页：路由带 back（从期次任务关联等页面进入）则回原页，否则回任务处理列表 */
     goBack() {
+      let back = this.$route.query.back
+      if (back) {
+        // 兼容 hash 模式可能带上的 # 前缀，避免被当成仅 hash 变化而不跳转
+        if (back.charAt(0) === '#') back = back.slice(1)
+        this.$router.push(back)
+        return
+      }
       this.$router.push('/task-process/index')
+    },
+    /** 面包屑「任务管理」：回到任务管理列表（从期次任务关联页进入时的上级） */
+    goTaskManage() {
+      this.$router.push('/flow-dispatch/index')
     }
   }
 }

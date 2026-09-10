@@ -177,6 +177,7 @@
       :source-dispatch-name="sourceTaskName"
       :source-period-id="sourcePeriodId"
       :source-period-name="sourcePeriodName"
+      :linked-task-ids="linkedTaskIds"
       @success="onLinkAdded"
       @close="addVisible = false"
     />
@@ -230,6 +231,18 @@ export default {
     /** 来源期次名（路由带参） */
     sourcePeriodName() {
       return this.$route.query.periodName || ''
+    },
+    /** 已关联的目标员工任务ID集合（新建关联时排除，避免重复） */
+    linkedTaskIds() {
+      const ids = []
+      ;(this.allList || []).forEach(g => {
+        (g.periods || []).forEach(per => {
+          (per.todos || []).forEach(t => {
+            if (t && t.taskId && ids.indexOf(t.taskId) < 0) ids.push(t.taskId)
+          })
+        })
+      })
+      return ids
     }
   },
   mounted() {
@@ -401,8 +414,18 @@ export default {
       this.fetchData()
       this.fetchStats()
     },
-    /** 打开办理/查看详情（整页）：携带待办节点与上下文参数 */
+    /** 打开办理/查看详情（整页）：携带待办节点与上下文参数；back 记录来源页以便详情页返回 */
     openProcess(todo, per, g) {
+      // 用 route.fullPath（不含 hash 模式的 # 前缀），否则详情页 push 会被当作仅 hash 变化而不跳转
+      const back = this.$router.resolve({
+        path: '/flow-dispatch/task-link',
+        query: {
+          dispatchId: this.sourceDispatchId,
+          taskName: this.sourceTaskName,
+          periodId: this.sourcePeriodId,
+          periodName: this.sourcePeriodName
+        }
+      }).route.fullPath
       this.$router.push({
         path: '/task-process/detail',
         query: {
@@ -411,7 +434,8 @@ export default {
           mode: todo.todoStatus === 0 ? 'process' : 'view',
           taskName: todo.taskName || (g && g.taskName) || '',
           templateName: todo.templateName || (g && g.templateName) || '',
-          periodName: (per && per.periodName) || ''
+          periodName: (per && per.periodName) || '',
+          back
         }
       })
     }
