@@ -63,7 +63,7 @@
         <!-- 任务 → 期次 两级折叠面板（卡片式，同任务管理） -->
         <div v-if="!loading && list.length === 0" class="empty-state">
           <i class="el-icon-finished" />
-          <p>暂无待办任务</p>
+          <p>暂无关联任务</p>
         </div>
         <div v-else class="task-collapse">
           <div v-if="loading" class="loading-bar"><i class="el-icon-loading" /> 加载中...</div>
@@ -164,7 +164,7 @@
               :page-size="pageSize"
               :page-sizes="[5, 10, 20]"
               @size-change="handleSizeChange"
-              @current-change="fetchData"
+              @current-change="applyPage"
             />
           </div>
         </div>
@@ -185,6 +185,7 @@
 
 <script>
 import { getMyTodoGrouped, getMyTodoStats } from '@/service/sys/TaskService'
+import { getTaskLinksBySource } from '@/service/sys/FlowDispatchService'
 import { NODE_TYPE } from '@/constants/dict'
 import AddTaskLinkModal from '@/components/AddTaskLinkModal.vue'
 
@@ -195,6 +196,8 @@ export default {
     return {
       loading: false,
       list: [],
+      // 过滤后的全部关联任务组（分页切片前）
+      allList: [],
       total: 0,
       currentPage: 1,
       // 每页任务数（最小 5）
@@ -212,6 +215,10 @@ export default {
     }
   },
   computed: {
+    /** 来源任务配置ID（路由带参） */
+    sourceDispatchId() {
+      return this.$route.query.dispatchId || ''
+    },
     /** 来源任务配置名（路由带参） */
     sourceTaskName() {
       return this.$route.query.taskName || ''
@@ -313,16 +320,50 @@ export default {
         ? this.openTaskIds.filter(id => id !== g.taskId)
         : this.openTaskIds.concat(g.taskId)
     },
-    /** 每页任务数变化：回到第 1 页重新加载 */
+    /** 每页任务数变化：回到第 1 页重新切片 */
     handleSizeChange(size) {
       this.pageSize = size
       this.currentPage = 1
-      this.fetchData()
+      this.applyPage()
+    },
+    /** 按当前页码对已过滤的关联列表做前端分页切片 */
+    applyPage() {
+      const total = this.allList.length
+      this.total = total
+      const maxPage = Math.max(1, Math.ceil(total / this.pageSize))
+      if (this.currentPage > maxPage) this.currentPage = maxPage
+      const start = (this.currentPage - 1) * this.pageSize
+      this.list = this.allList.slice(start, start + this.pageSize)
+      // 清理已不存在任务的展开状态
+      const ids = this.list.map(g => g.taskId)
+      this.openTaskIds = this.openTaskIds.filter(id => ids.indexOf(id) >= 0)
+    },
+    /** 仅保留与当前来源期次关联的待办行（连带其所属期次、任务组；无关联则不展示） */
+    keepLinked(groups, linkedTaskIds) {
+      if (!linkedTaskIds.length) return []
+      const out = []
+      groups.forEach(g => {
+        const periods = []
+        ;(g.periods || []).forEach(per => {
+          const todos = (per.todos || []).filter(t => linkedTaskIds.indexOf(t.taskId) >= 0)
+          if (todos.length) periods.push(Object.assign({}, per, { todos }))
+        })
+        if (periods.length) {
+          const pendingCount = periods.reduce((s, p) => s + (p.todos || []).filter(t => t.todoStatus === 0).length, 0)
+          out.push(Object.assign({}, g, { periods, pendingCount, periodCount: periods.length }))
+        }
+      })
+      return out
     },
     async fetchData() {
       this.loading = true
       try {
-        const params = { page: this.currentPage, limit: this.pageSize }
+        // 1. 取当前来源期次关联的目标任务（我收到的任务）
+        const linkRes = await getTaskLinksBySource('', this.sourceDispatchId, this.sourcePeriodId)
+        const links = linkRes.data || []
+        const linkedTaskIds = links.map(l => l.targetTaskId).filter(id => !!id)
+        // 2. 我的任务（拉全量）→ 仅保留被关联的待办行
+        const params = { page: 1, limit: 500 }
         if (this.filters.taskName && this.filters.taskName.trim()) params.taskName = this.filters.taskName.trim()
         if (this.filters.status !== '') params.status = Number(this.filters.status)
         if (this.filters.taskType !== '') params.taskType = Number(this.filters.taskType)
@@ -330,11 +371,8 @@ export default {
         if (this.filters.createStart) params.createStart = this.filters.createStart
         if (this.filters.createEnd) params.createEnd = this.filters.createEnd
         const res = await getMyTodoGrouped(params)
-        this.list = res.data.records || []
-        this.total = res.data.total || 0
-        // 清理已不存在任务的展开状态
-        const ids = this.list.map(g => g.taskId)
-        this.openTaskIds = this.openTaskIds.filter(id => ids.indexOf(id) >= 0)
+        this.allList = this.keepLinked(res.data.records || [], linkedTaskIds)
+        this.applyPage()
       } catch (e) {
         console.error(e)
       } finally {
