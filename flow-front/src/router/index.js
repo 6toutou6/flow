@@ -148,6 +148,13 @@ export const constantRoutes = [
         component: () => import('@/views/flowdispatch/PersonView'),
         meta: { title: '按人员查看', activeMenu: '/flow-dispatch/index' },
         hidden: true
+      },
+      {
+        path: 'task-link',
+        name: 'FlowDispatchTaskLink',
+        component: () => import('@/views/flowdispatch/TaskLink'),
+        meta: { title: '期次任务关联', activeMenu: '/flow-dispatch/index' },
+        hidden: true
       }
     ]
   },
