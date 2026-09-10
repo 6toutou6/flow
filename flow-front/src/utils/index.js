@@ -136,8 +136,25 @@ export function stableBizId(key) {
   return ('a' + n1 + n2).slice(0, 32)
 }
 
+// 处理人展示（实际处理人优先）：节点发生任务交接后，库里 handler 已改成接手人，
+// 但真正经办的是原处理人 —— 因此展示为「原处理人 用户号（现 接手人 用户号）」，
+// 例如「钱七 emp0005（现 孙八 emp0006）」；未发生交接时原样返回姓名。
+export function formatHandlerWithTransfer(node, fallback) {
+  if (!node) return fallback || '—'
+  if (node.transferFromUserName) {
+    const from = node.transferFromUserName + (node.transferFromUserId ? ' ' + node.transferFromUserId : '')
+    const now = node.handlerName
+      ? '（现 ' + node.handlerName + (node.handlerUserId ? ' ' + node.handlerUserId : '') + '）'
+      : ''
+    return from + now
+  }
+  if (!node.handlerName) return fallback || '—'
+  return node.handlerName + (node.handlerUserId ? ' ' + node.handlerUserId : '')
+}
+
 // 节点处理人格式化：输入 task_node 数组（含 handlerName/handlerUserId/submitStatus），
 // 输出「姓名 用户号」并列串（按 userId 去重）。pendingOnly=true 只取待办（可处理人），否则取全部（含已处理）
+// 这里输出的是节点「当前归属人」名单；实际经办人的展示见 formatHandlerWithTransfer
 export function formatNodeHandlers(nodes, pendingOnly) {
   const arr = (nodes || []).filter(n => n && n.handlerName)
     .filter(n => (pendingOnly ? n.submitStatus === 0 : true))

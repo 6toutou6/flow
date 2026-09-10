@@ -63,7 +63,7 @@ export const constantRoutes = [
     ]
   },
 
-  // ==================== 普通用户：任务处理（我的任务） ====================
+  // ==================== 普通用户：任务处理 ====================
   {
     path: '/task-process',
     component: Layout,
@@ -79,6 +79,20 @@ export const constantRoutes = [
         name: 'TaskProcessDetail',
         component: () => import('@/views/taskprocess/ProcessDetail'),
         hidden: true
+      }
+    ]
+  },
+
+  // ==================== 普通用户：任务交接 ====================
+  {
+    path: '/task-handover',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'TaskHandover',
+        component: () => import('@/views/taskprocess/Handover'),
+        meta: { title: '任务交接', icon: 'el-icon-s-promotion' }
       }
     ]
   },
@@ -113,6 +127,12 @@ export const constantRoutes = [
         name: 'DataView',
         component: () => import('@/views/dataview/index'),
         meta: { title: '数据展示', icon: 'el-icon-data-analysis' }
+      },
+      {
+        path: 'handover-approval',
+        name: 'TaskHandoverApproval',
+        component: () => import('@/views/taskprocess/HandoverApproval'),
+        meta: { title: '交接审批', icon: 'el-icon-s-check' }
       },
       {
         path: 'config-template/edit',

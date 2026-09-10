@@ -20,6 +20,9 @@ public class TaskProgressVO {
     private String handlerUserId;
     /** 处理人姓名 */
     private String handlerName;
+    /** 交接留痕：本节点原处理人（发生任务交接时回填，界面展示为「接手人（原处理人 移交）」） */
+    private String transferFromUserId;
+    private String transferFromUserName;
     /** 处理状态 0待处理 1已处理 */
     private Integer submitStatus;
 

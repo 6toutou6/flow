@@ -129,7 +129,8 @@ CREATE TABLE `flow_task` (
   `end_time` datetime DEFAULT NULL COMMENT '填报截止时间',
   `status` tinyint NOT NULL DEFAULT '1' COMMENT '任务状态 1进行中 2已结束 3作废',
   `current_node_id` bigint DEFAULT NULL COMMENT '当前节点ID（流转指针）',
-  `current_handler_id` bigint DEFAULT NULL COMMENT '当前处理人ID（流转指针）',
+  `current_handler_id` varchar(50) DEFAULT NULL COMMENT '当前处理人ID（流转指针）',
+  `owner_id` varchar(50) DEFAULT NULL COMMENT '当前归属人（人员交接后随人变更；「我的任务」可见性 = owner 或 节点处理人）',
   `finished_node_count` int NOT NULL DEFAULT '0' COMMENT '已完成节点数',
   `total_node_count` int NOT NULL DEFAULT '0' COMMENT '总节点数',
   `creator_id` bigint NOT NULL COMMENT '下发任务管理员',
@@ -139,6 +140,7 @@ CREATE TABLE `flow_task` (
   PRIMARY KEY (`id`),
   KEY `idx_template_id` (`template_id`),
   KEY `idx_current_handler` (`current_handler_id`),
+  KEY `idx_owner` (`owner_id`),
   KEY `idx_dispatch` (`dispatch_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='填报任务（管理员下发任务）';
 
@@ -386,3 +388,32 @@ CREATE TABLE `flow_task_link` (
   KEY `idx_source_dispatch` (`source_dispatch_id`),
   KEY `idx_target` (`target_dispatch_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='任务关联（汇总收集）';
+
+-- ============================================================
+-- 表：flow_task_handover 任务交接申请
+-- 处理人发起，把某任务配置下自己名下「全部期次 + 全部节点席位（含已提交历史节点）」交接给他人；
+-- 创建人同部门的部门管理员任一审批通过后生效（期次 owner_id 与节点处理人 A→B，节点留痕 transfer_from）。
+-- ============================================================
+CREATE TABLE `flow_task_handover` (
+  `id` varchar(32) NOT NULL,
+  `dispatch_id` varchar(32) NOT NULL COMMENT '任务配置ID flow_dispatch.id',
+  `dispatch_name` varchar(100) DEFAULT NULL COMMENT '任务名称（冗余）',
+  `from_user_id` varchar(50) DEFAULT NULL COMMENT '交接人（原归属人）',
+  `from_user_name` varchar(50) DEFAULT NULL,
+  `to_user_id` varchar(50) DEFAULT NULL COMMENT '接手人',
+  `to_user_name` varchar(50) DEFAULT NULL,
+  `sync_member` tinyint NOT NULL DEFAULT '0' COMMENT '是否同步任务配置名单 0否1是',
+  `status` tinyint NOT NULL DEFAULT '0' COMMENT '0待审批 1已通过 2已拒绝',
+  `period_count` int NOT NULL DEFAULT '0' COMMENT '涉及我名下期次数',
+  `node_count` int NOT NULL DEFAULT '0' COMMENT '涉及我名下节点席位数（含已提交历史节点）',
+  `remark` varchar(500) DEFAULT NULL COMMENT '交接说明',
+  `apply_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '申请时间',
+  `approver_id` varchar(50) DEFAULT NULL COMMENT '审批人',
+  `approver_name` varchar(50) DEFAULT NULL,
+  `approve_time` datetime DEFAULT NULL,
+  `reject_reason` varchar(500) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_dispatch` (`dispatch_id`),
+  KEY `idx_from` (`from_user_id`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='任务交接申请（处理人发起，部门管理员审批）';

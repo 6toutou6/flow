@@ -1,8 +1,10 @@
 package com.company.flow.sys.base.deptAdmin.controller;
 
+import com.company.flow.sys.base.autuser.vo.LoginUser;
 import com.company.flow.sys.base.deptAdmin.entity.DeptAdmin;
 import com.company.flow.sys.base.deptAdmin.service.DeptAdminService;
 import com.company.flow.sys.base.result.Result;
+import com.company.flow.sys.base.util.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -55,10 +57,16 @@ public class DeptAdminController {
         return deptAdminService.delete(adminYstId, deptId) ? Result.success("删除成功") : Result.fail("删除失败");
     }
 
-    /** 当前登录用户是否为部门管理员（前端展示用） */
+    /** 当前登录用户是否为部门管理员（超级管理员亦视为可审批；前端控制「待我审批」入口展示） */
     @GetMapping("/current-check")
     public Result<Boolean> currentCheck() {
-        // 由调用方传入当前用户（会话由拦截器维护），此处按当前登录用户校验
-        return Result.success("获取成功", false);
+        LoginUser me = SecurityUtils.getLoginUser();
+        if (me == null) {
+            return Result.success("获取成功", false);
+        }
+        if (Boolean.TRUE.equals(me.getSuperAdmin())) {
+            return Result.success("获取成功", true);
+        }
+        return Result.success("获取成功", deptAdminService.deptIdOf(me.getYyytId()) != null);
     }
 }

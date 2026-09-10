@@ -19,6 +19,10 @@ public class MyTodoTaskVO {
 
     /** 涉及我的期次数 */
     private Integer periodCount;
+    /** 其中归属人（owner_id）是我的期次数——决定能否发起任务交接 */
+    private Integer myPeriodCount;
+    /** 我在该任务下的节点席位数（含已提交的历史节点）——交接范围里的「参与记录」条数 */
+    private Integer myNodeCount;
     /** 我的待处理节点总数 */
     private Integer pendingCount;
 

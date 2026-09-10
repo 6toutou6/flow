@@ -955,6 +955,7 @@ public class FlowDispatchService {
             ft.setTemplateVersion(tpl.getVersion());
             ft.setCurrentNodeId(firstSnap.getId());
             ft.setCurrentHandlerId(uid);
+            ft.setOwnerId(uid);
             ft.setFinishedNodeCount(0);
             ft.setTotalNodeCount(snapNodes.size());
             ft.setCreatorId(dispatch.getCreatorId());
@@ -1054,6 +1055,7 @@ public class FlowDispatchService {
             ft.setTemplateVersion(dispatch.getTemplateVersion());
             ft.setCurrentNodeId(firstNodeId);
             ft.setCurrentHandlerId(uid);
+            ft.setOwnerId(uid);
             ft.setFinishedNodeCount(0);
             ft.setTotalNodeCount(total);
             ft.setCreatorId(dispatch.getCreatorId());

@@ -46,8 +46,8 @@
             <span v-if="hExpandedItem.status === 'current'" class="cur-stage-tag">当前阶段</span>
             <div class="sd-handlers">
               <span v-if="hExpandedItem.hasPending" class="sd-meta"><i class="el-icon-user" /> 处理人：{{ hExpandedItem.pendingHandlersText || '—' }}</span>
-              <span v-if="hExpandedItem.latestDone" class="actual-handler"><i class="el-icon-user" /> 实际处理：{{ hExpandedItem.handledText || hExpandedItem.latestDone.handlerName || '—' }}</span>
-              <span v-if="hExpandedItem.latestDone && hExpandedItem.assignedText !== hExpandedItem.handledText" class="sd-meta"><i class="el-icon-s-custom" /> 当时分配：{{ hExpandedItem.assignedText }}</span>
+              <span v-if="hExpandedItem.latestDone" class="actual-handler"><i class="el-icon-user" /> 实际处理：{{ hExpandedItem.handledText || handlerText(hExpandedItem.latestDone) }}</span>
+              <span v-if="hExpandedItem.latestDone && hExpandedItem.assignedText !== hExpandedItem.handledText && !hExpandedItem.latestDone.transferFromUserName" class="sd-meta"><i class="el-icon-s-custom" /> 当时分配：{{ hExpandedItem.assignedText }}</span>
               <span v-if="hExpandedItem.latestDone && nodeOverdue(hExpandedItem.latestDone.handleTime)" class="sd-overdue"><i class="el-icon-alarm-clock" /> 超期处理</span>
             </div>
           </div>
@@ -74,7 +74,7 @@
               <div v-if="hExpandedItem.latestDone && hExpandedItem.latestDone.baseDataList && hExpandedItem.latestDone.baseDataList.length > 0" class="bd-block">
                 <div class="expanded-sub-title bd-sub-title">
                   任务基础信息
-                  <span class="bd-handler-note"><i class="el-icon-user" /> 「{{ hExpandedItem.nodeName }}」节点由 {{ hExpandedItem.latestDone.handlerName }}{{ hExpandedItem.latestDone.handlerUserId ? ' ' + hExpandedItem.latestDone.handlerUserId : '' }} 填写</span>
+                  <span class="bd-handler-note"><i class="el-icon-user" /> 「{{ hExpandedItem.nodeName }}」节点由 {{ handlerText(hExpandedItem.latestDone) }} 填写</span>
                 </div>
                 <div v-for="(bd, bi) in hExpandedItem.latestDone.baseDataList" :key="bi" class="form-row">
                   <span class="fr-label">{{ bd.fieldLabel }}</span>
@@ -98,7 +98,7 @@
                 <div v-for="(act, ai) in hExpandedItem.actionHistory" :key="ai" class="action-item" :class="act.action === 1 ? 'act-reject' : 'act-pass'">
                   <div class="action-head">
                     <span class="action-badge">{{ act.action === 1 ? '退回' : '通过' }}</span>
-                    <span class="action-user"><i class="el-icon-user" /> {{ act.handlerName || '—' }}</span>
+                    <span class="action-user"><i class="el-icon-user" /> {{ handlerText(act) }}</span>
                     <span class="action-time"><i class="el-icon-time" /> {{ act.handleTime || '—' }}</span>
                     <span v-if="nodeOverdue(act.handleTime)" class="sd-overdue"><i class="el-icon-alarm-clock" /> 超期处理</span>
                   </div>
@@ -127,12 +127,12 @@
             <span v-if="item.latestDone && item.latestDone.handleTime" class="step-time"><i class="el-icon-time" /> {{ item.latestDone.handleTime }}</span>
             <span class="step-badge" :class="'badge-' + item.status">{{ statusLabel(item.status) }}</span>
             <span v-if="item.status === 'current'" class="cur-stage-tag">当前阶段</span>
-            <span v-if="item.latestDone" class="mine-tag">{{ item.handledText || item.latestDone.handlerName || '该人员' }}已处理</span>
+            <span v-if="item.latestDone" class="mine-tag">{{ item.handledText || handlerText(item.latestDone, '该人员') }}已处理</span>
           </div>
           <div class="step-meta">
             <template v-if="item.latestDone">
-              <span class="actual-handler"><i class="el-icon-user" /> 实际处理：{{ item.handledText || item.latestDone.handlerName || '—' }}</span>
-              <span v-if="item.assignedText !== item.handledText"><i class="el-icon-s-custom" /> 当时分配：{{ item.assignedText }}</span>
+              <span class="actual-handler"><i class="el-icon-user" /> 实际处理：{{ item.handledText || handlerText(item.latestDone) }}</span>
+              <span v-if="item.assignedText !== item.handledText && !item.latestDone.transferFromUserName"><i class="el-icon-s-custom" /> 当时分配：{{ item.assignedText }}</span>
               <span v-if="nodeOverdue(item.latestDone.handleTime)" class="sd-overdue"><i class="el-icon-alarm-clock" /> 超期处理</span>
             </template>
             <template v-else-if="item.hasPending">
@@ -163,7 +163,7 @@
               <div v-if="item.latestDone && item.latestDone.baseDataList && item.latestDone.baseDataList.length > 0" class="bd-block">
                 <div class="expanded-sub-title bd-sub-title">
                   任务基础信息
-                  <span class="bd-handler-note"><i class="el-icon-user" /> 「{{ item.nodeName }}」节点由 {{ item.latestDone.handlerName }}{{ item.latestDone.handlerUserId ? ' ' + item.latestDone.handlerUserId : '' }} 填写</span>
+                  <span class="bd-handler-note"><i class="el-icon-user" /> 「{{ item.nodeName }}」节点由 {{ handlerText(item.latestDone) }} 填写</span>
                 </div>
                 <div v-for="(bd, bi) in item.latestDone.baseDataList" :key="bi" class="form-row">
                   <span class="fr-label">{{ bd.fieldLabel }}</span>
@@ -187,7 +187,7 @@
                 <div v-for="(act, ai) in item.actionHistory" :key="ai" class="action-item" :class="act.action === 1 ? 'act-reject' : 'act-pass'">
                   <div class="action-head">
                     <span class="action-badge">{{ act.action === 1 ? '退回' : '通过' }}</span>
-                    <span class="action-user"><i class="el-icon-user" /> {{ act.handlerName || '—' }}</span>
+                    <span class="action-user"><i class="el-icon-user" /> {{ handlerText(act) }}</span>
                     <span class="action-time"><i class="el-icon-time" /> {{ act.handleTime || '—' }}</span>
                     <span v-if="nodeOverdue(act.handleTime)" class="sd-overdue"><i class="el-icon-alarm-clock" /> 超期处理</span>
                   </div>
@@ -206,7 +206,7 @@
 
 <script>
 import AttachField from '@/components/AttachField.vue'
-import { formatNodeHandlers } from '@/utils'
+import { formatNodeHandlers, formatHandlerWithTransfer } from '@/utils'
 
 /**
  * 任务流程链（统一组件）：
@@ -289,6 +289,9 @@ export default {
             .map(tn => ({
               action: tn.action,
               handlerName: tn.handlerName,
+              handlerUserId: tn.handlerUserId,
+              transferFromUserName: tn.transferFromUserName,
+              transferFromUserId: tn.transferFromUserId,
               handleTime: tn.handleTime,
               rejectReason: tn.rejectReason,
               passComment: tn.passComment
@@ -297,8 +300,9 @@ export default {
           const pendingHandlersText = formatNodeHandlers(nodes, true)
           // 节点分配的全部处理人（当时选了谁就能看到谁；已完成节点也保留完整名单）
           const assignedText = formatNodeHandlers(nodes, false)
-          // 已处理人（实际处理者，带用户号）
-          const handledText = latestDone ? formatNodeHandlers([latestDone], false) : ''
+          // 已处理人：真正经办的人。节点发生交接后库里 handler 已变更为接手人，
+          // 故此处按「原处理人（现 接手人）」展示，例如「钱七 emp0005（现 孙八 emp0006）」
+          const handledText = latestDone ? formatHandlerWithTransfer(latestDone) : ''
           return {
             nodeId: tpl.id,
             nodeName: tpl.nodeName,
@@ -340,6 +344,10 @@ export default {
     }
   },
   methods: {
+    /** 处理人展示：交接过的节点显示实际经办人「原处理人 工号（现 接手人 工号）」 */
+    handlerText(node, fallback) {
+      return formatHandlerWithTransfer(node, fallback)
+    },
     statusLabel(s) { return { done: '已通过', current: '处理中', rejected: '已退回', pending: '未到' }[s] || '未到' },
     /** 切换节点详情展开：横向同时只展开一个；竖向可同时展开多个 */
     toggleNodeForm(item) {

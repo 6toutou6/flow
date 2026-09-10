@@ -38,6 +38,8 @@ public class FlowTask {
     private String currentNodeId;
     /** 当前处理人ID（流转指针） */
     private String currentHandlerId;
+    /** 当前归属人（人员交接后随人变更；「我的任务」可见性 = owner 或 节点处理人） */
+    private String ownerId;
     /** 已完成节点数 */
     private Integer finishedNodeCount;
     /** 总节点数 */

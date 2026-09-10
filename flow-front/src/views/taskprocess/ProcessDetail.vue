@@ -250,7 +250,7 @@
                       <div class="tl-node">{{ h.nodeName }}</div>
                       <div class="tl-head">
                         <span class="tl-badge">{{ h.action === 1 ? '退回' : '通过' }}</span>
-                        <span class="tl-user"><i class="el-icon-user" /> {{ h.handlerName || '—' }}</span>
+                        <span class="tl-user"><i class="el-icon-user" /> {{ handlerText(h) }}</span>
                       </div>
                       <div class="tl-time"><i class="el-icon-time" /> {{ h.handleTime || '—' }} <span v-if="nodeOverdue(h.handleTime)" class="pd-overdue"><i class="el-icon-alarm-clock" /> 超期处理</span></div>
                       <div v-if="h.action === 0 && h.passComment" class="tl-comment">通过意见：{{ h.passComment }}</div>
@@ -336,7 +336,7 @@
 
 <script>
 import RejectTargetModal from './components/RejectTargetModal.vue'
-import { stableBizId, formatNodeHandlers } from '@/utils'
+import { stableBizId, formatNodeHandlers, formatHandlerWithTransfer } from '@/utils'
 import ConfirmActionModal from './components/ConfirmActionModal.vue'
 import AttachField from '@/components/AttachField.vue'
 import FlowChain from '@/components/FlowChain.vue'
@@ -514,7 +514,7 @@ export default {
           const hit = filledNodes.filter(tn => tn.baseDataList.some(b => String(b.fieldId) === String(f.id)))
             .sort((a, b) => String(a.taskNodeId || '').localeCompare(String(b.taskNodeId || '')))
           const src = hit[hit.length - 1]
-          if (src) srcText = `「${src.nodeName}」节点由 ${src.handlerName}${src.handlerUserId ? ' ' + src.handlerUserId : ''} 填写`
+          if (src) srcText = `「${src.nodeName}」节点由 ${formatHandlerWithTransfer(src)} 填写`
         }
         return {
           id: f.id,
@@ -641,6 +641,10 @@ export default {
     this.fetchDetail()
   },
   methods: {
+    /** 处理人展示：交接过的节点显示实际经办人「原处理人 工号（现 接手人 工号）」 */
+    handlerText(node, fallback) {
+      return formatHandlerWithTransfer(node, fallback)
+    },
     /** 解析后端落库的下一处理人全集 JSON（[{id,name}]）→ [{id,userName,yyytId}]；非法/空返回 [] */
     parseNextHandlerIds(json) {
       if (!json) return []

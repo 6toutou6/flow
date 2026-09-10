@@ -15,6 +15,8 @@
         <result property="nextHandlerTip" column="next_handler_tip"/>
         <result property="nodeType" column="node_type"/>
         <result property="todoStatus" column="todo_status"/>
+        <result property="transferFromUserId" column="transfer_from_user_id"/>
+        <result property="transferFromUserName" column="transfer_from_user_name"/>
         <result property="dispatchId" column="dispatch_id"/>
         <result property="planId" column="plan_id"/>
         <result property="periodName" column="period_name"/>
@@ -27,6 +29,8 @@
     <sql id="myTodoSelectColumns">
         tn.id AS task_node_id, tn.task_id, tn.node_id AS current_node_id,
         tn.node_name, tn.node_type, tn.handle_time AS handle_time,
+        <!-- 任务交接留痕：接手人处理时保留「原处理人」，界面展示为「B（A 移交）」 -->
+        tn.transfer_from_user_id, tn.transfer_from_user_name,
         t.task_name, t.template_id, t.create_time AS task_create_time,
         tpl.template_name,
         <!-- 节点提示/下一步提示：期次快照优先，存量任务降级模板节点 -->
@@ -53,13 +57,12 @@
         LEFT JOIN flow_task_dispatch_node dn ON tn.dispatch_node_id = dn.id
         LEFT JOIN flow_template_node n ON tn.node_id = n.id
         LEFT JOIN flow_task_dispatch d ON d.id = t.dispatch_id
-        WHERE tn.handler_user_id = #{handlerUserId}
+        WHERE (t.owner_id = #{handlerUserId} OR tn.handler_user_id = #{handlerUserId})
           AND t.status IN ('进行中', '已结束')
-          <!-- 每个任务取该用户最新一条节点记录（有待办取最新待办，否则取最新已处理） -->
+          <!-- 每个任务取最新一条节点记录（有待办取最新待办，否则取最新已处理） -->
           AND tn.id = (
               SELECT MAX(t2.id) FROM flow_task_node t2
               WHERE t2.task_id = tn.task_id
-                AND t2.handler_user_id = #{handlerUserId}
           )
         ORDER BY tn.create_time DESC
         LIMIT #{offset}, #{limit}
@@ -70,7 +73,7 @@
             SELECT tn.task_id
             FROM flow_task_node tn
             INNER JOIN flow_task t ON tn.task_id = t.id
-            WHERE tn.handler_user_id = #{handlerUserId}
+            WHERE (t.owner_id = #{handlerUserId} OR tn.handler_user_id = #{handlerUserId})
               AND t.status IN ('进行中', '已结束')
             GROUP BY tn.task_id
         ) sub
@@ -86,14 +89,16 @@
                COALESCE(tpl.template_name, tpl2.template_name) AS templateName,
                COALESCE(plan.create_time, t.create_time) AS taskCreateTime,
                COUNT(DISTINCT COALESCE(d.id, t.id)) AS periodCount,
-               SUM(CASE WHEN tn.submit_status = 0 THEN 1 ELSE 0 END) AS pendingCount
+               COUNT(DISTINCT CASE WHEN t.owner_id = #{handlerUserId} THEN COALESCE(d.id, t.id) END) AS myPeriodCount,
+               COUNT(DISTINCT CASE WHEN tn.handler_user_id = #{handlerUserId} THEN tn.id END) AS myNodeCount,
+               SUM(CASE WHEN tn.submit_status = 0 AND tn.handler_user_id = #{handlerUserId} THEN 1 ELSE 0 END) AS pendingCount
         FROM flow_task_node tn
         INNER JOIN flow_task t ON tn.task_id = t.id
         LEFT JOIN flow_task_dispatch d ON d.id = t.dispatch_id
         LEFT JOIN flow_dispatch plan ON plan.id = d.task_id
         LEFT JOIN flow_template tpl ON plan.template_id = tpl.id
         LEFT JOIN flow_template tpl2 ON t.template_id = tpl2.id
-        WHERE tn.handler_user_id = #{handlerUserId}
+        WHERE (t.owner_id = #{handlerUserId} OR tn.handler_user_id = #{handlerUserId})
           AND t.status IN ('进行中', '已结束')
           <if test="taskName != null and taskName != ''">
               AND COALESCE(plan.task_name, t.task_name) LIKE CONCAT('%', #{taskName}, '%')
@@ -114,7 +119,7 @@
                  COALESCE(plan.template_id, t.template_id), tpl.template_name, tpl2.template_name,
                  COALESCE(plan.create_time, t.create_time)
         <if test="status != null">
-            HAVING COALESCE(SUM(CASE WHEN tn.submit_status = 0 THEN 1 ELSE 0 END), 0)
+            HAVING COALESCE(SUM(CASE WHEN tn.submit_status = 0 AND tn.handler_user_id = #{handlerUserId} THEN 1 ELSE 0 END), 0)
             <choose>
                 <when test="status == 1">&gt; 0</when>
                 <otherwise>= 0</otherwise>
@@ -133,7 +138,7 @@
             LEFT JOIN flow_dispatch plan ON plan.id = d.task_id
             LEFT JOIN flow_template tpl ON plan.template_id = tpl.id
             LEFT JOIN flow_template tpl2 ON t.template_id = tpl2.id
-            WHERE tn.handler_user_id = #{handlerUserId}
+            WHERE (t.owner_id = #{handlerUserId} OR tn.handler_user_id = #{handlerUserId})
               AND t.status IN ('进行中', '已结束')
               <if test="taskName != null and taskName != ''">
                   AND COALESCE(plan.task_name, t.task_name) LIKE CONCAT('%', #{taskName}, '%')
@@ -152,7 +157,7 @@
               </if>
             GROUP BY COALESCE(d.task_id, t.id)
             <if test="status != null">
-                HAVING COALESCE(SUM(CASE WHEN tn.submit_status = 0 THEN 1 ELSE 0 END), 0)
+                HAVING COALESCE(SUM(CASE WHEN tn.submit_status = 0 AND tn.handler_user_id = #{handlerUserId} THEN 1 ELSE 0 END), 0)
                 <choose>
                     <when test="status == 1">&gt; 0</when>
                     <otherwise>= 0</otherwise>
@@ -164,12 +169,12 @@
     <!-- 我的任务统计（统计卡）：任务数 / 待处理节点数 / 已完成节点数 -->
     <select id="selectMyTodoStats" resultType="com.company.flow.sys.flowtask.vo.MyTodoStatsVO">
         SELECT COUNT(DISTINCT COALESCE(d.task_id, t.id)) AS taskCount,
-               COALESCE(SUM(CASE WHEN tn.submit_status = 0 THEN 1 ELSE 0 END), 0) AS pendingNodeCount,
-               COALESCE(SUM(CASE WHEN tn.submit_status = 1 THEN 1 ELSE 0 END), 0) AS doneNodeCount
+               COALESCE(SUM(CASE WHEN tn.submit_status = 0 AND tn.handler_user_id = #{handlerUserId} THEN 1 ELSE 0 END), 0) AS pendingNodeCount,
+               COALESCE(SUM(CASE WHEN tn.submit_status = 1 AND tn.handler_user_id = #{handlerUserId} THEN 1 ELSE 0 END), 0) AS doneNodeCount
         FROM flow_task_node tn
         INNER JOIN flow_task t ON tn.task_id = t.id
         LEFT JOIN flow_task_dispatch d ON d.id = t.dispatch_id
-        WHERE tn.handler_user_id = #{handlerUserId}
+        WHERE (t.owner_id = #{handlerUserId} OR tn.handler_user_id = #{handlerUserId})
           AND t.status IN ('进行中', '已结束')
     </select>
 
@@ -184,7 +189,7 @@
         LEFT JOIN flow_task_dispatch_node dn ON tn.dispatch_node_id = dn.id
         LEFT JOIN flow_template_node n ON tn.node_id = n.id
         LEFT JOIN flow_task_dispatch d ON d.id = t.dispatch_id
-        WHERE tn.handler_user_id = #{handlerUserId}
+        WHERE (t.owner_id = #{handlerUserId} OR tn.handler_user_id = #{handlerUserId})
           AND t.status IN ('进行中', '已结束')
           AND COALESCE(d.task_id, t.id) IN
         <foreach collection="taskIds" item="taskId" open="(" separator="," close=")">
@@ -193,7 +198,6 @@
           AND tn.id = (
               SELECT MAX(t2.id) FROM flow_task_node t2
               WHERE t2.task_id = tn.task_id
-                AND t2.handler_user_id = #{handlerUserId}
           )
         ORDER BY tn.create_time DESC
     </select>
@@ -207,6 +211,8 @@
         <result property="nodeType" column="node_type"/>
         <result property="handlerUserId" column="handler_user_id"/>
         <result property="handlerName" column="handler_name"/>
+        <result property="transferFromUserId" column="transfer_from_user_id"/>
+        <result property="transferFromUserName" column="transfer_from_user_name"/>
         <result property="submitStatus" column="submit_status"/>
         <result property="handleTime" column="handle_time"/>
         <result property="nextHandlerUserId" column="next_handler_user_id"/>
@@ -221,6 +227,7 @@
     <select id="selectTaskProgress" resultMap="ProgressMap">
         SELECT tn.id AS task_node_id, tn.node_id, tn.node_name, tn.sort_num, tn.node_type,
                tn.handler_user_id, tn.submit_status, tn.handle_time,
+               tn.transfer_from_user_id, tn.transfer_from_user_name,
                tn.next_handler_user_id, tn.next_handler_ids, tn.form_record_id, tn.action, tn.reject_reason, tn.pass_comment,
                u.user_name AS handler_name,
                u2.user_name AS next_handler_name

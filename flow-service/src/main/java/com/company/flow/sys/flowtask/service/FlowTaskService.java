@@ -1021,6 +1021,7 @@ public class FlowTaskService {
             task.setTemplateVersion(dispatch.getTemplateVersion());
             task.setCurrentNodeId(firstNodeId);
             task.setCurrentHandlerId(handlerId);
+            task.setOwnerId(handlerId);
             task.setFinishedNodeCount(0);
             task.setTotalNodeCount(total);
             task.setCreatorId(creatorId);

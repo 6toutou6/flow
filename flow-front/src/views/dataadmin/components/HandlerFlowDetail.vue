@@ -45,7 +45,7 @@
               <div class="tl-node">{{ h.nodeName }}</div>
               <div class="tl-head">
                 <span class="tl-badge">{{ h.action === 1 ? '退回' : '通过' }}</span>
-                <span class="tl-user"><i class="el-icon-user" /> {{ h.handlerName || '—' }}</span>
+                <span class="tl-user"><i class="el-icon-user" /> {{ handlerText(h) }}</span>
               </div>
               <div class="tl-time"><i class="el-icon-time" /> {{ h.handleTime || '—' }} <span v-if="nodeOverdue(h.handleTime)" class="sd-overdue"><i class="el-icon-alarm-clock" /> 超期处理</span></div>
               <div v-if="h.action === 0 && h.passComment" class="tl-comment">通过意见：{{ h.passComment }}</div>
@@ -71,6 +71,7 @@
 
 <script>
 import FlowChain from '@/components/FlowChain.vue'
+import { formatHandlerWithTransfer } from '@/utils'
 
 export default {
   name: 'HandlerFlowDetail',
@@ -104,7 +105,7 @@ export default {
           const hit = filledNodes.filter(tn => tn.baseDataList.some(b => String(b.fieldId) === String(f.id)))
             .sort((a, b) => String(a.taskNodeId || '').localeCompare(String(b.taskNodeId || '')))
           const src = hit[hit.length - 1]
-          if (src) srcText = `「${src.nodeName}」节点由 ${src.handlerName}${src.handlerUserId ? ' ' + src.handlerUserId : ''} 填写`
+          if (src) srcText = `「${src.nodeName}」节点由 ${formatHandlerWithTransfer(src)} 填写`
         }
         return {
           id: f.id,
@@ -143,6 +144,10 @@ export default {
     }
   },
   methods: {
+    /** 处理人展示：交接过的节点显示实际经办人「原处理人 工号（现 接手人 工号）」 */
+    handlerText(node, fallback) {
+      return formatHandlerWithTransfer(node, fallback)
+    },
     /** 节点处理时间是否超过任务截止时间（超期处理软性标记） */
     nodeOverdue(timeStr) {
       if (!timeStr || !this.taskEndTime) return false

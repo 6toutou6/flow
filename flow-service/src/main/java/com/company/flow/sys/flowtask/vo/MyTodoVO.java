@@ -28,6 +28,9 @@ public class MyTodoVO {
 
     /** 待办状态 0待处理 1已处理（仅查看） */
     private Integer todoStatus;
+    /** 交接留痕：本节点原处理人（发生任务交接时回填，界面展示为「接手人（原处理人 移交）」） */
+    private String transferFromUserId;
+    private String transferFromUserName;
     /** 该节点处理时间（已处理时回填，用于与期次截止时间比较展示「超期完成」） */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date handleTime;

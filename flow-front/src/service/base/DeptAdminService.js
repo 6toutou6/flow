@@ -16,6 +16,14 @@ export function getDeptOptions() {
   })
 }
 
+/** 当前登录用户是否为部门管理员（超管亦为 true；可用作「交接审批」菜单的角色判据） */
+export function getCurrentDeptAdminCheck() {
+  return request({
+    url: '/dept-admin/current-check',
+    method: 'get'
+  })
+}
+
 /** 新增部门管理员 */
 export function addDeptAdmin(data) {
   return request({

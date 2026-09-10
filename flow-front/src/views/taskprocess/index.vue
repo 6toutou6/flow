@@ -109,6 +109,12 @@
                 <span v-if="g.pendingCount > 0" class="pending-tag">{{ g.pendingCount }} 待处理</span>
                 <span class="ct-meta" :title="ctMetaText(g)">{{ ctMetaText(g) }}</span>
               </div>
+              <button
+                v-if="canHandover(g)"
+                class="btn-handover"
+                title="把该任务下我名下的期次与待处理节点交接给他人"
+                @click.stop="openHandover(g)"
+              ><i class="el-icon-s-promotion" /> 交接任务</button>
               <i class="el-icon-arrow-down tp-arrow" />
             </div>
 
@@ -204,15 +210,28 @@
         </div>
       </section>
     </main>
+
+    <!-- 任务交接申请弹窗 -->
+    <HandoverModal
+      :visible="handoverVisible"
+      :dispatch-id="handoverCtx.dispatchId"
+      :dispatch-name="handoverCtx.dispatchName"
+      :period-count="handoverCtx.periodCount"
+      :node-count="handoverCtx.nodeCount"
+      @success="onHandoverSuccess"
+      @close="handoverVisible = false"
+    />
   </div>
 </template>
 
 <script>
 import { getMyTodoGrouped, getMyTodoStats } from '@/service/sys/TaskService'
+import HandoverModal from '@/components/HandoverModal'
 import { NODE_TYPE } from '@/constants/dict'
 
 export default {
   name: 'TaskProcess',
+  components: { HandoverModal },
   data() {
     return {
       loading: false,
@@ -228,7 +247,10 @@ export default {
       // 统计卡筛选（待处理/已完成同维互斥；点「我的任务」恢复全部）
       activeStats: [],
       // 展开的任务（可多个同时展开）
-      openTaskIds: []
+      openTaskIds: [],
+      // 交接弹窗
+      handoverVisible: false,
+      handoverCtx: { dispatchId: '', dispatchName: '', periodCount: 0, nodeCount: 0 }
     }
   },
   mounted() {
@@ -373,6 +395,29 @@ export default {
           periodName: (per && per.periodName) || ''
         }
       })
+    },
+    /**
+     * 是否展示交接入口（入口常显）。
+     * 只要该任务存在任务配置（有期次）就展示按钮；我名下是否真的可交接
+     * 由弹窗内按 myPeriodCount / myNodeCount 提示，避免用户找不到入口。
+     */
+    canHandover(g) {
+      if (!g) return false
+      return !!(g.periods && g.periods.some(p => p && p.dispatchId))
+    },
+    /** 打开交接弹窗：交接范围 = 该任务配置下我名下的期次 + 我在该任务下的全部节点席位 */
+    openHandover(g) {
+      this.handoverCtx = {
+        dispatchId: g.taskId,
+        dispatchName: g.taskName,
+        periodCount: g.myPeriodCount || 0,
+        nodeCount: g.myNodeCount || 0
+      }
+      this.handoverVisible = true
+    },
+    onHandoverSuccess() {
+      this.handoverVisible = false
+      this.$message.success('交接申请已提交，等待部门管理员审批')
     }
   }
 }
@@ -495,6 +540,10 @@ $border: #CBD5E1;
 }
 .btn-view { display: flex; align-items: center; gap: 4px; padding: 6px 14px; background: #fff; color: #545f72; border: 1px solid #d8dee9; border-radius: 2px; cursor: pointer; font-size: 13px; font-weight: 600;
   &:hover { background: #f0f3ff; border-color: #b7c3d8; }
+}
+// 交接任务（任务组头右侧）
+.btn-handover { display: flex; align-items: center; gap: 4px; flex-shrink: 0; padding: 5px 12px; background: #fff; color: #B45309; border: 1px solid #F0B775; border-radius: 2px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all .2s;
+  &:hover { background: #FFF7ED; border-color: #D97706; }
 }
 .status-badge { display: inline-block; padding: 2px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;
   &.st-todo { background: rgba(var(--color-primary-rgb),0.1); color: $primary; }
