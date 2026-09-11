@@ -3,11 +3,14 @@ package com.company.flow.sys.base.attach.controller;
 import com.company.flow.sys.base.attach.entity.Attach;
 import com.company.flow.sys.base.attach.service.AttachService;
 import com.company.flow.sys.base.result.Result;
+import com.company.flow.sys.base.util.ParamUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 附件管理：文件/图片上传（支持单文件 file 与多文件 files 数组）、列表、预览、下载、删除
@@ -43,10 +46,11 @@ public class AttachController {
         return Result.success("上传成功", attachService.saveFiles(files, bizId, creator));
     }
 
-    /** 附件列表（按业务id查询，按创建时间升序） */
-    @GetMapping("/list")
-    public Result<List<Attach>> list(@RequestParam(value = "bizId", required = false) String bizId) {
-        return Result.success("获取成功", attachService.list(bizId));
+    /** 附件列表（按业务id查询，按创建时间升序；参数走 body） */
+    @PostMapping("/list")
+    public Result<List<Attach>> list(@RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> p = body == null ? new HashMap<>() : body;
+        return Result.success("获取成功", attachService.list(ParamUtil.str(p.get("bizId"))));
     }
 
     /** 预览附件：日志输出体现 */
@@ -66,7 +70,7 @@ public class AttachController {
     }
 
     /** 删除附件：日志输出体现并删除记录 */
-    @DeleteMapping("/{attachId}")
+    @PostMapping("/delete/{attachId}")
     public Result<Void> delete(@PathVariable String attachId) {
         boolean ok = attachService.delete(attachId);
         return ok ? Result.success("删除成功") : Result.notFound("附件不存在");

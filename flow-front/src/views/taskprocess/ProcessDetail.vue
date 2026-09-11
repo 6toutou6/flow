@@ -681,7 +681,7 @@ export default {
         this.loadLinkIns()
       } catch (e) {
         console.error(e)
-        this.$message.error((e && e.message) || '任务加载失败')
+        this.$notifyError(e, '任务加载失败')
       } finally {
         this.loading = false
       }
@@ -890,11 +890,12 @@ export default {
       payload.action = 'draft'
       this.drafting = true
       try {
-        await saveDraftTask(payload)
+        const res = await saveDraftTask(payload)
+        if (!res || res.code !== 200) return
         this.$message.success('已暂存，可随时继续填写')
       } catch (e) {
         console.error(e)
-        this.$message.error((e && e.message) || '暂存失败')
+        this.$notifyError(e, '暂存失败')
       } finally {
         this.drafting = false
       }
@@ -947,11 +948,12 @@ export default {
       if (!target || !target.yyytId) return
       try {
         await this.$confirm(`确认将待办转办给「${target.userName}」？`, '转办确认', { type: 'warning' })
-        await transferTask({ taskNodeId: this.todo.taskNodeId, targetUserId: target.yyytId })
+        const res = await transferTask({ taskNodeId: this.todo.taskNodeId, targetUserId: target.yyytId })
+        if (!res || res.code !== 200) return
         this.$message.success('转办成功')
         this.$router.replace('/task-process/index')
       } catch (e) {
-        if (e !== 'cancel') this.$message.error((e && e.message) || '转办失败')
+        if (e !== 'cancel') this.$notifyError(e, '转办失败')
       }
     },
     /** 组装表单与基础字段数据（暂存/提交共用） */
@@ -997,7 +999,8 @@ export default {
       this.submitting = true
       this.confirmVisible = false
       try {
-        await submitTask(payload)
+        const res = await submitTask(payload)
+        if (!res || res.code !== 200) return
         const isEnd = this.isEndNode
         let msg
         if (isReject) {
@@ -1022,7 +1025,7 @@ export default {
         this.$router.replace({ path: '/task-process/detail', query: q }, () => this.fetchDetail())
       } catch (e) {
         console.error(e)
-        this.$message.error((e && e.message) || '提交失败')
+        this.$notifyError(e, '提交失败')
         this.submitting = false
       }
     },

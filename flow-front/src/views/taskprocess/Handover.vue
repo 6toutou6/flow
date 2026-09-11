@@ -478,7 +478,7 @@ export default {
         this.dispatchRecordsList = (res && res.data) || []
       } catch (e) {
         console.error(e)
-        this.$message.error((e && e.message) || '交接记录加载失败')
+        this.$notifyError(e, '交接记录加载失败')
       } finally {
         this.dispatchRecordsLoading = false
       }

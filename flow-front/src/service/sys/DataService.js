@@ -1,62 +1,54 @@
-import request from '@/service/BaseAxios'
+import { getDg, postDg } from '@/service/BaseAxios'
 
-// 填报记录列表
+// 后端控制器
+const controller = 'flow-data'
+
+/**
+ * @desc: 填报记录列表（POST /flow-data/list；param: 查询条件）
+ */
 export function getRecordList(params) {
-  return request({
-    url: '/flow-data/list',
-    method: 'post',
-    data: params
-  })
+  return postDg(controller, 'list', params)
 }
 
-// 填报记录详情
+/**
+ * @desc: 填报记录详情（GET /flow-data/record/{id}）
+ */
 export function getRecordDetail(id) {
-  return request({
-    url: `/flow-data/record/${id}`,
-    method: 'get'
-  })
+  return getDg(controller, 'record', id)
 }
 
-// 数据后台统计卡
+/**
+ * @desc: 数据后台统计卡（POST /flow-data/stats）
+ */
 export function getDataStats() {
-  return request({
-    url: '/flow-data/stats',
-    method: 'get'
-  })
+  return postDg(controller, 'stats')
 }
 
-// 提交量趋势
+/**
+ * @desc: 提交量趋势（GET /flow-data/trend/{days}）
+ */
 export function getDataTrend(days = 30) {
-  return request({
-    url: '/flow-data/trend',
-    method: 'get',
-    params: { days }
-  })
+  return getDg(controller, 'trend', days)
 }
 
-// 按人员展示：人员提交汇总列表（分页）
+/**
+ * @desc: 按人员展示：人员提交汇总列表（POST /flow-data/person-list；param: 分页与筛选）
+ */
 export function getPersonList(params) {
-  return request({
-    url: '/flow-data/person-list',
-    method: 'get',
-    params
-  })
+  return postDg(controller, 'person-list', params)
 }
 
-// 按人员展示：某人全部历史提交记录（分页）
+/**
+ * @desc: 按人员展示：某人全部历史提交记录（POST /flow-data/person-records；param: 分页与筛选）
+ */
 export function getPersonRecords(params) {
-  return request({
-    url: '/flow-data/person-records',
-    method: 'get',
-    params
-  })
+  return postDg(controller, 'person-records', params)
 }
 
-// 数据展示页聚合数据（统计卡 + 各图表；trendType: day/month/quarter/year，可选时间范围 startDate/endDate）
+/**
+ * @desc: 数据展示页聚合数据（POST /flow-data/dashboard）
+ *        trendType: day/month/quarter/year，可选时间范围 startDate/endDate
+ */
 export function getDashboard(params = {}) {
-  return request({
-    url: '/flow-data/dashboard',
-    method: 'get',
-    params: Object.assign({ trendType: 'day' }, params)
-  })
+  return postDg(controller, 'dashboard', Object.assign({ trendType: 'day' }, params))
 }

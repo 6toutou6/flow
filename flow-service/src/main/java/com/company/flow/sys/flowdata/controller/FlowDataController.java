@@ -11,10 +11,13 @@ import com.company.flow.sys.flowdata.vo.PersonSubmitVO;
 import com.company.flow.sys.flowdata.vo.TrendPointVO;
 import com.company.flow.sys.base.result.PageResult;
 import com.company.flow.sys.base.result.Result;
+import com.company.flow.sys.base.util.ParamUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/flow-data")
@@ -35,43 +38,50 @@ public class FlowDataController {
         return vo != null ? Result.success("获取成功", vo) : Result.notFound("记录不存在");
     }
 
-    @GetMapping("/stats")
+    @PostMapping("/stats")
     public Result<DataStatsVO> stats() {
         return Result.success("获取成功", flowDataService.getStats());
     }
 
-    @GetMapping("/trend")
-    public Result<List<TrendPointVO>> trend(@RequestParam(defaultValue = "30") int days) {
+    @GetMapping("/trend/{days}")
+    public Result<List<TrendPointVO>> trend(@PathVariable int days) {
         return Result.success("获取成功", flowDataService.getTrend(days));
     }
 
     // ==================== 按人员展示 ====================
 
     /** 人员提交汇总列表（分页，姓名/工号过滤；taskId 非空时仅统计该任务下人员） */
-    @GetMapping("/person-list")
-    public Result<PageResult<PersonSubmitVO>> personList(@RequestParam(required = false) String name,
-                                                         @RequestParam(required = false) String taskId,
-                                                         @RequestParam(defaultValue = "1") int page,
-                                                         @RequestParam(defaultValue = "10") int limit) {
-        return Result.success("获取成功", flowDataService.getPersonPage(name, taskId, page, limit));
+    @PostMapping("/person-list")
+    public Result<PageResult<PersonSubmitVO>> personList(@RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> p = body == null ? new HashMap<>() : body;
+        return Result.success("获取成功", flowDataService.getPersonPage(
+                ParamUtil.str(p.get("name")),
+                ParamUtil.str(p.get("taskId")),
+                ParamUtil.intv(p.get("page"), 1),
+                ParamUtil.intv(p.get("limit"), 10)));
     }
 
     /** 某人参与的任务链全部节点（分页；taskId 非空时仅返回该任务下的链） */
-    @GetMapping("/person-records")
-    public Result<PageResult<PersonNodeVO>> personRecords(@RequestParam String userId,
-                                                          @RequestParam(required = false) String taskId,
-                                                          @RequestParam(defaultValue = "1") int page,
-                                                          @RequestParam(defaultValue = "10") int limit) {
-        return Result.success("获取成功", flowDataService.getPersonRecords(userId, taskId, page, limit));
+    @PostMapping("/person-records")
+    public Result<PageResult<PersonNodeVO>> personRecords(@RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> p = body == null ? new HashMap<>() : body;
+        return Result.success("获取成功", flowDataService.getPersonRecords(
+                ParamUtil.str(p.get("userId")),
+                ParamUtil.str(p.get("taskId")),
+                ParamUtil.intv(p.get("page"), 1),
+                ParamUtil.intv(p.get("limit"), 10)));
     }
 
     // ==================== 数据展示页 ====================
 
     /** 数据展示页聚合数据（统计卡 + 各图表） */
-    @GetMapping("/dashboard")
-    public Result<DashboardVO> dashboard(@RequestParam(defaultValue = "day") String trendType,
-                                         @RequestParam(required = false) String startDate,
-                                         @RequestParam(required = false) String endDate) {
-        return Result.success("获取成功", flowDataService.getDashboard(trendType, startDate, endDate));
+    @PostMapping("/dashboard")
+    public Result<DashboardVO> dashboard(@RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> p = body == null ? new HashMap<>() : body;
+        String trendType = ParamUtil.str(p.get("trendType"));
+        return Result.success("获取成功", flowDataService.getDashboard(
+                trendType == null || trendType.isEmpty() ? "day" : trendType,
+                ParamUtil.str(p.get("startDate")),
+                ParamUtil.str(p.get("endDate"))));
     }
 }

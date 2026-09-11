@@ -562,7 +562,7 @@ export default {
         this.data = res.data || null
       } catch (e) {
         console.error(e)
-        this.$message.error((e && e.message) || '数据加载失败')
+        this.$notifyError(e, '数据加载失败')
       } finally {
         this.loading = false
       }

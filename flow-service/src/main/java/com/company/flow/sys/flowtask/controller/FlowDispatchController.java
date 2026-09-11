@@ -13,12 +13,14 @@ import com.company.flow.sys.flowtask.vo.TaskMemberInfoVO;
 import com.company.flow.sys.flowtask.vo.TaskSaveDTO;
 import com.company.flow.sys.base.result.PageResult;
 import com.company.flow.sys.base.result.Result;
+import com.company.flow.sys.base.util.ParamUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Map;
@@ -38,26 +40,28 @@ public class FlowDispatchController {
     // ==================== 下发配置模板 ====================
 
     /** 下发配置模板列表（新建任务时可拉取复用；支持样例/我的/周期/创建人/更新时间范围过滤，可叠加） */
-    @GetMapping("/config-template/list")
+    @PostMapping("/config-template/list")
     public Result<List<FlowDispatchConfigTemplate>> configTemplateList(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Integer sample,
-            @RequestParam(required = false) Boolean mine,
-            @RequestParam(required = false) Integer cycleType,
-            @RequestParam(required = false) String creatorName,
-            @RequestParam(required = false) String updateStart,
-            @RequestParam(required = false) String updateEnd) {
-        return Result.success("获取成功", configTemplateService.list(keyword, sample, mine, cycleType, creatorName, updateStart, updateEnd));
+            @RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> p = body == null ? new HashMap<>() : body;
+        return Result.success("获取成功", configTemplateService.list(
+                ParamUtil.str(p.get("keyword")),
+                ParamUtil.intv(p.get("sample")),
+                ParamUtil.boolv(p.get("mine")),
+                ParamUtil.intv(p.get("cycleType")),
+                ParamUtil.str(p.get("creatorName")),
+                ParamUtil.str(p.get("updateStart")),
+                ParamUtil.str(p.get("updateEnd"))));
     }
 
     /** 下发配置模板页统计卡 */
-    @GetMapping("/config-template/stats")
+    @PostMapping("/config-template/stats")
     public Result<ConfigTemplateStatsVO> configTemplateStats() {
         return Result.success("获取成功", configTemplateService.stats());
     }
 
     /** 下发配置模板详情（编辑回填） */
-    @GetMapping("/config-template/{id}")
+    @GetMapping("/config-template/detail/{id}")
     public Result<FlowDispatchConfigTemplate> configTemplateDetail(@PathVariable String id) {
         try {
             FlowDispatchConfigTemplate tpl = configTemplateService.getById(id);
@@ -89,7 +93,7 @@ public class FlowDispatchController {
     }
 
     /** 删除下发配置模板（不影响已拉取到任务上的配置） */
-    @DeleteMapping("/config-template/delete/{id}")
+    @PostMapping("/config-template/delete/{id}")
     public Result<Void> configTemplateDelete(@PathVariable String id) {
         try {
             return configTemplateService.delete(id) ? Result.success("删除成功") : Result.fail("删除失败");
@@ -99,7 +103,7 @@ public class FlowDispatchController {
     }
 
     /** 设置/取消下发配置模板样例：仅超管可操作（样例公共可见、不可改） */
-    @PutMapping("/config-template/sample/{id}")
+    @PostMapping("/config-template/sample/{id}")
     public Result<Void> configTemplateToggleSample(@PathVariable String id) {
         try {
             return configTemplateService.toggleSample(id) ? Result.success("操作成功") : Result.fail("操作失败");
@@ -118,41 +122,45 @@ public class FlowDispatchController {
         }
     }
 
-    /** 任务分页列表（含期次数、人员数） */
-    @GetMapping("/list")
-    public Result<PageResult<FlowDispatch>> list(@RequestParam(required = false) Integer page,
-                                                 @RequestParam(required = false) Integer limit,
-                                                 @RequestParam(required = false) String taskName,
-                                                 @RequestParam(required = false) String status,
-                                                 @RequestParam(required = false) Integer sample,
-                                                 @RequestParam(required = false) String progress,
-                                                 @RequestParam(required = false) String creatorName,
-                                                 @RequestParam(required = false) String createStart,
-                                                 @RequestParam(required = false) String createEnd) {
-        return Result.success("获取成功", flowDispatchService.getPage(page, limit, taskName, status, sample, progress, creatorName, createStart, createEnd));
+    /** 任务分页列表（含期次数、人员数；参数走 body） */
+    @PostMapping("/list")
+    public Result<PageResult<FlowDispatch>> list(@RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> p = body == null ? new HashMap<>() : body;
+        return Result.success("获取成功", flowDispatchService.getPage(
+                ParamUtil.intv(p.get("page")),
+                ParamUtil.intv(p.get("limit")),
+                ParamUtil.str(p.get("taskName")),
+                ParamUtil.str(p.get("status")),
+                ParamUtil.intv(p.get("sample")),
+                ParamUtil.str(p.get("progress")),
+                ParamUtil.str(p.get("creatorName")),
+                ParamUtil.str(p.get("createStart")),
+                ParamUtil.str(p.get("createEnd"))));
     }
 
     /** 任务管理页统计卡 */
-    @GetMapping("/stats")
+    @PostMapping("/stats")
     public Result<DispatchStatsVO> stats() {
         return Result.success("获取成功", flowDispatchService.getStats());
     }
 
     /** 启用中的任务列表 */
-    @GetMapping("/enabled-list")
+    @PostMapping("/enabled-list")
     public Result<List<FlowDispatch>> enabledList() {
         return Result.success("获取成功", flowDispatchService.getEnabledList());
     }
 
     /** 期次预览：按任务周期 + 是否立即下发，计算期次序号/默认期次名/开始截止时间 */
-    @GetMapping("/preview-period")
-    public Result<PeriodPreviewVO> previewPeriod(@RequestParam(required = false) String taskId,
-                                                 @RequestParam(required = false, defaultValue = "true") Boolean immediate) {
-        return Result.success("获取成功", flowDispatchService.previewPeriod(taskId, Boolean.TRUE.equals(immediate)));
+    @PostMapping("/preview-period")
+    public Result<PeriodPreviewVO> previewPeriod(@RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> p = body == null ? new HashMap<>() : body;
+        return Result.success("获取成功", flowDispatchService.previewPeriod(
+                ParamUtil.str(p.get("taskId")),
+                ParamUtil.boolv(p.get("immediate"), true)));
     }
 
     /** 检索当前是否有任务的期次应下发（启用中非样例周期任务，到期待下发列表） */
-    @GetMapping("/check-due")
+    @PostMapping("/check-due")
     public Result<List<DueDispatchVO>> checkDue() {
         return Result.success("获取成功", flowDispatchService.checkDueDispatches());
     }
@@ -178,7 +186,7 @@ public class FlowDispatchController {
     }
 
     /** 更新任务 */
-    @PutMapping("/update")
+    @PostMapping("/update")
     public Result<Void> update(@RequestBody TaskSaveDTO dto) {
         try {
             return flowDispatchService.update(dto) ? Result.success("更新成功") : Result.fail("更新失败");
@@ -187,7 +195,7 @@ public class FlowDispatchController {
         }
     }
 
-    @PutMapping("/toggle-status/{id}")
+    @PostMapping("/toggle-status/{id}")
     public Result<Void> toggleStatus(@PathVariable String id) {
         try {
             return flowDispatchService.toggleStatus(id) ? Result.success("操作成功") : Result.fail("操作失败");
@@ -197,7 +205,7 @@ public class FlowDispatchController {
     }
 
     /** 设置/取消样例：仅超管可操作（样例公共可见、不可改） */
-    @PutMapping("/sample/{id}")
+    @PostMapping("/sample/{id}")
     public Result<Void> toggleSample(@PathVariable String id) {
         try {
             return flowDispatchService.toggleSample(id) ? Result.success("操作成功") : Result.fail("操作失败");
@@ -207,7 +215,7 @@ public class FlowDispatchController {
     }
 
     /** 删除任务：仅当任务下无任何期次时允许 */
-    @DeleteMapping("/delete/{id}")
+    @PostMapping("/delete/{id}")
     public Result<Void> delete(@PathVariable String id) {
         try {
             return flowDispatchService.delete(id) ? Result.success("删除成功") : Result.fail("删除失败");
@@ -217,7 +225,7 @@ public class FlowDispatchController {
     }
 
     /** 任务详情（编辑回填用） */
-    @GetMapping("/{id}")
+    @GetMapping("/detail/{id}")
     public Result<FlowDispatch> detail(@PathVariable String id) {
         try {
             return Result.success("获取成功", flowDispatchService.getById(id));
@@ -227,13 +235,13 @@ public class FlowDispatchController {
     }
 
     /** 任务人员列表 */
-    @GetMapping("/{taskId}/members")
+    @GetMapping("/members/{taskId}")
     public Result<List<TaskMemberInfoVO>> members(@PathVariable String taskId) {
         return Result.success("获取成功", flowDispatchService.getMembers(taskId));
     }
 
     /** 期次新增人员：不重新生成期次，抄用期次配置为每位新人员创建独立提交任务 */
-    @PostMapping("/{dispatchId}/period/add-members")
+    @PostMapping("/period/add-members/{dispatchId}")
     public Result<Integer> periodAddMembers(@PathVariable String dispatchId, @RequestBody Map<String, List<String>> body) {
         try {
             int count = flowDispatchService.addMembersToDispatch(dispatchId, body == null ? null : body.get("userIds"));
@@ -244,7 +252,7 @@ public class FlowDispatchController {
     }
 
     /** 全量保存任务人员（后续生成期次抄用） */
-    @PutMapping("/{taskId}/members")
+    @PostMapping("/members/save/{taskId}")
     public Result<Void> saveMembers(@PathVariable String taskId, @RequestBody List<String> userIds) {
         flowDispatchService.saveMembers(taskId, userIds);
         return Result.success("人员已更新");
@@ -258,7 +266,7 @@ public class FlowDispatchController {
      * 自动下发防重复：当前期次（如 2026年第3季度）已下发时拒绝再次下发。
      * 返回：期次ID + 期次名称 + 下次自动下发时间。
      */
-    @PostMapping("/{taskId}/periods")
+    @PostMapping("/periods/{taskId}")
     public Result<PeriodGenerateVO> generatePeriod(@PathVariable String taskId, @RequestBody(required = false) Map<String, Object> body) {
         try {
             boolean manual = body != null && Boolean.TRUE.equals(body.get("manual"));
@@ -296,7 +304,7 @@ public class FlowDispatchController {
      * 修改期次截止时间：同步更新该期次下所有成员任务的截止时间。
      * body: { endTime: "yyyy-MM-dd HH:mm:ss" }
      */
-    @PutMapping("/period/{id}/end-time")
+    @PostMapping("/period/end-time/{id}")
     public Result<Void> updatePeriodEndTime(@PathVariable String id, @RequestBody(required = false) Map<String, Object> body) {
         try {
             flowDispatchService.updatePeriodEndTime(id, parseDate(body == null ? null : body.get("endTime")));
@@ -307,7 +315,7 @@ public class FlowDispatchController {
     }
 
     /** 期次详情（含截止时间、催办时间），期次人员页展示用 */
-    @GetMapping("/period/{id}")
+    @GetMapping("/period/detail/{id}")
     public Result<Map<String, Object>> periodInfo(@PathVariable String id) {
         try {
             return Result.success("获取成功", flowDispatchService.getPeriodInfo(id));

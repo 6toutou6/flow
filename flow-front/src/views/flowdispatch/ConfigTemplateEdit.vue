@@ -197,7 +197,7 @@ export default {
         this.onCycleChange()
       } catch (e) {
         console.error(e)
-        this.$message.error('模板加载失败')
+        this.$notifyError(null, '模板加载失败')
       } finally {
         this.loading = false
       }
@@ -232,6 +232,7 @@ export default {
           remark: this.form.remark
         }
         const res = await saveConfigTemplate(payload)
+        if (!res || res.code !== 200) return
         this.$message.success(res.message || '保存成功')
         if (!this.isEdit) {
           this.goList()
@@ -241,7 +242,7 @@ export default {
         }
       } catch (e) {
         console.error(e)
-        this.$message.error((e && e.message) || '保存失败')
+        this.$notifyError(e, '保存失败')
       } finally {
         this.saving = false
       }

@@ -420,8 +420,12 @@ public class FlowTaskHandoverService {
 
     /** 节点处理人换人（保留原处理人审计信息） */
     private void transferNode(FlowTaskNode n, String from, String to, String toName, String fromName) {
-        n.setTransferFromUserId(from);
-        n.setTransferFromUserName(fromName);
+        // 留痕只记「最早那一位」：节点可能被连续交接（A→B→C），
+        // 已提交节点的 transferFrom 就是真正经办的人，不能被后来的接手人覆盖
+        if (n.getTransferFromUserId() == null || n.getTransferFromUserId().isEmpty()) {
+            n.setTransferFromUserId(from);
+            n.setTransferFromUserName(fromName);
+        }
         n.setHandlerUserId(to);
         n.setHandlerUserName(toName);
         flowTaskNodeMapper.updateById(n);

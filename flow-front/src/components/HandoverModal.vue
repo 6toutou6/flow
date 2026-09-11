@@ -146,12 +146,13 @@ export default {
           toUserId: this.recipient.yyytId,
           remark: (this.remark && this.remark.trim()) || null
         })
+        if (!res || res.code !== 200) return
         this.$message.success((res && res.message) || '交接申请已提交，等待审批')
         this.reset()
         this.$emit('success', (res && res.data) || {})
       } catch (e) {
         console.error(e)
-        this.$message.error((e && e.message) || '提交失败')
+        this.$notifyError(e, '提交失败')
       } finally {
         this.saving = false
       }

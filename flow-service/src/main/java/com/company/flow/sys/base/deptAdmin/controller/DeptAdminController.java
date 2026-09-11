@@ -23,7 +23,7 @@ public class DeptAdminController {
     private DeptAdminService deptAdminService;
 
     /** 全部部门管理员 */
-    @GetMapping("/list")
+    @PostMapping("/list")
     public Result<List<DeptAdmin>> list() {
         return Result.success("获取成功", deptAdminService.listAll());
     }
@@ -41,7 +41,7 @@ public class DeptAdminController {
     }
 
     /** 可用部门选项（按 dept_admin 表已有部门去重，新建管理员时部门下拉以此为准） */
-    @GetMapping("/dept-options")
+    @PostMapping("/dept-options")
     public Result<List<Map<String, String>>> deptOptions() {
         return Result.success("获取成功", deptAdminService.deptOptions());
     }
@@ -58,7 +58,7 @@ public class DeptAdminController {
     }
 
     /** 当前登录用户是否为部门管理员（超级管理员亦视为可审批；前端控制「待我审批」入口展示） */
-    @GetMapping("/current-check")
+    @PostMapping("/current-check")
     public Result<Boolean> currentCheck() {
         LoginUser me = SecurityUtils.getLoginUser();
         if (me == null) {

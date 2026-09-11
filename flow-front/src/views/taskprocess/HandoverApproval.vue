@@ -408,12 +408,13 @@ export default {
       this.acting = true
       try {
         const res = await approveHandover(this.cur.id, this.approveSync ? 1 : 0)
+        if (!res || res.code !== 200) return
         this.$message.success((res && res.message) || '已通过，交接完成')
         this.approveVisible = false
         this.fetchAll()
       } catch (e) {
         console.error(e)
-        this.$message.error((e && e.message) || '操作失败')
+        this.$notifyError(e, '操作失败')
       } finally {
         this.acting = false
       }
@@ -423,12 +424,13 @@ export default {
       this.acting = true
       try {
         const res = await rejectHandover(this.cur.id, (this.rejectReason && this.rejectReason.trim()) || null)
+        if (!res || res.code !== 200) return
         this.$message.success((res && res.message) || '已拒绝')
         this.rejectVisible = false
         this.fetchAll()
       } catch (e) {
         console.error(e)
-        this.$message.error((e && e.message) || '操作失败')
+        this.$notifyError(e, '操作失败')
       } finally {
         this.acting = false
       }

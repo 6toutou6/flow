@@ -214,21 +214,23 @@ export default {
     },
     async toggleSample(t) {
       try {
-        await toggleConfigTemplateSample(t.id)
+        const res = await toggleConfigTemplateSample(t.id)
+        if (!res || res.code !== 200) return
         this.$message.success(t.isSample === 1 ? '已取消样例' : '已设为样例')
         this.fetchList()
       } catch (e) {
-        this.$message.error((e && e.message) || '操作失败')
+        this.$notifyError(e, '操作失败')
       }
     },
     /** 复制配置模板：复制一份归本部门（样例复制后可修改） */
     async doCopy(t) {
       try {
         const res = await copyConfigTemplate(t.id)
+        if (!res || res.code !== 200) return
         this.$message.success((res && res.message) || '复制成功')
         this.fetchList()
       } catch (e) {
-        this.$message.error((e && e.message) || '复制失败')
+        this.$notifyError(e, '复制失败')
       }
     },
     async fetchList() {
@@ -279,10 +281,11 @@ export default {
         type: 'warning'
       }).then(() => {
         deleteConfigTemplate(t.id).then(res => {
+          if (!res || res.code !== 200) return
           this.$message.success(res.message || '删除成功')
           this.fetchList()
         }).catch(e => {
-          this.$message.error((e && e.message) || '删除失败')
+          this.$notifyError(e, '删除失败')
         })
       }).catch(() => {})
     },

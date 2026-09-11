@@ -366,11 +366,12 @@ export default {
           payload.endTime = this.manualEndTime
         }
         const res = await generatePeriod(this.task.id, payload)
+        if (!res || res.code !== 200) return
         this.$message.success(res.message || '期次生成成功')
         this.$emit('success', res.data)
       } catch (e) {
         console.error(e)
-        this.$message.error((e && e.message) || '生成失败')
+        this.$notifyError(e, '生成失败')
       } finally {
         this.saving = false
       }

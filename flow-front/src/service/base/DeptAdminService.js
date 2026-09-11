@@ -1,52 +1,34 @@
-import request from '@/service/BaseAxios'
+import { postDg } from '@/service/BaseAxios'
 
-/** 部门管理员列表 */
+// 后端控制器
+const controller = 'dept-admin'
+
+/** 部门管理员列表（POST /dept-admin/list） */
 export function getDeptAdminList() {
-  return request({
-    url: '/dept-admin/list',
-    method: 'get'
-  })
+  return postDg(controller, 'list')
 }
 
-/** 可用部门选项（dept_admin 去重） */
+/** 可用部门选项（POST /dept-admin/dept-options；dept_admin 去重） */
 export function getDeptOptions() {
-  return request({
-    url: '/dept-admin/dept-options',
-    method: 'get'
-  })
+  return postDg(controller, 'dept-options')
 }
 
-/** 当前登录用户是否为部门管理员（超管亦为 true；可用作「交接审批」菜单的角色判据） */
+/** 当前登录用户是否为部门管理员（POST /dept-admin/current-check；超管亦为 true，可用作「交接审批」菜单的角色判据） */
 export function getCurrentDeptAdminCheck() {
-  return request({
-    url: '/dept-admin/current-check',
-    method: 'get'
-  })
+  return postDg(controller, 'current-check')
 }
 
-/** 新增部门管理员 */
+/** 新增部门管理员（POST /dept-admin/add） */
 export function addDeptAdmin(data) {
-  return request({
-    url: '/dept-admin/add',
-    method: 'post',
-    data
-  })
+  return postDg(controller, 'add', data)
 }
 
-/** 更新部门管理员（按 adminYstId + deptId 联合主键） */
+/** 更新部门管理员（POST /dept-admin/update；按 adminYstId + deptId 联合主键） */
 export function updateDeptAdmin(data) {
-  return request({
-    url: '/dept-admin/update',
-    method: 'post',
-    data
-  })
+  return postDg(controller, 'update', data)
 }
 
-/** 删除部门管理员（body: { adminYstId, deptId }） */
+/** 删除部门管理员（POST /dept-admin/delete；body: { adminYstId, deptId }） */
 export function deleteDeptAdmin(data) {
-  return request({
-    url: '/dept-admin/delete',
-    method: 'post',
-    data
-  })
+  return postDg(controller, 'delete', data)
 }

@@ -38,11 +38,11 @@ module.exports = {
     },
     before: require('./mock/mock-server.js'),
     proxy: {
-      // 前端以 /api 前缀请求，代理时剥掉前缀转发到后端（后端无 context-path）
-      '/api': {
+      // 前端以 /flow-service 前缀请求（对应后端项目名 / 内网网关路由前缀），代理时剥掉前缀转发到后端
+      '/flow-service': {
         target: 'http://localhost:9000',
         changeOrigin: true,
-        pathRewrite: { '^/api': '' }
+        pathRewrite: { '^/flow-service': '' }
       }
     }
   },

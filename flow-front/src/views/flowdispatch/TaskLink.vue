@@ -384,6 +384,7 @@ export default {
         if (this.filters.createStart) params.createStart = this.filters.createStart
         if (this.filters.createEnd) params.createEnd = this.filters.createEnd
         const res = await getMyTodoGrouped(params)
+        if (!res || res.code !== 200) return
         this.allList = this.keepLinked(res.data.records || [], linkedTaskIds)
         this.applyPage()
       } catch (e) {

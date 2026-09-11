@@ -258,12 +258,13 @@ export default {
     },
     async handleToggleSample(row) {
       try {
-        await toggleTemplateSample(row.id)
+        const res = await toggleTemplateSample(row.id)
+        if (!res || res.code !== 200) return
         this.$message.success(row.isSample === 1 ? '已取消样例' : '已设为样例')
         this.fetchData()
         this.fetchStats()
       } catch (e) {
-        this.$message.error((e && e.message) || '操作失败')
+        this.$notifyError(e, '操作失败')
       }
     },
     async fetchData() {
@@ -280,6 +281,7 @@ export default {
         }
         if (this.filters.isSample !== '') p.isSample = Number(this.filters.isSample)
         const res = await getTemplateList(p)
+        if (!res || res.code !== 200) return
         this.list = res.data.records
         this.total = res.data.total
         this.totalPages = Math.ceil(this.total / this.pageSize) || 1
@@ -323,10 +325,12 @@ export default {
     async handleFormSubmit(formData, stopLoading, close) {
       try {
         if (formData.id) {
-          await updateTemplate(formData)
+          const res = await updateTemplate(formData)
+          if (!res || res.code !== 200) return
           this.$message.success('修改成功')
         } else {
-          await addTemplate(formData)
+          const res = await addTemplate(formData)
+          if (!res || res.code !== 200) return
           this.$message.success('创建成功')
         }
         this.modalVisible = false
@@ -338,7 +342,8 @@ export default {
     },
     async handleToggleStatus(row) {
       try {
-        await toggleTemplateStatus(row.id)
+        const res = await toggleTemplateStatus(row.id)
+        if (!res || res.code !== 200) return
         this.$message.success('操作成功')
         this.fetchData()
         this.fetchStats()
@@ -353,7 +358,8 @@ export default {
     async handleCopy(row) {
       try {
         await this.$confirm(`确认复制模板「${row.templateName}」？`, '复制模板', { type: 'warning' })
-        await copyTemplate(row.id)
+        const res = await copyTemplate(row.id)
+        if (!res || res.code !== 200) return
         this.$message.success('复制成功')
         this.fetchData()
         this.fetchStats()
@@ -364,7 +370,8 @@ export default {
     async handleDelete(row) {
       try {
         await this.$confirm(`确认删除模板「${row.templateName}」？删除后无法恢复。`, '删除模板', { type: 'warning', confirmButtonText: '删除', confirmButtonClass: 'el-button--primary' })
-        await deleteTemplate(row.id)
+        const res = await deleteTemplate(row.id)
+        if (!res || res.code !== 200) return
         this.$message.success('删除成功')
         this.fetchData()
         this.fetchStats()

@@ -206,17 +206,14 @@ export default {
     },
     async handleFormSubmit(formData) {
       try {
-        if (this.isEdit) {
-          await updateDeptAdmin(formData)
-        } else {
-          await addDeptAdmin(formData)
-        }
+        const res = this.isEdit ? await updateDeptAdmin(formData) : await addDeptAdmin(formData)
+        if (!res || res.code !== 200) return
         this.closeModal()
         this.fetchData()
         this.$message.success(this.isEdit ? '修改成功' : '添加成功')
       } catch (error) {
         console.error('提交失败:', error)
-        this.$message.error((error && error.message) || '提交失败')
+        this.$notifyError(error, '提交失败')
       }
     },
     deleteConfirm(row) {
@@ -225,13 +222,14 @@ export default {
     },
     async handleDeleteConfirm(body) {
       try {
-        await deleteDeptAdmin(body)
+        const res = await deleteDeptAdmin(body)
+        if (!res || res.code !== 200) return
         this.deleteVisible = false
         this.fetchData()
         this.$message.success('删除成功')
       } catch (error) {
         console.error('删除失败:', error)
-        this.$message.error((error && error.message) || '删除失败')
+        this.$notifyError(error, '删除失败')
       }
     }
   }

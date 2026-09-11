@@ -42,6 +42,30 @@
 - 列表统一由 `decorate(list, me)` 补四个不落库字段：`syncMemberApplicable`、`myRole`（交接人 / 接手人 / null，审批人非当事人时为 null）、`deptId` / `deptName`（任务配置**创建部门**，取自 `flow_dispatch.dept_id`，名称优先 `dept_admin.dept_options`、兜底创建人 `aut_user.dept_name`；列表按部门折叠分组用）。
 - 分页接口返回结构：`my-todo-grouped` 在 `data.records`，`my-todo` 在 `data.records`。
 
+## 前端请求层与提示约定（2026-09-10 定稿，与内网框架 / gzfb 完全一致）
+
+- **两个文件是内网框架的「本地兜底」，除服务名外与 gzfb 逐字一致，不要自行改造**：
+  - `src/utils/request.js`：`handleError`（HTTP/网络异常 → `Message.error` 并**吞掉**，`post` 返回 `''`、`get` 返回 undefined）+ `handleResponse`（业务码非 200 → `Message.error`，**res 原样返回、不 reject**）+ 全局 `get/post` 兜底挂到 `window`（内网框架已有同名函数时自动不覆盖）。axios 实例 `timeout: 30000, withCredentials: true`。
+  - `src/service/BaseAxios.js`：只导出 `getDg(controller, method, getParam)` / `postDg(controller, method, postParam)`，内部调全局 `get/post`，服务名常量 `flow_service = 'flow-service'`。
+- **URL 形态**：`/{system}/{controller}/{method}[/{getParam}]` → 即 `/flow-service/flow-task-handover/mine`。dev 由 `vue.config.js` 的 proxy 把 `/flow-service` 前缀剥掉转发到 9000；**生产由内网网关按服务名路由**。`.env` 里的 `VUE_APP_BASE_API`（/api）已废弃不用。
+- **只有 GET（按 id 查详情，参数拼在路径末段）与 POST（其余一切：无参查询、列表查询、写操作、删除）两种**——内网框架没有 put/delete。所以后端 **PUT/DELETE 一律改成了 POST**，无参 GET 也改成了 POST。
+- **业务侧统一写法**：`const res = await xxx(); if (!res || res.code !== 200) return;` 再用 res / 弹成功提示。
+  - 写操作（要弹 `$message.success` 的）**必须**先判 code，否则请求层不 reject 时会继续往下执行、误弹「成功」；
+  - 读操作里**直接取深层属性**的（`res.data.records` 这类）也要先判 —— 异常时 res 是 `''`，`''.data.records` 会抛错；写成 `(res.data && res.data.records) || []` 的天然安全；
+  - `catch` 只兜本地异常，统一用 `this.$notifyError(e, '兜底文案')`（main.js 注册，底层 `utils/notify.js`：同文案 800ms 去重）。**不要再写 `this.$message.error(...)`**。
+- **多参数 / 参数对象**：后端一律用 `@RequestBody(required = false) Map<String, Object> body` 接收，用 `com.company.flow.sys.base.util.ParamUtil`（str / intv(o) / intv(o, def) / boolv(o) / boolv(o, def)）取值；单参数查询走 `@PathVariable`。
+- ESLint 需在 `.eslintrc.js` 的 `globals` 里放行全局 `get` / `post`（否则 no-undef）。axios 已升到 **^0.27.2**（与 gzfb 一致；0.18 不会为 FormData 清除默认 json header，附件上传会失败）。
+- **后端全局异常**：`sys/base/exception/GlobalExceptionHandler`（与 gzfb 同款 `@Slf4j` + RuntimeException → `Result.fail`，另保留 Exception 兜底）——service 层 `throw new RuntimeException("提示语")` 即可，前端请求层会弹出来。
+- **成功提示：谁动作谁提示**。弹窗组件提交成功后自己弹、再 `$emit('success')`；父组件的 `@success` 回调**只负责关弹窗 / 刷新列表，不要再弹一次**。
+- **搬到内网时**：框架已挂载全局 `get/post`，`utils/request.js` 自动不生效，业务代码零改动。
+
+## 搬到内网时的迁移清单（2026-09-10 定，皇上问「是否只移核心业务代码」）
+
+- **要移（业务核心）**：前端 `service/`（含 BaseAxios.js）· `views/` · `components/` · `constants/` · `utils/index.js` + `utils/notify.js` · `router` 与 `store` 的业务部分 · `main.js` 里的 `$notifyError` 注册；后端 `sys/flowtask` · `flowdata` · `flowtemplate` · `base/{attach,autuser,deptAdmin,job,robot,enums}` · `resources/mapper/*.xml` · `flow_schema.sql`。
+- **不用移**：前端 `utils/request.js`（内网框架已挂全局 get/post，`if (typeof window.get !== 'function')` 保护会让它自动让位）· `mock/` · `vue.config.js` 的 proxy（内网由网关）· `.env.*` 的 `VUE_APP_BASE_API`；后端 `application.yml` 的本地数据源/端口；以及脚手架工程骨架（build / public / babel / pom 骨架）。
+- **要改造对接（内网规矩不同，坑在这里）**：① 登录态 —— flow 用 `utils/auth.js` 的 localStorage 快照 + `permission.js`，内网由框架接管（gzfb 是放 Vuex）；② 布局与菜单 —— 贴进内网 layout，去掉 flow 自带的；③ 附件上传 —— flow 现在是「只记记录不存文件」的模拟实现，内网有真实文件服务；④ `BaseAxios.js` 里的 `flow_service = 'flow-service'` 需与内网网关的项目名一致。
+- 判断依据：**业务代码（views/components/service）直接 import 的东西都要跟着移**，凡是「内网框架本来就提供」或「本地开发专用」的都不用。
+
 ## 前端列表折叠面板约定（沿用「任务组」样式）
 
 - 折叠壳统一复用 `taskprocess/index.vue` 的类名：`.task-collapse` / `.task-panel`（`.is-open` 控制箭头旋转）/ `.tp-head` / `.ct-icon` / `.ct-main` / `.ct-name` / `.pending-tag` / `.ct-meta` / `.tp-arrow` / `.tp-body`；空态 `.empty-state`、加载 `.loading-bar`。新页面要折叠直接抄这一套，不要另造样式。
@@ -52,4 +76,9 @@
 - **交接列表一律「姓名 + 员工号」**（2026-09-10 加）：员工号即 `fromUserId` / `toUserId` / `approverId`（后端 `selectList` 全字段本就返回，无需加字段）。表格/卡片头用 `<span class="who">姓名<span class="emp-no">工号</span></span>`（`.emp-no` = 11px、`#A8B0BF`、`margin-left:5px`，需覆盖 `.who` 的加粗与颜色）；弹窗确认文案用 `whoText(name, id)` → `孙八（emp0006）`。
 - **「我的交接申请」表格列序（2026-09-10 定）**：任务名称 min200 → 接手人 132 → 状态 85 → 审批人 132 → 审批意见 min150 → 申请时间 **170** → 审批时间 **170** → 操作 **150**（fixed right：`详情` + `记录`）。**交接范围 / 同步名单不在列表里**，点「详情」开单条申请详情弹窗（`detailVisible/detailRow/detailTitle`，`openDetail(row)` 复用行数据、不发请求；`width="660px"`，两列字段成对排：任务名称(整行) / 交接人·接手人 / 创建部门·交接范围 / 同步名单·审批人 / 申请时间·审批时间 / 说明·意见(整行)）。交接审批页「待我审批」的申请时间列同 170、操作列同 **170**，「交接范围」列保留（审批人要用）。
 - **节点处理人展示口径（2026-09-10 定，重要）**：交接审批通过后库里 `handler_user_id` 会变成接手人——这是**既定行为**（否则接手人看不到任务），原处理人记在 `transfer_from_user_id` / `transfer_from_user_name`。所以「**实际处理**」必须显示原处理人：`formatHandlerWithTransfer(node)` → `钱七 emp0005（现 孙八 emp0006）`（未交接受 → `张三 emp0001`，`handlerName` 缺失才回退 fallback）。**严禁再出现「接手人（原处理人 移交）」格式**——皇上明确否掉（有歧义，看着像接手人处理的）。`formatNodeHandlers(nodes, pendingOnly)` 只输出节点**当前归属人**名单（已去掉交接后缀），用于「处理人 / 待处理人」。FlowChain 的 `handledText` = `formatHandlerWithTransfer(latestDone)`；发生交接的节点隐藏「当时分配」行（现归属已在"实际处理"括号里）。
+- **留痕字段写入规则（2026-09-11 定，连续交接的坑）**：`transfer_from_*` 只记**最早那一位**，后来的接手人**不能覆盖**
+  - 交接 `FlowTaskHandoverService.transferNode()` 与转办 `FlowTaskService.transfer()`：**仅当 `transferFromUserId` 为空时才写**（否则 A→B→C 两段交接后，留痕会从 A 被覆盖成 B，流程链就会显示成 B 处理的 —— 皇上 09-11 报的就是这个）；
+  - 节点被**本人提交**时（`FlowTaskService.submit()` 的退回分支与通过分支各一处）：调 `clearTransferFrom(taskNodeId)` 清掉此前的交接/转办留痕 —— 因为提交人就是实际经办人；
+  - ⚠️ MyBatis-Plus 的 `updateById` **忽略 null 字段**，置空必须用 `LambdaUpdateWrapper.set(Field, null)`（`clearTransferFrom` 已按此实现）；
+  - 语义：`transfer_from` = 已提交节点的**实际经办人**；未提交节点表示「席位原本归属人」。前端只用它渲染已提交节点的「实际处理」，所以两种语义都不会显示错。
 - 现有落点：任务交接页按**创建部门**折叠（两个页签都是），交接审批页按**任务**折叠（两个页签都是）。

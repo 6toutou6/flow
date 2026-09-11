@@ -184,7 +184,7 @@ export default {
         }
       } catch (e) {
         console.error(e)
-        this.$message.error(`「${file.name}」上传失败：${(e && e.message) || '请重试'}`)
+        this.$notifyError(e, `「${file.name}」上传失败`)
         option.onError(e)
       } finally {
         this.uploading = false
@@ -198,7 +198,7 @@ export default {
         this.previewFile = res.data || f
         this.previewVisible = true
       } catch (e) {
-        this.$message.error((e && e.message) || '预览失败')
+        this.$notifyError(e, '预览失败')
       } finally {
         this.actingId = null
       }
@@ -207,10 +207,11 @@ export default {
       if (!f.attachId) return
       this.actingId = f.attachId
       try {
-        await downloadAttach(f.attachId)
+        const res = await downloadAttach(f.attachId)
+        if (!res || res.code !== 200) return
         this.$message.success(`已发起下载：${f.fileName}`)
       } catch (e) {
-        this.$message.error((e && e.message) || '下载失败')
+        this.$notifyError(e, '下载失败')
       } finally {
         this.actingId = null
       }
@@ -225,12 +226,13 @@ export default {
       }).then(async() => {
         this.actingId = f.attachId
         try {
-          await deleteAttach(f.attachId)
+          const res = await deleteAttach(f.attachId)
+          if (!res || res.code !== 200) return
           this.$message.success('删除成功')
           this.fileList = this.fileList.filter(x => x.attachId !== f.attachId)
           this.emitValue()
         } catch (e) {
-          this.$message.error((e && e.message) || '删除失败')
+          this.$notifyError(e, '删除失败')
         } finally {
           this.actingId = null
         }

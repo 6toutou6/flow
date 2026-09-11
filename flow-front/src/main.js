@@ -27,6 +27,8 @@ import router from './router'
 import '@/icons' // icon
 import '@/permission' // permission control
 
+import { notifyError } from '@/utils/notify'
+
 /**
  * If you don't want to use mock-server
  * you want to use MockJs for mock api
@@ -42,6 +44,14 @@ if (process.env.NODE_ENV === 'production') {
 
 // set ElementUI lang to ZH-CN（分页器上一页/下一页、日期选择器等均为中文）
 Vue.use(ElementUI, { locale: zhCN })
+
+// 业务侧 catch 的统一错误提示入口。
+// 接口错误（业务码非 200 / HTTP 异常）已由请求层 BaseAxios 弹过一次，这里只兜住本地异常
+// （数据解析、本地校验等），同一个错误不会弹两次；相同文案 800ms 内还会去重。
+// 用法：this.$notifyError(e, '保存失败')
+Vue.prototype.$notifyError = (e, fallback) => {
+  notifyError((e && e.message) || fallback)
+}
 
 Vue.config.productionTip = false
 

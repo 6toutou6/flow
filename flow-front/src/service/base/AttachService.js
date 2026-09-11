@@ -1,61 +1,53 @@
-import request from '@/service/BaseAxios'
+import { getDg, postDg } from '@/service/BaseAxios'
 
-// 上传附件（multipart：file + bizId）
+// 后端控制器
+const controller = 'flow-attach'
+
+/**
+ * @desc: 上传附件（POST /flow-attach/upload；multipart：file + bizId）
+ */
 export function uploadAttach(file, bizId) {
   const formData = new FormData()
   formData.append('file', file)
   if (bizId) formData.append('bizId', bizId)
-  return request({
-    url: '/flow-attach/upload',
-    method: 'post',
-    data: formData,
-    headers: { 'Content-Type': 'multipart/form-data' }
-  })
+  return postDg(controller, 'upload', formData)
 }
 
-// 批量上传附件（multipart：files[] + bizId + creator，返回 Attach 数组）
+/**
+ * @desc: 批量上传附件（POST /flow-attach/uploads；multipart：files + bizId + creator，返回 Attach 数组）
+ */
 export function uploadAttaches(files, bizId, creator) {
   const formData = new FormData()
   files.forEach(f => formData.append('files', f))
   if (bizId) formData.append('bizId', bizId)
   if (creator) formData.append('creator', creator)
-  return request({
-    url: '/flow-attach/uploads',
-    method: 'post',
-    data: formData,
-    headers: { 'Content-Type': 'multipart/form-data' }
-  })
+  return postDg(controller, 'uploads', formData)
 }
 
-// 附件列表（按业务id）
+/**
+ * @desc: 附件列表（POST /flow-attach/list；param: { bizId }）
+ */
 export function getAttachList(bizId) {
-  return request({
-    url: '/flow-attach/list',
-    method: 'get',
-    params: { bizId }
-  })
+  return postDg(controller, 'list', { bizId })
 }
 
-// 预览附件（后端日志输出）
+/**
+ * @desc: 预览附件（GET /flow-attach/preview/{attachId}）
+ */
 export function previewAttach(attachId) {
-  return request({
-    url: `/flow-attach/preview/${attachId}`,
-    method: 'get'
-  })
+  return getDg(controller, 'preview', attachId)
 }
 
-// 下载附件（后端日志输出）
+/**
+ * @desc: 下载附件（GET /flow-attach/download/{attachId}）
+ */
 export function downloadAttach(attachId) {
-  return request({
-    url: `/flow-attach/download/${attachId}`,
-    method: 'get'
-  })
+  return getDg(controller, 'download', attachId)
 }
 
-// 删除附件（后端日志输出）
+/**
+ * @desc: 删除附件（POST /flow-attach/delete/{attachId}）
+ */
 export function deleteAttach(attachId) {
-  return request({
-    url: `/flow-attach/${attachId}`,
-    method: 'delete'
-  })
+  return postDg(controller, `delete/${attachId}`)
 }

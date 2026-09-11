@@ -202,7 +202,7 @@ export default {
         this.openChainKeys = this.openChainKeys.filter(k => ids.indexOf(k.split('|')[0]) >= 0)
       } catch (e) {
         console.error(e)
-        this.$message.error((e && e.message) || '人员列表加载失败')
+        this.$notifyError(e, '人员列表加载失败')
       } finally {
         this.loading = false
       }
@@ -245,7 +245,7 @@ export default {
       } catch (e) {
         console.error(e)
         this.$set(this.personData, p.userId, { loading: false, chains: [] })
-        this.$message.error((e && e.message) || '任务链加载失败')
+        this.$notifyError(e, '任务链加载失败')
       }
     },
     /** 节点行按 taskId 归组成任务链（后端已按 期次倒序 + 链创建顺序 + 链内 sort 升序 返回） */

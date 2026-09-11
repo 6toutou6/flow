@@ -28,7 +28,7 @@ public class FlowTemplateController {
         return Result.success("获取成功", flowTemplateService.getPage(form));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/detail/{id}")
     public Result<TemplateDetailVO> detail(@PathVariable String id) {
         try {
             TemplateDetailVO vo = flowTemplateService.getDetail(id);
@@ -43,7 +43,7 @@ public class FlowTemplateController {
         return Result.success("创建成功", flowTemplateService.save(template));
     }
 
-    @PutMapping("/update")
+    @PostMapping("/update")
     public Result<Void> update(@RequestBody FlowTemplate template) {
         try {
             return flowTemplateService.update(template) ? Result.success("更新成功") : Result.fail("更新失败");
@@ -52,7 +52,7 @@ public class FlowTemplateController {
         }
     }
 
-    @PutMapping("/toggle-status/{id}")
+    @PostMapping("/toggle-status/{id}")
     public Result<Void> toggleStatus(@PathVariable String id) {
         try {
             return flowTemplateService.toggleStatus(id) ? Result.success("操作成功") : Result.fail("操作失败");
@@ -62,7 +62,7 @@ public class FlowTemplateController {
     }
 
     /** 设置/取消样例：仅超管可操作（样例公共可见、不可改，模板可复制） */
-    @PutMapping("/sample/{id}")
+    @PostMapping("/sample/{id}")
     public Result<Void> toggleSample(@PathVariable String id) {
         try {
             return flowTemplateService.toggleSample(id) ? Result.success("操作成功") : Result.fail("操作失败");
@@ -77,7 +77,7 @@ public class FlowTemplateController {
         return newId != null ? Result.success("复制成功", newId) : Result.fail("复制失败");
     }
 
-    @DeleteMapping("/delete/{id}")
+    @PostMapping("/delete/{id}")
     public Result<Void> delete(@PathVariable String id) {
         try {
             return flowTemplateService.delete(id) ? Result.success("删除成功") : Result.fail("删除失败");
@@ -86,7 +86,7 @@ public class FlowTemplateController {
         }
     }
 
-    @GetMapping("/stats")
+    @PostMapping("/stats")
     public Result<TemplateStatsVO> stats() {
         return Result.success("获取成功", flowTemplateService.getStats());
     }
@@ -97,12 +97,12 @@ public class FlowTemplateController {
         return Result.success("获取成功", flowTemplateService.usageCount(id));
     }
 
-    @GetMapping("/enabled-list")
+    @PostMapping("/enabled-list")
     public Result<List<FlowTemplate>> enabledList() {
         return Result.success("获取成功", flowTemplateService.getEnabledList());
     }
 
-    @PutMapping("/save-flow")
+    @PostMapping("/save-flow")
     public Result<Void> saveFlow(@RequestBody TemplateFlowSaveDTO dto) {
         try {
             return flowTemplateService.saveFlow(dto) ? Result.success("保存成功") : Result.fail("保存失败");
@@ -112,7 +112,7 @@ public class FlowTemplateController {
     }
 
     /** 单独保存某节点的说明文件（上传/删除后即时持久化，避免刷新丢失） */
-    @PutMapping("/node-guide-files")
+    @PostMapping("/node-guide-files")
     public Result<Void> saveNodeGuideFiles(@RequestBody Map<String, Object> body) {
         try {
             Object nid = body.get("nodeId");

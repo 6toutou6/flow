@@ -20,7 +20,7 @@ public class FlowTaskHandoverController {
     private FlowTaskHandoverService flowTaskHandoverService;
 
     /** 发起交接申请 */
-    @PostMapping
+    @PostMapping("/apply")
     public Result<FlowTaskHandover> apply(@RequestBody FlowTaskHandover req) {
         try {
             return Result.success("交接申请已提交，等待审批", flowTaskHandoverService.apply(req));
@@ -30,43 +30,43 @@ public class FlowTaskHandoverController {
     }
 
     /** 我发起的交接申请 */
-    @GetMapping("/mine")
+    @PostMapping("/mine")
     public Result<List<FlowTaskHandover>> mine() {
         return Result.success("获取成功", flowTaskHandoverService.listMine());
     }
 
     /** 待我审批 */
-    @GetMapping("/pending")
+    @PostMapping("/pending")
     public Result<List<FlowTaskHandover>> pending() {
         return Result.success("获取成功", flowTaskHandoverService.listPendingForApprover());
     }
 
     /** 待我审批数量（角标） */
-    @GetMapping("/pending-count")
+    @PostMapping("/pending-count")
     public Result<Long> pendingCount() {
         return Result.success("获取成功", flowTaskHandoverService.pendingCountForApprover());
     }
 
     /** 某任务配置下我相关的交接记录（仅我是交接人或接手人） */
-    @GetMapping("/by-dispatch")
-    public Result<List<FlowTaskHandover>> byDispatch(@RequestParam String dispatchId) {
+    @GetMapping("/by-dispatch/{dispatchId}")
+    public Result<List<FlowTaskHandover>> byDispatch(@PathVariable String dispatchId) {
         return Result.success("获取成功", flowTaskHandoverService.listByDispatch(dispatchId));
     }
 
     /** 我相关的交接记录（仅我是交接人或接手人，只读查看） */
-    @GetMapping("/records")
+    @PostMapping("/records")
     public Result<List<FlowTaskHandover>> records() {
         return Result.success("获取成功", flowTaskHandoverService.listMineRelated());
     }
 
     /** 本部门交接记录（部门管理员审批范围内，含全部状态） */
-    @GetMapping("/approver-records")
+    @PostMapping("/approver-records")
     public Result<List<FlowTaskHandover>> approverRecords() {
         return Result.success("获取成功", flowTaskHandoverService.listApproverRecords());
     }
 
     /** 审批通过（可覆盖是否同步任务配置名单） */
-    @PostMapping("/{id}/approve")
+    @PostMapping("/approve/{id}")
     public Result<Void> approve(@PathVariable String id, @RequestBody(required = false) Map<String, Object> body) {
         try {
             Integer syncMember = null;
@@ -81,7 +81,7 @@ public class FlowTaskHandoverController {
     }
 
     /** 审批拒绝 */
-    @PostMapping("/{id}/reject")
+    @PostMapping("/reject/{id}")
     public Result<Void> reject(@PathVariable String id, @RequestBody(required = false) Map<String, String> body) {
         try {
             String reason = body == null ? null : body.get("reason");

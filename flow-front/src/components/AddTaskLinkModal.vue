@@ -164,7 +164,7 @@ export default {
         this.groups = ((res && res.data && res.data.records) || []).filter(g => g && g.taskId)
       } catch (e) {
         console.error(e)
-        this.$message.error((e && e.message) || '我的任务加载失败')
+        this.$notifyError(e, '我的任务加载失败')
       } finally {
         this.loading = false
       }
@@ -187,12 +187,13 @@ export default {
           targetTaskId: this.selEmpTask.taskId,
           remark: (this.linkRemark && this.linkRemark.trim()) || null
         })
+        if (!res || res.code !== 200) return
         this.$message.success(res.message || '关联成功')
         this.reset()
         this.$emit('success', (res && res.data) || {})
       } catch (e) {
         console.error(e)
-        this.$message.error((e && e.message) || '关联失败')
+        this.$notifyError(e, '关联失败')
       } finally {
         this.saving = false
       }

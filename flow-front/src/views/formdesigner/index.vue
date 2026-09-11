@@ -557,6 +557,7 @@ export default {
     async fetchDetail() {
       try {
         const res = await getTemplateDetail(this.templateId)
+        if (!res || res.code !== 200) return
         this.template = res.data.template || {}
         const nodes = res.data.nodes || []
         if (nodes.length === 0) {
@@ -825,7 +826,8 @@ export default {
             }))
           }))
         }
-        await saveTemplateFlow(payload)
+        const res = await saveTemplateFlow(payload)
+        if (!res || res.code !== 200) return
         this.$message.success(saveMode === 'new' ? '已保存为新版本 v' + (this.template.version + 1) : '流程保存成功')
         // 创建人填写字段增删提示（用字段名展示，弹窗加宽，关键提示加粗）：影响已绑定未同步任务的下发
         const beforeList = this.templateFieldsSnapshot || []
@@ -858,7 +860,7 @@ export default {
         await saveNodeGuideFiles(node.id, node.guideFiles || null)
       } catch (e) {
         console.error('保存说明文件失败:', e)
-        this.$message.error('说明文件保存失败，请稍后重试')
+        this.$notifyError(null, '说明文件保存失败，请稍后重试')
       }
     }
   }

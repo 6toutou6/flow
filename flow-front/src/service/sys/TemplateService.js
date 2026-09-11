@@ -1,118 +1,103 @@
-import request from '@/service/BaseAxios'
+import { getDg, postDg } from '@/service/BaseAxios'
 
-// 模板管理：分页列表
+// 后端控制器
+const controller = 'flow-template'
+
+/**
+ * @desc: 模板管理：分页列表（POST /flow-template/list；param: 分页与筛选）
+ */
 export function getTemplateList(params) {
-  return request({
-    url: '/flow-template/list',
-    method: 'post',
-    data: params
-  })
+  return postDg(controller, 'list', params)
 }
 
-// 模板详情（模板元数据 + 字段列表）
+/**
+ * @desc: 模板详情（GET /flow-template/detail/{id}；模板元数据 + 字段列表）
+ */
 export function getTemplateDetail(id) {
-  return request({
-    url: `/flow-template/${id}`,
-    method: 'get'
-  })
+  return getDg(controller, 'detail', id)
 }
 
-// 新建模板
+/**
+ * @desc: 新建模板（POST /flow-template/save）
+ */
 export function addTemplate(data) {
-  return request({
-    url: '/flow-template/save',
-    method: 'post',
-    data
-  })
+  return postDg(controller, 'save', data)
 }
 
-// 更新模板元数据
+/**
+ * @desc: 更新模板元数据（POST /flow-template/update）
+ */
 export function updateTemplate(data) {
-  return request({
-    url: '/flow-template/update',
-    method: 'put',
-    data
-  })
+  return postDg(controller, 'update', data)
 }
 
-// 启用/停用切换
+/**
+ * @desc: 启用/停用切换（POST /flow-template/toggle-status/{id}）
+ */
 export function toggleTemplateStatus(id) {
-  return request({
-    url: `/flow-template/toggle-status/${id}`,
-    method: 'put'
-  })
+  return postDg(controller, `toggle-status/${id}`)
 }
 
-// 设置/取消样例（仅超管）
+/**
+ * @desc: 设置/取消样例（POST /flow-template/sample/{id}；仅超管）
+ */
 export function toggleTemplateSample(id) {
-  return request({
-    url: `/flow-template/sample/${id}`,
-    method: 'put'
-  })
+  return postDg(controller, `sample/${id}`)
 }
 
-// 复制模板
+/**
+ * @desc: 复制模板（POST /flow-template/copy/{id}）
+ */
 export function copyTemplate(id) {
-  return request({
-    url: `/flow-template/copy/${id}`,
-    method: 'post'
-  })
+  return postDg(controller, `copy/${id}`)
 }
 
-// 删除模板
+/**
+ * @desc: 删除模板（POST /flow-template/delete/{id}）
+ */
 export function deleteTemplate(id) {
-  return request({
-    url: `/flow-template/delete/${id}`,
-    method: 'delete'
-  })
+  return postDg(controller, `delete/${id}`)
 }
 
-// 统计卡数据（总数/活跃/本月更新率）
+/**
+ * @desc: 统计卡数据（POST /flow-template/stats；总数/活跃/本月更新率）
+ */
 export function getTemplateStats() {
-  return request({
-    url: '/flow-template/stats',
-    method: 'get'
-  })
+  return postDg(controller, 'stats')
 }
 
-// 模板被使用情况（任务数/期次数），保存流程设计前提示用户
+/**
+ * @desc: 模板被使用情况（GET /flow-template/usage/{id}；任务数/期次数，保存流程设计前提示用户）
+ */
 export function getTemplateUsage(id) {
-  return request({
-    url: `/flow-template/usage/${id}`,
-    method: 'get'
-  })
+  return getDg(controller, 'usage', id)
 }
 
-// 启用模板列表（任务下发选模板用）
+/**
+ * @desc: 启用模板列表（POST /flow-template/enabled-list；任务下发选模板用）
+ */
 export function getEnabledTemplates() {
-  return request({
-    url: '/flow-template/enabled-list',
-    method: 'get'
-  })
+  return postDg(controller, 'enabled-list')
 }
 
-// 保存流程设计（节点链 + 每个节点的字段）
+/**
+ * @desc: 保存流程设计（POST /flow-template/save-flow；节点链 + 每个节点的字段）
+ */
 export function saveTemplateFlow(data) {
-  return request({
-    url: '/flow-template/save-flow',
-    method: 'put',
-    data
-  })
+  return postDg(controller, 'save-flow', data)
 }
 
-// 单独保存某节点说明文件（上传/删除后即时持久化，避免刷新丢失）
+/**
+ * @desc: 单独保存某节点说明文件（POST /flow-template/node-guide-files）
+ *        上传/删除后即时持久化，避免刷新丢失
+ */
 export function saveNodeGuideFiles(nodeId, guideFiles) {
-  return request({
-    url: '/flow-template/node-guide-files',
-    method: 'put',
-    data: { nodeId, guideFiles }
-  })
+  return postDg(controller, 'node-guide-files', { nodeId, guideFiles })
 }
 
-// 模板版本记录列表
+/**
+ * @desc: 模板版本记录列表（GET /flow-template/versions/{id}）
+ */
 export function getTemplateVersions(id) {
-  return request({
-    url: `/flow-template/versions/${id}`,
-    method: 'get'
-  })
+  return getDg(controller, 'versions', id)
 }

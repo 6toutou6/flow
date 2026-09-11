@@ -230,13 +230,14 @@ export default {
       this.adding = true
       try {
         const res = await addPeriodMembers(this.dispatchId, users.map(u => u.yyytId || u.id).filter(Boolean))
+        if (!res || res.code !== 200) return
         const count = res.data != null ? res.data : users.length
         this.$message.success(`已新增 ${count} 位人员`)
         this.pickerVisible = false
         this.page = 1
         this.fetchMembers()
       } catch (e) {
-        this.$message.error((e && e.message) || '新增失败')
+        this.$notifyError(e, '新增失败')
       } finally {
         this.adding = false
       }
@@ -251,11 +252,12 @@ export default {
           confirmButtonClass: 'el-button--primary'
         })
         const res = await urgeTaskBatch(this.selected)
+        if (!res || res.code !== 200) return
         const count = res.data != null ? res.data : this.selected.length
         this.$message.success(`已发送 ${count} 条催办通知（已完成/已作废人员自动跳过）`)
         this.fetchMembers()
       } catch (e) {
-        if (e !== 'cancel') this.$message.error((e && e.message) || '催办失败')
+        if (e !== 'cancel') this.$notifyError(e, '催办失败')
       }
     },
     async onBatchDelete() {
@@ -268,12 +270,13 @@ export default {
           confirmButtonClass: 'el-button--primary'
         })
         const res = await deleteTaskBatch(this.selected)
+        if (!res || res.code !== 200) return
         const count = res.data != null ? res.data : this.selected.length
         this.$message.success(`已删除 ${count} 位人员`)
         this.selected = []
         this.fetchMembers()
       } catch (e) {
-        if (e !== 'cancel') this.$message.error((e && e.message) || '删除失败')
+        if (e !== 'cancel') this.$notifyError(e, '删除失败')
       }
     },
     /** 卡片左标：任务已完成（状态码 2 / 展示词「已完成」/ 底层词「已结束」）时显示绿色勾 */

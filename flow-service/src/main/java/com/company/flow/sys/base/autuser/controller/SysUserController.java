@@ -27,7 +27,7 @@ public class SysUserController {
     }
 
     /** 用户管理页统计卡 */
-    @GetMapping("/stats")
+    @PostMapping("/stats")
     public Result<SysUserStatsVO> stats() {
         return Result.success("获取成功", userService.stats());
     }
@@ -38,7 +38,7 @@ public class SysUserController {
                 Result.success("添加成功") : Result.fail("添加失败");
     }
 
-    @PutMapping("/update")
+    @PostMapping("/update")
     public Result<Void> update(@RequestBody User user) {
         if (!StringUtils.hasText(user.getYyytId())) {
             return Result.fail("用户号不能为空");
@@ -47,13 +47,13 @@ public class SysUserController {
                 Result.success("更新成功") : Result.fail("更新失败");
     }
 
-    @DeleteMapping("/delete/{yyytId}")
+    @PostMapping("/delete/{yyytId}")
     public Result<Void> delete(@PathVariable String yyytId) {
         return userService.deleteUser(yyytId) ?
                 Result.success("删除成功") : Result.fail("删除失败");
     }
 
-    @GetMapping("/{yyytId}")
+    @GetMapping("/detail/{yyytId}")
     public Result<User> detail(@PathVariable String yyytId) {
         User user = userService.findByYyytId(yyytId);
         return user != null ?

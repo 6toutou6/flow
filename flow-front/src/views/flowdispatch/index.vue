@@ -437,13 +437,14 @@ export default {
     async toggleSample(t) {
       const wasSample = t.isSample === 1
       try {
-        await toggleDispatchSample(t.id)
+        const res = await toggleDispatchSample(t.id)
+        if (!res || res.code !== 200) return
         // 本地翻转样例标记即可，不整表刷新（避免列表/期次闪烁跳动）
         // eslint-disable-next-line require-atomic-updates
         t.isSample = wasSample ? 0 : 1
         this.$message.success(!wasSample ? '已设为样例' : '已取消样例')
       } catch (e) {
-        this.$message.error((e && e.message) || '操作失败')
+        this.$notifyError(e, '操作失败')
       }
     },
     /** 恢复展开/双闪状态：仅当「从本页点击按钮跳转到其他页面再返回」时才恢复展开并双闪，
@@ -612,12 +613,13 @@ export default {
       this.dispatching = true
       try {
         const res = await autoDispatchDuePeriods()
+        if (!res || res.code !== 200) return
         const n = (res && res.data) || 0
         this.$message.success(n > 0 ? `已自动下发 ${n} 个期次` : '暂无到期待下发的期次')
         this.fetchDue()
         this.fetchList()
       } catch (e) {
-        this.$message.error((e && e.message) || '下发失败')
+        this.$notifyError(e, '下发失败')
       } finally {
         this.dispatching = false
       }
@@ -849,12 +851,13 @@ export default {
       }
       this.endTimeSaving = true
       try {
-        await updatePeriodEndTime(this.endTimeTarget.dispatchId, this.endTimeValue)
+        const res = await updatePeriodEndTime(this.endTimeTarget.dispatchId, this.endTimeValue)
+        if (!res || res.code !== 200) return
         this.$message.success('截止时间已更新，该期次下所有成员任务同步更新')
         this.endTimeVisible = false
         await this.loadTaskDetail(this.endTimeTarget._taskId)
       } catch (e) {
-        this.$message.error((e && e.message) || '更新失败')
+        this.$notifyError(e, '更新失败')
       } finally {
         this.endTimeSaving = false
       }
@@ -876,12 +879,13 @@ export default {
         return
       }
       try {
-        await deleteTaskGroup(p.dispatchId)
+        const res = await deleteTaskGroup(p.dispatchId)
+        if (!res || res.code !== 200) return
         this.$message.success('删除成功')
         await this.loadTaskDetail(t.id)
         this.fetchList()
       } catch (e) {
-        this.$message.error((e && e.message) || '删除失败')
+        this.$notifyError(e, '删除失败')
       }
     },
     toggleStatus(t) {
@@ -899,11 +903,12 @@ export default {
         }
       ).then(() => {
         toggleDispatchPlanStatus(t.id).then(res => {
+          if (!res || res.code !== 200) return
           this.$message.success(res.message || '操作成功')
           this.fetchList()
         }).catch(e => {
           console.error(e)
-          this.$message.error('操作失败')
+          this.$notifyError(null, '操作失败')
         })
       }).catch(() => {})
     },
@@ -914,11 +919,12 @@ export default {
         type: 'warning'
       }).then(() => {
         deleteDispatchPlan(t.id).then(res => {
+          if (!res || res.code !== 200) return
           this.$message.success(res.message || '删除成功')
           this.fetchList()
         }).catch(e => {
           console.error(e)
-          this.$message.error((e && e.message) || '删除失败')
+          this.$notifyError(e, '删除失败')
         })
       }).catch(() => {})
     }

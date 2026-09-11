@@ -16,10 +16,12 @@ import com.company.flow.sys.flowtask.vo.TaskMemberVO;
 import com.company.flow.sys.flowtask.vo.TaskProgressVO;
 import com.company.flow.sys.base.result.PageResult;
 import com.company.flow.sys.base.result.Result;
+import com.company.flow.sys.base.util.ParamUtil;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -43,18 +45,20 @@ public class FlowTaskController {
         return vo != null ? Result.success("获取成功", vo) : Result.notFound("任务组不存在");
     }
 
-    /** 任务组成员分页查询（姓名/部门/状态过滤 + 分页） */
-    @GetMapping("/dispatch/{dispatchId}/members")
+    /** 任务组成员分页查询（姓名/部门/状态过滤 + 分页；参数走 body） */
+    @PostMapping("/dispatch-members/{dispatchId}")
     public Result<PageResult<TaskMemberVO>> members(@PathVariable String dispatchId,
-                                                    @RequestParam(required = false) Integer page,
-                                                    @RequestParam(required = false) Integer limit,
-                                                    @RequestParam(required = false) String name,
-                                                    @RequestParam(required = false) String dept,
-                                                    @RequestParam(required = false) String status) {
-        return Result.success("获取成功", flowTaskService.getMembersPage(dispatchId, page, limit, name, dept, status));
+                                                    @RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> p = body == null ? new HashMap<>() : body;
+        return Result.success("获取成功", flowTaskService.getMembersPage(dispatchId,
+                ParamUtil.intv(p.get("page")),
+                ParamUtil.intv(p.get("limit")),
+                ParamUtil.str(p.get("name")),
+                ParamUtil.str(p.get("dept")),
+                ParamUtil.str(p.get("status"))));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/detail/{id}")
     public Result<TaskDetailVO> detail(@PathVariable String id) {
         TaskDetailVO vo = flowTaskService.getDetail(id);
         return vo != null ? Result.success("获取成功", vo) : Result.notFound("任务不存在");
@@ -72,7 +76,7 @@ public class FlowTaskController {
     }
 
     /** 删除主任务（任务组）：仅当组内无人员时才允许 */
-    @DeleteMapping("/dispatch/{dispatchId}")
+    @PostMapping("/dispatch/delete/{dispatchId}")
     public Result<Void> deleteDispatch(@PathVariable String dispatchId) {
         try {
             return flowTaskService.deleteDispatch(dispatchId) ? Result.success("删除成功") : Result.fail("删除失败");
@@ -81,9 +85,12 @@ public class FlowTaskController {
         }
     }
 
-    /** 删除任务中的某个处理人（连同其所有提交记录） */
-    @DeleteMapping("/remove-handler")
-    public Result<Integer> removeHandler(@RequestParam String taskId, @RequestParam String handlerUserId) {
+    /** 删除任务中的某个处理人（连同其所有提交记录；参数走 body） */
+    @PostMapping("/remove-handler")
+    public Result<Integer> removeHandler(@RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> p = body == null ? new HashMap<>() : body;
+        String taskId = ParamUtil.str(p.get("taskId"));
+        String handlerUserId = ParamUtil.str(p.get("handlerUserId"));
         try {
             int count = flowTaskService.removeHandler(taskId, handlerUserId);
             return Result.success("已删除该处理人的 " + count + " 条记录", count);
@@ -144,7 +151,7 @@ public class FlowTaskController {
     }
 
     /** 我的任务统计（统计卡） */
-    @GetMapping("/my-todo-stats")
+    @PostMapping("/my-todo-stats")
     public Result<MyTodoStatsVO> myTodoStats() {
         return Result.success("获取成功", flowTaskService.myTodoStats());
     }
@@ -193,22 +200,22 @@ public class FlowTaskController {
         return Result.success("获取成功", flowTaskService.getTaskLogs(taskId));
     }
 
-    @PutMapping("/update")
+    @PostMapping("/update")
     public Result<Void> update(@RequestBody FlowTask task) {
         return flowTaskService.update(task) ? Result.success("更新成功") : Result.fail("更新失败");
     }
 
-    @PutMapping("/end/{id}")
+    @PostMapping("/end/{id}")
     public Result<Void> end(@PathVariable String id) {
         return flowTaskService.endTask(id) ? Result.success("操作成功") : Result.fail("操作失败");
     }
 
-    @PutMapping("/cancel/{id}")
+    @PostMapping("/cancel/{id}")
     public Result<Void> cancel(@PathVariable String id) {
         return flowTaskService.cancelTask(id) ? Result.success("操作成功") : Result.fail("操作失败");
     }
 
-    @DeleteMapping("/delete/{id}")
+    @PostMapping("/delete/{id}")
     public Result<Void> delete(@PathVariable String id) {
         return flowTaskService.delete(id) ? Result.success("删除成功") : Result.fail("删除失败");
     }

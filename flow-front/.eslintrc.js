@@ -9,6 +9,11 @@ module.exports = {
     node: true,
     es6: true,
   },
+  // 内网框架提供的全局请求函数（本地开发由 utils/request.js 兜底挂载到 window）
+  globals: {
+    get: 'readonly',
+    post: 'readonly'
+  },
   extends: ['plugin:vue/recommended', 'eslint:recommended'],
 
   // add your custom rules here

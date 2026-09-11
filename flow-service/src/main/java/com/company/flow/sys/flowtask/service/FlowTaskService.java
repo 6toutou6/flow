@@ -1,6 +1,7 @@
 package com.company.flow.sys.flowtask.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -1152,6 +1153,8 @@ public class FlowTaskService {
             currentTaskNode.setFormRecordId(recordId);
             currentTaskNode.setRejectReason(dto.getRejectReason());
             flowTaskNodeMapper.updateById(currentTaskNode);
+            // 本人提交：此前若被交接/转办过，留痕作废（实际经办人 = 本人）
+            clearTransferFrom(currentTaskNode.getId());
             // 同一节点其他 pending 分支：因退回而一并结束，避免残留他人待办（统计虚高/阻塞完成判定）
             LambdaQueryWrapper<FlowTaskNode> rejectSiblingW = new LambdaQueryWrapper<>();
             rejectSiblingW.eq(FlowTaskNode::getTaskId, task.getId())
@@ -1254,6 +1257,8 @@ public class FlowTaskService {
         // 完整保存本次所选下一处理人（含多选），退回重做后回填整组
         currentTaskNode.setNextHandlerIds(isEnd ? null : serializeNextHandlers(nextHandlerIds));
         flowTaskNodeMapper.updateById(currentTaskNode);
+        // 本人提交：此前若被交接/转办过，留痕作废（实际经办人 = 本人）
+        clearTransferFrom(currentTaskNode.getId());
         // 多处理人节点：任一处理人完成即可流转，一并标记同节点其他待办完成，避免遗留他人待办
         LambdaQueryWrapper<FlowTaskNode> siblingW = new LambdaQueryWrapper<>();
         siblingW.eq(FlowTaskNode::getTaskId, task.getId())
@@ -1353,9 +1358,12 @@ public class FlowTaskService {
         String targetName = userNameOf(targetUserId.trim());
         if (targetName == null) throw new RuntimeException("转办人不存在");
         FlowTask task = flowTaskMapper.selectById(node.getTaskId());
-        // 记录原处理人，更换处理人
-        node.setTransferFromUserId(node.getHandlerUserId());
-        node.setTransferFromUserName(node.getHandlerUserName());
+        // 留痕只记「最早那一位」：席位可能被连续转办（A→B→C），
+        // 原处理人不能被后来的接手人覆盖，否则流程链会显示成 B 处理的
+        if (node.getTransferFromUserId() == null || node.getTransferFromUserId().isEmpty()) {
+            node.setTransferFromUserId(node.getHandlerUserId());
+            node.setTransferFromUserName(node.getHandlerUserName());
+        }
         node.setHandlerUserId(targetUserId.trim());
         node.setHandlerUserName(targetName);
         flowTaskNodeMapper.updateById(node);
@@ -1365,6 +1373,18 @@ public class FlowTaskService {
             flowTaskMapper.updateById(task);
         }
         recordFlowLog(task, node, loginUser, 1, "转办给「" + targetName + "」");
+    }
+
+    /**
+     * 节点被本人提交后，实际经办人就是本人 —— 清掉此前的交接/转办留痕。
+     * 否则「先被交接、再由接手人提交」的节点会一直显示成原处理人做的。
+     * 注意：MyBatis-Plus 的 updateById 会忽略 null 字段，置空必须走 UpdateWrapper。
+     */
+    private void clearTransferFrom(String taskNodeId) {
+        flowTaskNodeMapper.update(null, new LambdaUpdateWrapper<FlowTaskNode>()
+                .eq(FlowTaskNode::getId, taskNodeId)
+                .set(FlowTaskNode::getTransferFromUserId, null)
+                .set(FlowTaskNode::getTransferFromUserName, null));
     }
 
     // ==================== 暂存（草稿） ====================

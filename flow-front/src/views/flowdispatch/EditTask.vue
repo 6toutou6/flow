@@ -525,7 +525,7 @@ export default {
         this.matchPickedTemplate()
       } catch (e) {
         console.error(e)
-        this.$message.error('任务加载失败')
+        this.$notifyError(null, '任务加载失败')
       } finally {
         this.loading = false
       }
@@ -686,6 +686,7 @@ export default {
           }, {})
         }
         const res = this.isEdit ? await updateDispatchPlan(payload) : await saveDispatchPlan(payload)
+        if (!res || res.code !== 200) return
         this.$message.success(res.message || '保存成功')
         if (!this.isEdit) {
           this.goBack()
@@ -695,7 +696,7 @@ export default {
         }
       } catch (e) {
         console.error(e)
-        this.$message.error((e && e.message) || '保存失败')
+        this.$notifyError(e, '保存失败')
       } finally {
         this.saving = false
       }

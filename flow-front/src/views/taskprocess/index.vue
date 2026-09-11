@@ -349,6 +349,7 @@ export default {
         if (this.filters.createStart) params.createStart = this.filters.createStart
         if (this.filters.createEnd) params.createEnd = this.filters.createEnd
         const res = await getMyTodoGrouped(params)
+        if (!res || res.code !== 200) return
         this.list = res.data.records || []
         this.total = res.data.total || 0
         // 清理已不存在任务的展开状态
@@ -415,9 +416,9 @@ export default {
       }
       this.handoverVisible = true
     },
+    /** 交接申请提交成功：关闭弹窗即可，提示由弹窗自己发出（避免重复弹两次） */
     onHandoverSuccess() {
       this.handoverVisible = false
-      this.$message.success('交接申请已提交，等待部门管理员审批')
     }
   }
 }
