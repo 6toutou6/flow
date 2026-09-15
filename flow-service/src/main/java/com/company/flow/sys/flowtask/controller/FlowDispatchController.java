@@ -4,9 +4,11 @@ import com.company.flow.sys.flowtask.entity.FlowDispatch;
 import com.company.flow.sys.flowtask.entity.FlowDispatchConfigTemplate;
 import com.company.flow.sys.flowtask.service.FlowDispatchConfigTemplateService;
 import com.company.flow.sys.flowtask.service.FlowDispatchService;
+import com.company.flow.sys.flowtask.service.MemberImportService;
 import com.company.flow.sys.flowtask.vo.ConfigTemplateStatsVO;
 import com.company.flow.sys.flowtask.vo.DispatchStatsVO;
 import com.company.flow.sys.flowtask.vo.DueDispatchVO;
+import com.company.flow.sys.flowtask.vo.ImportMemberVO;
 import com.company.flow.sys.flowtask.vo.PeriodGenerateVO;
 import com.company.flow.sys.flowtask.vo.PeriodPreviewVO;
 import com.company.flow.sys.flowtask.vo.TaskMemberInfoVO;
@@ -14,10 +16,14 @@ import com.company.flow.sys.flowtask.vo.TaskSaveDTO;
 import com.company.flow.sys.base.result.PageResult;
 import com.company.flow.sys.base.result.Result;
 import com.company.flow.sys.base.util.ParamUtil;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -37,6 +43,31 @@ public class FlowDispatchController {
 
     @Autowired
     private FlowDispatchConfigTemplateService configTemplateService;
+
+    @Autowired
+    private MemberImportService memberImportService;
+
+    // ==================== 批量导入人员 ====================
+
+    /** 下载批量导入人员的 Excel 模板 */
+    @GetMapping("/member-import-template")
+    public void memberImportTemplate(HttpServletResponse response) throws Exception {
+        String fileName = URLEncoder.encode("人员导入模板.xlsx", StandardCharsets.UTF_8).replace("+", "%20");
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + fileName);
+        memberImportService.writeTemplate(response.getOutputStream());
+    }
+
+    /** 批量导入人员：解析 Excel 并按用户号校验；有任一行不通过则整批拒绝并返回全部问题行 */
+    @PostMapping("/member-import")
+    public Result<List<ImportMemberVO>> memberImport(@RequestParam("file") MultipartFile file) {
+        try {
+            return Result.success("校验通过", memberImportService.parseAndValidate(file));
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
 
     // ==================== 下发配置模板 ====================
 

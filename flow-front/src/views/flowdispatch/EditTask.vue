@@ -249,7 +249,10 @@
                 <span>已选 <b>{{ firstHandlers.length }}</b> 个人员</span>
                 <span v-if="firstHandlers.length === 0" class="sum-tip">· 点击「添加人员」选择</span>
               </div>
-              <button class="btn-add-user" @click="pickerVisible = true"><i class="el-icon-plus" /> 添加人员</button>
+              <div class="handler-actions">
+                <button class="btn-add-user" @click="pickerVisible = true"><i class="el-icon-plus" /> 添加人员</button>
+                <button class="btn-add-user btn-import-user" @click="importVisible = true"><i class="el-icon-upload2" /> 批量导入</button>
+              </div>
             </div>
             <div v-if="firstHandlers.length > 0" class="handler-list">
               <table class="member-table">
@@ -314,6 +317,13 @@
       @confirm="confirmPick"
       @close="pickerVisible = false"
     />
+
+    <!-- 批量导入人员（Excel） -->
+    <ImportMemberModal
+      :visible="importVisible"
+      @close="importVisible = false"
+      @success="onImportSuccess"
+    />
   </div>
 </template>
 
@@ -322,11 +332,12 @@ import { getTemplateDetail, getTemplateList } from '@/service/sys/TemplateServic
 import { saveDispatchPlan, updateDispatchPlan, getTaskMembers, getDispatchTask, getConfigTemplates } from '@/service/sys/FlowDispatchService'
 import UserPicker from '@/components/UserPicker'
 import AttachField from '@/components/AttachField'
+import ImportMemberModal from '@/components/ImportMemberModal'
 import { CYCLE_TYPE, CYCLE_TYPE_TEXT, NODE_TYPE } from '@/constants/dict'
 
 export default {
   name: 'TaskEditPage',
-  components: { UserPicker, AttachField },
+  components: { UserPicker, AttachField, ImportMemberModal },
   data() {
     return {
       // 模板中直接引用周期/节点类型枚举，需暴露到实例
@@ -358,6 +369,7 @@ export default {
       guideFoldedEdit: false,
       firstHandlers: [],
       pickerVisible: false,
+      importVisible: false,
       // 下发配置模板
       configTemplates: [],
       tplLoading: false,
@@ -622,6 +634,28 @@ export default {
         }
       })
       this.pickerVisible = false
+    },
+    /** 批量导入成功：把人员追加到配置列表，按用户号去重（已在列表中的跳过，不影响手动增减的人） */
+    onImportSuccess(list) {
+      const existing = new Set(this.firstHandlers.map(h => h.id))
+      let added = 0
+      let skipped = 0
+      ;(list || []).forEach(m => {
+        if (!m.yyytId) return
+        if (existing.has(m.yyytId)) { skipped++; return }
+        existing.add(m.yyytId)
+        this.firstHandlers.push({
+          id: m.yyytId,
+          yyytId: m.yyytId,
+          userName: m.userName,
+          deptName: m.deptName,
+          taskName: m.taskName || this.defaultTaskName({ userName: m.userName })
+        })
+        added++
+      })
+      this.importVisible = false
+      if (skipped > 0) this.$message.warning(`已导入 ${added} 人，另有 ${skipped} 人已在列表中、已跳过`)
+      else this.$message.success(`已导入 ${added} 人`)
     },
     defaultTaskName(h) {
       const n = (h && h.userName) || ''
@@ -917,8 +951,13 @@ $border: #CBD5E1;
   b { color: $primary; }
   .sum-tip { color: #999; font-size: 12px; }
 }
+// 「添加人员 / 批量导入」两个按钮并排（批量导入用描边样式，与主按钮区分）
+.handler-actions { display: flex; align-items: center; gap: 8px; }
 .btn-add-user { display: flex; align-items: center; gap: 4px; padding: 6px 14px; background: $primary; color: #fff; border: none; border-radius: 2px; cursor: pointer; font-size: 13px; font-weight: 600;
   &:hover { opacity: 0.9; }
+}
+.btn-import-user { background: #fff; color: $primary; border: 1px solid $border;
+  &:hover { opacity: 1; background: var(--color-primary-light); border-color: $primary; }
 }
 .handler-list { border: 1px solid $border; border-radius: 3px; overflow: hidden; }
 .member-table { width: 100%; border-collapse: collapse; table-layout: fixed; }

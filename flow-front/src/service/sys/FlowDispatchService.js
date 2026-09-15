@@ -26,6 +26,22 @@ export function getDispatchTask(id) {
 }
 
 /**
+ * @desc: 批量导入人员：上传 Excel 解析并按用户号校验（POST /flow-dispatch/member-import）
+ *        整批拒绝式 —— 任一行不通过则返回失败，message 里带全部问题行
+ */
+export function importMembers(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return postDg(dispatchCtl, 'member-import', formData)
+}
+
+/**
+ * @desc: 批量导入人员的 Excel 模板下载地址（GET /flow-dispatch/member-import-template）
+ *        直接 window.open 该地址即可下载（同源，会带上登录态）
+ */
+export const MEMBER_IMPORT_TEMPLATE_URL = '/flow-service/flow-dispatch/member-import-template'
+
+/**
  * @desc: 期次预览（POST /flow-dispatch/preview-period）
  *        按任务周期 + 是否立即下发，计算期次序号/默认期次名/开始截止时间
  */

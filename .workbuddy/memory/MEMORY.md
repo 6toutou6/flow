@@ -6,11 +6,15 @@
 - 前端：Vue 2 + Element UI + SCSS，`flow-front` 模块，端口 9528，`/flow-service` 前缀代理到后端并剥掉前缀（`.env` 的 `/api` 已废弃）。
 - 数据库：MySQL `localhost:3306/flow`，用户 `root`，密码 `12345`。
 - 认证：Session 会话（`HttpSession` + `SESSION_USER_KEY`），不是 JWT。超管白名单在 `application.yml` 的 `system.admin.userIds`（当前 `emp0001`）。
-- 后端启动方式（**首选单 JVM，更抗沙箱回收**）：
-  - 日常：`/tmp/run-flow-backend.sh`（内容：`unset SERVER__PORT` + `cd flow-service` + `java -cp "target/classes:$(cat /tmp/flow-cp.txt)" com.company.flow.base.FlowApplication`）。启动约 5 秒、只 1 个 JVM；**改了 Java 代码要先 `mvn -o compile`**。classpath 重建：`mvn -o -q org.apache.maven.plugins:maven-dependency-plugin:3.6.1:build-classpath -Dmdep.outputFile=/tmp/flow-cp.txt`（**必须带 3.6.1**，默认 3.8.1 离线没下载过会报 `Cannot access alimaven`）。
-  - 备选：`env -u SERVER__PORT mvn -o spring-boot:run`（会多起一个 maven JVM，占用大、启动 30+ 秒，实测几分钟内常被回收）。
-  - 两种方式都**无 spring-boot-devtools 热加载** —— 改后端代码必须重启进程，否则仍用旧 class（表现为「字段值不入库」）。
-- **环境变量坑**：CodeBuddy 会话环境存在 `SERVER__PORT=0`（Spring Boot relaxed binding 映射为 `server.port=0`），不清掉会让后端跑**随机端口**而非 9000。启动前必须 `unset SERVER__PORT`（或 `env -u SERVER__PORT`）。
+- 启动方式（**必须用「独立会话」方式，否则进程会被沙箱随对话轮次回收**）：
+  - ✅ 后端：用 Python 脚本 `/tmp/start-flow-backend.py`（`subprocess.Popen(..., start_new_session=True)` = setsid，`env.pop('SERVER__PORT')`，cwd `flow-service`，命令 `java -cp "target/classes:$(cat /tmp/flow-cp.txt)" com.company.flow.base.FlowApplication`），**用普通 Bash 调用**（非 `run_in_background`），Python 打印 PID 后立即返回、服务独立跑。启动约 **5 秒**。
+  - ✅ 前端：`/tmp/start-flow-front.py`（同上，`env.pop('PORT')`，cwd `flow-front`，`npm run dev`）。
+  - classpath 重建：`cd flow-service && mvn -o -q org.apache.maven.plugins:maven-dependency-plugin:3.6.1:build-classpath -Dmdep.outputFile=/tmp/flow-cp.txt`（**必须带 3.6.1**，默认 3.8.1 离线没下载过会报 `Cannot access alimaven`；仓库里只有 3.6.1/3.7.0 完整）。
+  - ❌ 反例：`run_in_background` 起的进程（无论 `mvn -o spring-boot:run` 还是 `java`）**几分钟到几十分钟内必被回收**，别再用。
+  - **改 Java 代码后先 `mvn -o compile`** 再重跑脚本（Java 方式不自动编译）。
+  - **无 spring-boot-devtools 热加载** —— 不改代码也不重启就行，改了必须重启，否则仍用旧 class（表现为「字段值不入库」）。
+  - **沙箱限制**：`ps` / `ps aux` 被禁（`operation not permitted`），验进程只能用 `lsof -ti tcp:<port>`。
+- **环境变量坑**：CodeBuddy 会话环境存在 `SERVER__PORT=0`（Spring Boot relaxed binding 映射为 `server.port=0`），不清掉会让后端跑**随机端口**而非 9000（实测跑偏到 59365）。启动前必须清掉。
 
 ## 重要约定（踩过的坑）
 
