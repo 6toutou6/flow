@@ -100,7 +100,7 @@
                     </div>
                   </div>
                 </template>
-                <div v-else class="pp-empty">该人员在该任务下暂无参与的任务链</div>
+                <div v-else class="pp-empty"><i class="el-icon-user empty-icon" /> 该人员在该任务下暂无参与的任务链</div>
               </template>
               <div v-else class="pp-loading"><i class="el-icon-loading" /> 加载中...</div>
             </div>

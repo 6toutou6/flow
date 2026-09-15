@@ -222,17 +222,32 @@
 
               <!-- 右侧：关联我的任务（来源期次）+ 操作历史 -->
               <div class="pd-right">
-                <div class="section-title">关联我的任务 <span class="chain-hint">我创建的任务期次关联到了本任务</span></div>
-                <div v-if="linkIns.length === 0" class="history-empty">暂无任务期次关联本任务</div>
-                <div v-else class="collect-list">
+                <div class="section-title section-toggle" :class="{ 'is-open': linkInsOpen }" @click="linkInsOpen = !linkInsOpen">
+                  关联我的任务 <span class="chain-hint">我创建的任务期次关联到了本任务</span>
+                  <i class="el-icon-arrow-down sec-arrow" />
+                </div>
+                <div v-if="linkIns.length === 0" v-show="linkInsOpen" class="history-empty"><i class="el-icon-connection empty-icon" /> 暂无任务期次关联本任务</div>
+                <div v-else v-show="linkInsOpen" class="collect-list">
                   <div v-for="lk in linkIns" :key="lk.id" class="collect-card">
                     <div class="cc-head">
                       <span class="cc-name"><i class="el-icon-link" /> {{ lk.sourceDispatchName || '某任务' }}<template v-if="lk.sourcePeriodName"> / {{ lk.sourcePeriodName }}</template></span>
+                      <!-- 跳到该来源期次（期次人员页），查看该期次下各人的完成情况 -->
+                      <button v-if="lk.sourcePeriodId" class="cc-link" @click="goSourcePeriod(lk)">查看期次 <i class="el-icon-arrow-right" /></button>
                     </div>
                     <div v-if="lk.remark" class="cc-remark" :title="lk.remark"><i class="el-icon-chat-line-square" /> {{ lk.remark }}</div>
                     <div class="cc-meta"><template v-if="lk.createTime">关联时间：{{ lk.createTime }}</template><template v-else>&nbsp;</template></div>
+                    <!-- 期次人员的完成进度：已结束人数 / 期次总人数 -->
                     <div class="cc-foot">
-                      <span class="cc-status cc-wait">在来源任务的期次下可查看/解除此关联</span>
+                      <div class="cc-progress">
+                        <el-progress
+                          :percentage="linkPercent(lk)"
+                          :stroke-width="6"
+                          :show-text="false"
+                          :color="linkPercent(lk) >= 100 ? '#15803d' : '#2563eb'"
+                        />
+                        <span class="cc-pct">已完成 {{ lk.doneCount || 0 }}/{{ lk.memberCount || 0 }} 人</span>
+                      </div>
+                      <div v-if="lk.targetEndTime" class="cc-due"><i class="el-icon-time" /> 截止 {{ lk.targetEndTime }}</div>
                     </div>
                   </div>
                 </div>
@@ -268,7 +283,7 @@
                     </div>
                   </div>
                 </div>
-                <div v-else class="history-empty">暂无操作记录</div>
+                <div v-else class="history-empty"><i class="el-icon-time empty-icon" /> 暂无操作记录</div>
               </div>
             </div>
 
@@ -374,7 +389,9 @@ export default {
       pendingRejectToNodeId: null,
       pendingRejectReason: null,
       // 任务关联：被哪些任务期次关联到我（反链展示）
-      linkIns: []
+      linkIns: [],
+      /** 「关联我的任务」是否展开（默认展开，可点标题收起） */
+      linkInsOpen: true
     }
   },
   computed: {
@@ -685,6 +702,24 @@ export default {
       } finally {
         this.loading = false
       }
+    },
+    /** 跳转到该关联的来源期次（期次人员页），查看该期次下各人的任务与完成情况 */
+    goSourcePeriod(lk) {
+      if (!lk || !lk.sourcePeriodId) return
+      this.$router.push({
+        path: '/flow-dispatch/period-users',
+        query: {
+          dispatchId: lk.sourcePeriodId,
+          periodName: lk.sourcePeriodName || '',
+          taskName: lk.sourceDispatchName || ''
+        }
+      })
+    },
+    /** 关联卡片的完成进度百分比（来源期次：已结束人数 / 期次总人数） */
+    linkPercent(lk) {
+      const total = (lk && lk.memberCount) || 0
+      if (total <= 0) return 0
+      return Math.min(100, Math.round((((lk && lk.doneCount) || 0) / total) * 100))
     },
     /** 加载「被哪些我创建的任务期次关联到本任务」（反链展示） */
     async loadLinkIns() {
@@ -1064,8 +1099,8 @@ $border: #CBD5E1;
   }
 }
 .page-heading { font-size: 24px; line-height: 32px; font-weight: 600; color: #1b1c1c; }
-.btn-back { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: transparent; border: none; color: var(--color-primary); cursor: pointer; font-size: 13px; transition: background .2s;
-  &:hover { background: var(--color-primary-light); }
+.btn-back { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #fff; border: 1px solid $border; border-radius: 3px; color: var(--color-primary); cursor: pointer; font-size: 13px; transition: background .2s, border-color .2s;
+  &:hover { background: var(--color-primary-light); border-color: var(--color-primary); }
 }
 // 上下文条
 .tip-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--color-primary-light); border: 1px solid $border; color: var(--color-primary-hover); font-size: 13px; border-radius: 3px; padding: 10px 14px;
@@ -1096,6 +1131,12 @@ $border: #CBD5E1;
 // 结束节点提示：置顶展示（与下方通栏信息保持间距）
 .top-end-tip { margin-bottom: 14px; }
 .section-title { font-size: 15px; font-weight: 700; color: $primary; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+// 可折叠的区块标题（目前用于「关联我的任务」）：点标题收起/展开，默认展开；箭头靠右
+.section-toggle { cursor: pointer; user-select: none;
+  .sec-arrow { font-size: 13px; color: #94A3B8; transition: transform .25s; transform: rotate(-90deg); flex-shrink: 0; margin-left: auto; }
+  &.is-open .sec-arrow { transform: rotate(0deg); }
+  &:hover .sec-arrow { color: $primary; }
+}
 .chain-hint { font-size: 12px; color: #999; font-weight: 400; margin-left: 0; }
 // 超期软性标记
 .pd-overdue { display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px; border-radius: 3px; font-size: 11px; font-weight: 700; color: #fff; background: #D97706; vertical-align: 1px; white-space: nowrap; }
@@ -1196,12 +1237,18 @@ $border: #CBD5E1;
   i { color: $primary; }
 }
 .cc-meta { font-size: 12px; color: #8a93a5; margin-top: 4px; }
+// 「查看期次」跳转按钮（卡片标题行右侧）
+.cc-link { border: none; background: transparent; padding: 0; color: $primary; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;
+  &:hover { opacity: 0.75; }
+}
 .cc-remark { font-size: 12px; color: #6b7280; background: #f7f8fa; border-left: 2px solid rgba(var(--color-primary-rgb), 0.35); border-radius: 2px; padding: 4px 8px; margin-top: 6px; line-height: 1.5;
   i { color: var(--color-primary); margin-right: 3px; }
 }
-.cc-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
-.cc-status { padding: 1px 8px; border-radius: 3px; font-size: 11px; font-weight: 600;
-  &.cc-ok { background: rgba(21, 128, 61, 0.12); color: #15803D; }
-  &.cc-wait { background: rgba(180, 83, 9, 0.12); color: #B45309; }
+// 关联卡片的收集进度（已收集/应收集 + 截止时间）
+.cc-foot { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #eef0f3; }
+.cc-progress { display: flex; align-items: center; gap: 8px;
+  ::v-deep .el-progress { flex: 1; }
 }
+.cc-pct { font-size: 12px; color: #4b5563; font-weight: 600; white-space: nowrap; }
+.cc-due { font-size: 12px; color: #8a93a5; margin-top: 4px; }
 </style>

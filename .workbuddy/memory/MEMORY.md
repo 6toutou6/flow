@@ -69,6 +69,22 @@
 ## 前端列表折叠面板约定（沿用「任务组」样式）
 
 - 折叠壳统一复用 `taskprocess/index.vue` 的类名：`.task-collapse` / `.task-panel`（`.is-open` 控制箭头旋转）/ `.tp-head` / `.ct-icon` / `.ct-main` / `.ct-name` / `.pending-tag` / `.ct-meta` / `.tp-arrow` / `.tp-body`；空态 `.empty-state`、加载 `.loading-bar`。新页面要折叠直接抄这一套，不要另造样式。
+- **空态提示配图标**（2026-09-14 定；皇上先反馈纯文字「太单调」，同日又纠正「这个已经有了就不加了呀，一个 icon 就够了」）：
+  - ⚠️ **先看容器有没有图标再加**：`.empty-state` 这类容器的样式里已定义 `i { font-size: 48px; display: block; margin-bottom: 12px; }`，模板里也早有「48px 大图标 + `<p>文案</p>`」的结构（`flowdispatch/index.vue` 暂无任务、`ConfigTemplate` 暂无配置模板、`PeriodUsers` 该期次暂无人员、`PersonView`、`TaskLink`、`EditTask` 尚未配置人员、`Handover`/`HandoverApproval` 各空态、`taskprocess/index` 暂无待办、`RejectTargetModal`、`formdesigner` 尚未添加节点、`FlowChain` 暂无流程数据、`HandlerFlowDetail` 暂无流程数据、`PeriodFlow`、`GeneratePeriodModal`、`VersionListModal` 暂无历史版本…）—— **这些一律不要再加**，否则会出现"大图标 + 小图标"两行。
+  - **只有纯文字、容器本身无图标的空态才加**：写成 `<i class="el-icon-xxx empty-icon" /> 文案`。本次最终落地 **21 处**（分布在 `dataview` 8、`ProcessDetail`/`VersionListModal`/`FlowChain` 各 2、其余 8 个文件各 1，均为 `.form-empty` / `.history-empty` / `.chart-empty` / `.legend-empty` / `.pp-empty` / `.dialog-empty` / `.period-empty` / `.ver-desc` / `.dept-empty` / 表格 `<td>` 这类**没自带图标**的容器）。
+  - `.empty-icon` 定义在 `styles/index.scss`（15px、右距 6px、`vertical-align: -1px`、opacity 0.85），新空态直接复用这个类。
+  - 图标语义：流程数据 → `el-icon-share`；操作记录/历史/交接/审批 → `el-icon-time`；任务期次关联 → `el-icon-connection`；人员/提交/参与 → `el-icon-user`；图表数据 → `el-icon-data-line`；其余（任务/期次/模板/节点/部门）→ `el-icon-folder-opened`。
+  - **判断坑**（臣踩过）：写在**兄弟元素**里的图标不算容器图标 —— `.sec-title` 的标题图标、`.ver-time` 的时间字段图标、`.dept-loading` 的加载图标、列表项内的内联图标，都容易让「向上找图标」的脚本误判而漏加。
+- **跳转页必须有返回按钮**（2026-09-15 定，皇上原话「每个页面跳转之后，除了侧边导航栏绑定的页面，左上方都要有返回按钮」）：
+  - 判定口径：**路由里 `hidden: true` 的 = 跳转页**（从别处点进去的），左上角一律要有「返回」按钮；**侧边导航栏绑定的菜单页不要加**（`/login`、`/404` 无侧边栏，也不需要）。
+  - 全站跳转页共 **7 个**：`task-process/detail`、`flow-dispatch/config-template/edit`、`flow-dispatch/edit`、`flow-dispatch/period-users`、`flow-dispatch/period-flow`、`flow-dispatch/person-view`、`flow-dispatch/task-link`。**以后新增跳转页要同步加**。
+  - 页头结构直接抄 `views/flowdispatch/PeriodUsers.vue`：`.header-left`（flex column / gap 8px）> `.hl-row1`（flex / gap 14px，内含 `.btn-back` + `nav.breadcrumb`，并写 `.hl-row1 .breadcrumb { margin-bottom: 0 }`）> `.page-heading`。
+  - `.btn-back` 全站统一（6 处一致）：`display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #fff; border: 1px solid $border; border-radius: 3px; color: var(--color-primary); font-size: 13px;` hover：`background: var(--color-primary-light); border-color: var(--color-primary);`（**白底 + 边框**是皇上点名的样式，别再写回 transparent/none）。
+- **任务管理页的「跳出去再返回保持展开」机制**（2026-09-15 修 bug 时摸清，**新增跳转出口务必照做**）：
+  - 机制：`views/flowdispatch/index.vue` 的 `created` 调 `restoreExpandState()` —— 只有在 `sessionStorage.flowDispatchJumpOut === '1'` 时才恢复 `flowDispatchExpanded` 里保存的 `activeTasks`，并消费掉标记；否则清掉遗留标记、不做任何高亮（菜单/路由直达不展开）。
+  - **所以每个跳转出口都必须先调 `saveFlashId(id, dispatchId)`**（它一次性写入 JumpOut + Expanded + Flash + FlashPeriod）。目前正确调用：`openEdit(t)`、`openPersonView(t)`、`openPeriodUsers(t, p)`、`goTaskLink(t, p)`、`openCopyTask(t)`、`openCreate()`（后三个是 09-15 补的）。**新加跳转出口漏调，就会出现「返回后任务面板被收起」的 bug。**
+  - `saveFlashId` 的 `id` 可空（如「新建任务」没有来源任务），此时只清 Flash、不写。
+  - ⚠️ 曾存在的坑：`restoreExpandState()` 里用 `Number.isInteger(flashId)` 判断，但 `sessionStorage.getItem` 返回**字符串**，导致「返回双闪 + 期次行高亮」从未生效；已改为 `if (flashId && this.activeTasks.indexOf(flashId) >= 0)`（`activeTasks`/`flashTasks`/`flashPeriod` 全用**字符串** id 比较）。
 - 分组在**前端 computed 里做**（后端只补必要字段），按「后端时间倒序下的首现顺序」排组。展开状态用 `openMap: { tabKey: null }`，`null` 表示未初始化 → 首次加载默认全部展开；`syncOpenState()` 保留用户已收起的分组、丢弃已消失的、**新出现的默认展开**（否则筛选后命中的分组会被历史收起状态藏掉）；写回用 `$set` 保证响应式。
 - **页头不放「全部展开 / 收起」按钮（2026-09-10 已撤）**，改放**筛选条件**：`.head-filter` + `.head-filter-label` + `el-select.head-select`（`::v-deep .el-input__inner` 高 36px，刷新按钮同步 36px）。任务交接页筛**状态**（两页签共用）；交接审批页筛**任务**（`filterable clearable`，选项取当前页签数据去重 `dispatchId`，`switchTab` 时重置）。空态分两档：原本为空「暂无…」/ 筛掉为空「没有符合筛选条件的…」。
 - **交接的四个列表统一用表格**（2026-09-10 纠偏：曾误做成一堆卡片/卡片两列，皇上要的是表格）：口径一致——主体列（任务名称 / 申请人→接手人）在前、两个时间列（各 **170**）靠后、操作列 `fixed="right"` 最后；姓名列 **128**（姓名 + `.emp-no` 员工号）；操作列任务交接页 **150**（详情/记录）、交接审批页 **170**（同意/拒绝）。**表头列允许各页略有差异**（原话「表头上可以少做区别」）。四个列表：任务交接-我的交接申请 / 任务交接-交接记录 / 交接审批-待我审批 / 交接审批-本部门交接记录。
@@ -81,4 +97,12 @@
   - 节点被**本人提交**时（`FlowTaskService.submit()` 的退回分支与通过分支各一处）：调 `clearTransferFrom(taskNodeId)` 清掉此前的交接/转办留痕 —— 因为提交人就是实际经办人；
   - ⚠️ MyBatis-Plus 的 `updateById` **忽略 null 字段**，置空必须用 `LambdaUpdateWrapper.set(Field, null)`（`clearTransferFrom` 已按此实现）；
   - 语义：`transfer_from` = 已提交节点的**实际经办人**；未提交节点表示「席位原本归属人」。前端只用它渲染已提交节点的「实际处理」，所以两种语义都不会显示错。
+- **期次「新增人员」是否重复的判定口径（2026-09-14 定，皇上明确）**：只看**每个成员任务的第一个节点（sortNum 最小）处理人**，「跟其他的都没有关系」—— 第一个处理人才代表该成员，后续节点的协同/审批处理人不算。
+  - 落点：`FlowDispatchService.addPeriodMembers()` 里收集 `existing` 的那段（原先错误地收了**该期次所有任务的每个节点**处理人，导致被加过协同节点的人（如赵六）被误判为"已在该期次中"）；
+  - **不能用 `flow_task.owner_id` 替代**：`市场部-李四的问题整改处理` 的 `owner_id` 是 `emp0001 张三`（创建人）、而第一个处理人是 `emp0002 李四`，两者不一致；
+  - 副作用（皇上已接受）：成员若把自己第一个节点交接出去，他就不再算"在期次中"，可被再次新增。
+- **任务状态与「暂存（草稿）」（2026-09-14 定）**：`flow_dispatch.status` 有三个值 —— `启用` / `停用` / `草稿`。
+  - 草稿的判定与影响：`getEnabledList()`、`checkDueDispatches()`、`notifyUnsyncedTemplateTasks()` 都只取「启用」，所以草稿**天然不参与下发**；`generatePeriod()` 与 `toggleStatus()` 显式拦截草稿并给业务提示；`getPage()` 的 status 是可选筛选，不传即不过滤 → 草稿会出现在任务列表（带橙色「草稿」标签，且隐藏启停按钮）。
+  - `validate()`（`FlowDispatchService`）：**草稿只要求「任务名称 + 模板非空」**，模板完整性（节点/字段）与触发日一律跳过；status 非草稿才走完整校验。注意后端**本就不校验创建人字段与人员**（那是前端 `handleSubmit` 的职责），所以草稿转启用时不要指望后端兜底。
+  - 前端：`EditTask.vue` 底部「暂存」（`handleSubmit(true)`，虚线框）与主按钮（`handleSubmit(false)`）分离，暂存成功后回列表、正式创建按原逻辑；编辑草稿时主按钮文案为「创建任务」。
 - 现有落点：任务交接页按**创建部门**折叠（两个页签都是），交接审批页按**任务**折叠（两个页签都是）。

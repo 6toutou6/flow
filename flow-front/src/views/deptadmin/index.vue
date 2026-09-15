@@ -99,7 +99,7 @@
                 </td>
               </tr>
               <tr v-if="!loading && filteredList.length === 0">
-                <td colspan="7" class="text-center" style="padding: 32px; color: #999;">暂无数据</td>
+                <td colspan="7" class="text-center" style="padding: 32px; color: #999;"><i class="el-icon-data-line empty-icon" /> 暂无数据</td>
               </tr>
             </tbody>
           </table>

@@ -252,7 +252,7 @@
     <!-- 某任务的交接记录（完整审计，表单卡片） -->
     <el-dialog :title="dispatchRecordsTitle" :visible.sync="dispatchRecordsVisible" width="820px" append-to-body>
       <div v-loading="dispatchRecordsLoading" class="dialog-body">
-        <div v-if="!dispatchRecordsLoading && dispatchRecordsList.length === 0" class="dialog-empty">暂无交接记录</div>
+        <div v-if="!dispatchRecordsLoading && dispatchRecordsList.length === 0" class="dialog-empty"><i class="el-icon-time empty-icon" /> 暂无交接记录</div>
         <div v-else class="rec-list">
           <div v-for="row in dispatchRecordsList" :key="row.id" class="rec-card">
             <div class="rc-head">

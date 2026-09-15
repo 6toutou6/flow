@@ -172,7 +172,11 @@ public class FlowTaskLinkService {
         if (target != null) {
             vo.setTargetDispatchName(target.getTaskName());
         }
-        // 目标为收到的成员任务：展示该任务自身状态（单条进度，已完成=1/未完成=0）+ 起止时间 + 流程节点链
+        // 进度期次：以「来源期次」为准（就是卡片标题展示的那个，即我创建的汇总任务期次），
+        // 统计其下人员的完成情况；来源期次缺失时退回目标侧期次
+        String progressPeriodId = (link.getSourcePeriodId() != null && !link.getSourcePeriodId().isEmpty())
+                ? link.getSourcePeriodId() : null;
+        // 目标为收到的成员任务：展示该任务的起止时间与流程节点链
         if (link.getTargetTaskId() != null && !link.getTargetTaskId().isEmpty()) {
             FlowTask tt = flowTaskMapper.selectById(link.getTargetTaskId());
             if (tt != null) {
@@ -187,8 +191,7 @@ public class FlowTaskLinkService {
                 vo.setTargetStartTime(tt.getStartTime());
                 vo.setTargetEndTime(tt.getEndTime());
                 vo.setTargetChain(buildTargetChain(tt));
-                vo.setMemberCount(1);
-                vo.setDoneCount(TASK_DONE.equals(tt.getStatus()) ? 1 : 0);
+                fillPeriodProgress(vo, progressPeriodId != null ? progressPeriodId : tt.getDispatchId());
             } else {
                 vo.setMemberCount(0);
                 vo.setDoneCount(0);
@@ -209,16 +212,29 @@ public class FlowTaskLinkService {
             vo.setTargetPeriodId(period.getId());
             vo.setTargetPeriodName(period.getPeriodName());
             vo.setTargetEndTime(period.getEndTime());
-            vo.setMemberCount(flowTaskMapper.selectCount(new LambdaQueryWrapper<FlowTask>()
-                    .eq(FlowTask::getDispatchId, period.getId())).intValue());
-            vo.setDoneCount(flowTaskMapper.selectCount(new LambdaQueryWrapper<FlowTask>()
-                    .eq(FlowTask::getDispatchId, period.getId())
-                    .eq(FlowTask::getStatus, TASK_DONE)).intValue());
+            fillPeriodProgress(vo, progressPeriodId != null ? progressPeriodId : period.getId());
         } else {
             vo.setMemberCount(0);
             vo.setDoneCount(0);
         }
         return vo;
+    }
+
+    /**
+     * 关联卡片的进度口径：某期次下的「人员完成进度」= 已结束人数 / 期次总人数。
+     * 期次为空时给 0/0，前端进度条显示为 0%。
+     */
+    private void fillPeriodProgress(TaskLinkVO vo, String periodId) {
+        if (periodId == null || periodId.isEmpty()) {
+            vo.setMemberCount(0);
+            vo.setDoneCount(0);
+            return;
+        }
+        vo.setMemberCount(flowTaskMapper.selectCount(new LambdaQueryWrapper<FlowTask>()
+                .eq(FlowTask::getDispatchId, periodId)).intValue());
+        vo.setDoneCount(flowTaskMapper.selectCount(new LambdaQueryWrapper<FlowTask>()
+                .eq(FlowTask::getDispatchId, periodId)
+                .eq(FlowTask::getStatus, TASK_DONE)).intValue());
     }
 
     /** 目标任务流程节点链（对齐任务处理列表的展示）：模板链逐节点算状态，模板缺失时按流转记录兜底 */

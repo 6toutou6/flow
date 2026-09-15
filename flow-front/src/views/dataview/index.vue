@@ -123,7 +123,7 @@
                   <span class="legend-name">{{ item.name }}</span>
                   <span class="legend-value">{{ item.value }}</span>
                 </div>
-                <div v-if="taskStatus.length === 0" class="legend-empty">暂无数据</div>
+                <div v-if="taskStatus.length === 0" class="legend-empty"><i class="el-icon-data-line empty-icon" /> 暂无数据</div>
               </div>
             </div>
           </div>
@@ -143,7 +143,7 @@
                   <span class="legend-name">{{ item.name }}</span>
                   <span class="legend-value">{{ item.value }}</span>
                 </div>
-                <div v-if="periodStatus.length === 0" class="legend-empty">暂无数据</div>
+                <div v-if="periodStatus.length === 0" class="legend-empty"><i class="el-icon-data-line empty-icon" /> 暂无数据</div>
               </div>
             </div>
           </div>
@@ -163,7 +163,7 @@
                   <span class="legend-name">{{ item.name }}</span>
                   <span class="legend-value">{{ item.value }}</span>
                 </div>
-                <div v-if="nodeStatus.length === 0" class="legend-empty">暂无数据</div>
+                <div v-if="nodeStatus.length === 0" class="legend-empty"><i class="el-icon-data-line empty-icon" /> 暂无数据</div>
               </div>
             </div>
           </div>
@@ -183,7 +183,7 @@
                   <span class="legend-name">{{ item.name }}</span>
                   <span class="legend-value">{{ item.value }}</span>
                 </div>
-                <div v-if="periodCycle.length === 0" class="legend-empty">暂无数据</div>
+                <div v-if="periodCycle.length === 0" class="legend-empty"><i class="el-icon-data-line empty-icon" /> 暂无数据</div>
               </div>
             </div>
           </div>
@@ -206,7 +206,7 @@
                 {{ rankExpand.dept ? '收起' : '展开全部（' + dispatchDeptRank.length + '）' }}
               </div>
             </div>
-            <div v-else class="chart-empty">暂无下发数据</div>
+            <div v-else class="chart-empty"><i class="el-icon-data-line empty-icon" /> 暂无下发数据</div>
           </section>
 
           <!-- 处理人部门排行 -->
@@ -225,7 +225,7 @@
                 {{ rankExpand.handler ? '收起' : '展开全部（' + handlerDeptRank.length + '）' }}
               </div>
             </div>
-            <div v-else class="chart-empty">暂无提交数据</div>
+            <div v-else class="chart-empty"><i class="el-icon-user empty-icon" /> 暂无提交数据</div>
           </section>
         </div>
 
@@ -246,7 +246,7 @@
                 {{ rankExpand.field ? '收起' : '展开全部（' + fieldTypeRank.length + '）' }}
               </div>
             </div>
-            <div v-else class="chart-empty">暂无字段数据</div>
+            <div v-else class="chart-empty"><i class="el-icon-data-line empty-icon" /> 暂无字段数据</div>
           </section>
 
           <!-- 模板节点数分布 -->
@@ -265,7 +265,7 @@
                 {{ rankExpand.node ? '收起' : '展开全部（' + templateNodeDist.length + '）' }}
               </div>
             </div>
-            <div v-else class="chart-empty">暂无模板数据</div>
+            <div v-else class="chart-empty"><i class="el-icon-data-line empty-icon" /> 暂无模板数据</div>
           </section>
         </div>
       </section>

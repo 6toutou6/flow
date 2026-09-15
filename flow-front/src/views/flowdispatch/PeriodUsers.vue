@@ -140,11 +140,12 @@
       </section>
     </main>
 
-    <!-- 新增人员：复用生成期次的 UserPicker 选人弹窗 -->
+    <!-- 新增人员：复用生成期次的 UserPicker 选人弹窗（可自定义下发任务名称） -->
     <UserPicker
       :visible="pickerVisible"
       title="新增本期次人员（可多选，不影响任务配置）"
       :exclude-ids="pickerExcludeIds"
+      :show-task-name="true"
       @confirm="onAddMembers"
       @close="pickerVisible = false"
     />
@@ -225,11 +226,11 @@ export default {
     openAddModal() {
       this.pickerVisible = true
     },
-    async onAddMembers(users) {
+    async onAddMembers(users, taskName) {
       if (!users || users.length === 0 || this.adding) return
       this.adding = true
       try {
-        const res = await addPeriodMembers(this.dispatchId, users.map(u => u.yyytId || u.id).filter(Boolean))
+        const res = await addPeriodMembers(this.dispatchId, users.map(u => u.yyytId || u.id).filter(Boolean), taskName)
         if (!res || res.code !== 200) return
         const count = res.data != null ? res.data : users.length
         this.$message.success(`已新增 ${count} 位人员`)
@@ -373,9 +374,8 @@ $border: #CBD5E1;
   }
 }
 .page-heading { font-size: 24px; line-height: 32px; font-weight: 600; color: #1b1c1c; }
-.btn-back { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: transparent; border: none; color: var(--color-primary); cursor: pointer; font-size: 13px; transition: background .2s;
-  &:hover { background: rgba(var(--color-primary-rgb), 0.08); }
-  &:hover { background: var(--color-primary-light); }
+.btn-back { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #fff; border: 1px solid $border; border-radius: 3px; color: var(--color-primary); cursor: pointer; font-size: 13px; transition: background .2s, border-color .2s;
+  &:hover { background: var(--color-primary-light); border-color: var(--color-primary); }
 }
 .tip-bar { display: flex; align-items: center; gap: 8px; background: var(--color-primary-light); border: 1px solid $border; color: var(--color-primary-hover); font-size: 13px; border-radius: 3px; padding: 10px 14px;
   i { color: $primary; }

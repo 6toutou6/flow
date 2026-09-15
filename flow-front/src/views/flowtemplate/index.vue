@@ -142,7 +142,7 @@
                 </td>
               </tr>
               <tr v-if="!loading && list.length === 0">
-                <td colspan="8" class="text-center" style="padding: 32px; color: #999;">暂无模板，点击查询栏左下角「新建模板」开始</td>
+                <td colspan="8" class="text-center" style="padding: 32px; color: #999;"><i class="el-icon-folder-opened empty-icon" /> 暂无模板，点击查询栏左下角「新建模板」开始</td>
               </tr>
             </tbody>
           </table>

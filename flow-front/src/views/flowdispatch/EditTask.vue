@@ -24,7 +24,7 @@
         <!-- 提示条 -->
         <section class="tip-bar">
           <i class="el-icon-info" />
-          一个页面完成全部配置：基本信息、模板配置、下发周期、任务人员；保存后任务即可按周期生成期次。
+          一个页面完成全部配置：基本信息、模板配置、下发周期、任务人员；点「创建任务」保存后即可按周期生成期次，点「暂存」则存为草稿、可稍后继续完善。
         </section>
 
         <!-- 基本信息 -->
@@ -295,7 +295,10 @@
         <!-- 操作 -->
         <div class="form-actions">
           <button class="btn-cancel" @click="goBack"><i class="el-icon-arrow-left" /> 取消</button>
-          <button class="btn-submit" :disabled="saving" @click="handleSubmit">
+          <button class="btn-draft" :disabled="saving" title="暂存为草稿：只要求任务名称与模板，其余配置可稍后继续完善；不参与自动下发、不能生成期次" @click="handleSubmit(true)">
+            <i class="el-icon-folder-add" /> 暂存
+          </button>
+          <button class="btn-submit" :disabled="saving" @click="handleSubmit(false)">
             <i v-if="saving" class="el-icon-loading" />
             <i v-else class="el-icon-check" /> {{ pageSubmit }}
           </button>
@@ -370,7 +373,11 @@ export default {
     copyFrom() { return this.$route.query.copyFrom || null },
     /** 页面标题：编辑 / 复制新增 / 新建 */
     pageTitle() { return this.isEdit ? '编辑任务' : (this.copyFrom ? '复制新增任务' : '新建任务') },
-    pageSubmit() { return this.isEdit ? '保存修改' : (this.copyFrom ? '保存副本' : '创建任务') },
+    /** 主按钮文案：编辑草稿时表示「正式创建」（草稿 → 启用），其余按新建/编辑/复制区分 */
+    pageSubmit() {
+      if (this.isEdit && this.form.status === '草稿') return '创建任务'
+      return this.isEdit ? '保存修改' : (this.copyFrom ? '保存副本' : '创建任务')
+    },
     isSuperAdmin() {
       const u = this.$store.state.user.userInfo
       return !!(u && u.superAdmin)
@@ -628,37 +635,40 @@ export default {
     removeHandler(id) {
       this.firstHandlers = this.firstHandlers.filter(h => h.id !== id)
     },
-    async handleSubmit() {
+    async handleSubmit(asDraft) {
       // 样例任务：对非超管开放编辑学习，但保存被拒绝（后端兜底）
       if (this.sampleViewOnly) {
         this.$message.warning('样例任务仅供学习参考，修改不可保存（仅超管可维护样例）；如需完整流程请复制为普通任务')
         return
       }
+      // 暂存（草稿）只要求任务名称 + 模板，其余配置可后补；正式创建/保存才走完整校验
       if (!this.form.taskName || !this.form.taskName.trim()) {
         this.$message.warning('请填写任务名称')
         return
-      }
-      for (const f of this.creatorFields) {
-        if (f.required === 1) {
-          const v = this.templateForm[f.id]
-          const empty = v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)
-          if (empty) {
-            this.$message.warning(`请填写「${f.fieldLabel}」`)
-            return
-          }
-        }
       }
       if (!this.form.templateId) {
         this.$message.warning('请选择流程模板')
         return
       }
-      if (this.form.cycleType !== CYCLE_TYPE.ONCE && !this.form.cycleDay) {
-        this.$message.warning('请选择触发日')
-        return
-      }
-      if (this.firstHandlers.length === 0) {
-        this.$message.warning('请至少配置一个人员')
-        return
+      if (!asDraft) {
+        for (const f of this.creatorFields) {
+          if (f.required === 1) {
+            const v = this.templateForm[f.id]
+            const empty = v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)
+            if (empty) {
+              this.$message.warning(`请填写「${f.fieldLabel}」`)
+              return
+            }
+          }
+        }
+        if (this.form.cycleType !== CYCLE_TYPE.ONCE && !this.form.cycleDay) {
+          this.$message.warning('请选择触发日')
+          return
+        }
+        if (this.firstHandlers.length === 0) {
+          this.$message.warning('请至少配置一个人员')
+          return
+        }
       }
       this.saving = true
       try {
@@ -678,7 +688,8 @@ export default {
           cycleDay: this.form.cycleType === CYCLE_TYPE.ONCE ? null : this.form.cycleDay,
           deadlineDays: this.form.deadlineDays,
           urgeDays: this.form.urgeDays,
-          status: this.form.status,
+          // 暂存 → 草稿；原为停用 → 保持停用；其余（新建/编辑中启用）→ 启用
+          status: asDraft ? '草稿' : (this.form.status === '停用' ? '停用' : '启用'),
           memberIds: this.firstHandlers.map(h => h.id),
           memberTaskNames: this.firstHandlers.reduce((acc, h) => {
             acc[h.id] = (h.taskName && h.taskName.trim()) ? h.taskName.trim() : this.defaultTaskName(h)
@@ -687,8 +698,9 @@ export default {
         }
         const res = this.isEdit ? await updateDispatchPlan(payload) : await saveDispatchPlan(payload)
         if (!res || res.code !== 200) return
-        this.$message.success(res.message || '保存成功')
-        if (!this.isEdit) {
+        this.$message.success(asDraft ? '已暂存为草稿，可在任务列表点「编辑」继续完善' : (res.message || '保存成功'))
+        if (asDraft || !this.isEdit) {
+          // 暂存：回列表（草稿带「草稿」标记，可继续编辑）；新建正式创建：同样回列表
           this.goBack()
         } else {
           // 编辑模式：保存后留在本页并刷新回显（成员/模板配置）
@@ -784,9 +796,8 @@ $border: #CBD5E1;
   }
 }
 .page-heading { font-size: 24px; line-height: 32px; font-weight: 600; color: #1b1c1c; }
-.btn-back { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: transparent; border: none; color: var(--color-primary); cursor: pointer; font-size: 13px; transition: background .2s;
-  &:hover { background: rgba(var(--color-primary-rgb), 0.08); }
-  &:hover { background: var(--color-primary-light); }
+.btn-back { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #fff; border: 1px solid $border; border-radius: 3px; color: var(--color-primary); cursor: pointer; font-size: 13px; transition: background .2s, border-color .2s;
+  &:hover { background: var(--color-primary-light); border-color: var(--color-primary); }
 }
 .tip-bar { display: flex; align-items: center; gap: 8px; background: var(--color-primary-light); border: 1px solid $border; color: var(--color-primary-hover); font-size: 13px; border-radius: 3px; padding: 10px 14px;
   i { color: $primary; }
@@ -934,6 +945,10 @@ $border: #CBD5E1;
 .form-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .btn-cancel { display: flex; align-items: center; gap: 4px; padding: 9px 20px; background: #fff; border: 1px solid $border; border-radius: 3px; color: var(--color-primary); cursor: pointer; font-size: 13px;
   &:hover { background: var(--color-primary-light); }
+}
+.btn-draft { display: flex; align-items: center; gap: 4px; padding: 9px 20px; background: #fff; border: 1px dashed $primary; border-radius: 3px; color: var(--color-primary); cursor: pointer; font-size: 13px;
+  &:hover { background: var(--color-primary-light); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .btn-submit { display: flex; align-items: center; gap: 6px; padding: 9px 26px; background: $primary; color: #fff; border: none; border-radius: 3px; cursor: pointer; font-size: 14px; font-weight: 700; box-shadow: 0 2px 6px rgba(var(--color-primary-rgb),0.2);
   &:hover { opacity: 0.9; }

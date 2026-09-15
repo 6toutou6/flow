@@ -5,6 +5,11 @@
       <input v-model="filter.deptName" class="filter-input" placeholder="部门" @keyup.enter="loadUsers">
       <button class="btn-search" @click="loadUsers">查询</button>
     </div>
+    <!-- 可选：自定义下发任务名称（多选时作为前缀自动拼姓名） -->
+    <div v-if="showTaskName" class="task-name-row">
+      <span class="tn-label">任务名称</span>
+      <input v-model="taskName" class="filter-input" placeholder="留空则用系统默认名称（多人时自动拼姓名）">
+    </div>
     <el-table
       v-loading="loading"
       ref="userTable"
@@ -39,14 +44,17 @@ export default {
     /** 弹窗标题（可选） */
     title: { type: String, default: '选择处理人（可多选）' },
     /** 已选处理人用户号列表，这些行禁用勾选避免重复 */
-    excludeIds: { type: Array, default: () => [] }
+    excludeIds: { type: Array, default: () => [] },
+    /** 是否显示「任务名称」输入框（仅新增期次人员等场景需要） */
+    showTaskName: { type: Boolean, default: false }
   },
   data() {
     return {
       loading: false,
       userList: [],
       filter: { userName: '', deptName: '' },
-      selection: []
+      selection: [],
+      taskName: ''
     }
   },
   computed: {
@@ -60,6 +68,7 @@ export default {
       if (val) {
         this.selection = []
         this.filter = { userName: '', deptName: '' }
+        this.taskName = ''
         this.$nextTick(() => {
           this.loadUsers()
         })
@@ -93,7 +102,8 @@ export default {
     },
     handleConfirm() {
       if (this.selection.length === 0) return
-      this.$emit('confirm', this.selection.map(u => ({ ...u })))
+      // 第二个参数为自定义任务名称（未开启 showTaskName 时为 ''，调用方可忽略）
+      this.$emit('confirm', this.selection.map(u => ({ ...u })), (this.taskName || '').trim())
     },
     handleClose() {
       this.$emit('close')
@@ -105,6 +115,9 @@ export default {
 <style lang="scss" scoped>
 $primary: var(--color-primary);
 .picker-filter { display: flex; gap: 8px; margin-bottom: 12px; }
+.task-name-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+  .tn-label { font-size: 13px; color: #606266; flex: 0 0 auto; }
+}
 .filter-input { height: 32px; border: 1px solid #dcdfe6; border-radius: 4px; padding: 0 8px; font-size: 13px; outline: none; flex: 1;
   &:focus { border-color: $primary; }
 }

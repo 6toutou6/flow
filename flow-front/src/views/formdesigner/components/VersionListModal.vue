@@ -15,7 +15,7 @@
             <span class="ver-time"><i class="el-icon-time" /> {{ currentVersion.updateTime || currentVersion.createTime || '—' }}</span>
           </div>
           <div v-if="currentVersion.versionDesc" class="ver-desc">{{ currentVersion.versionDesc }}</div>
-          <div v-else class="ver-desc muted">暂无改动说明</div>
+          <div v-else class="ver-desc muted"><i class="el-icon-time empty-icon" /> 暂无改动说明</div>
         </div>
         <!-- 历史版本 -->
         <div v-for="v in versions" :key="v.id" class="ver-card">
@@ -26,7 +26,7 @@
             <span v-if="v.modifierName" class="ver-user"><i class="el-icon-user" /> {{ v.modifierName }}</span>
           </div>
           <div v-if="v.versionDesc" class="ver-desc">{{ v.versionDesc }}</div>
-          <div v-else class="ver-desc muted">暂无改动说明</div>
+          <div v-else class="ver-desc muted"><i class="el-icon-time empty-icon" /> 暂无改动说明</div>
         </div>
       </div>
     </div>

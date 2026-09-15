@@ -106,7 +106,7 @@
                   <div v-if="act.action === 1 && act.rejectReason" class="action-reason">原因：{{ act.rejectReason }}</div>
                 </div>
               </div>
-              <div v-else class="form-empty">暂无操作记录</div>
+              <div v-else class="form-empty"><i class="el-icon-time empty-icon" /> 暂无操作记录</div>
             </div>
           </div>
         </div>
@@ -195,7 +195,7 @@
                   <div v-if="act.action === 1 && act.rejectReason" class="action-reason">原因：{{ act.rejectReason }}</div>
                 </div>
               </div>
-              <div v-else class="form-empty">暂无操作记录</div>
+              <div v-else class="form-empty"><i class="el-icon-time empty-icon" /> 暂无操作记录</div>
             </div>
           </div>
         </div>

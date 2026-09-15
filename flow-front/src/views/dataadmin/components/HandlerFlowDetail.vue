@@ -63,7 +63,7 @@
             </div>
           </div>
         </div>
-        <div v-else class="history-empty">暂无操作记录</div>
+        <div v-else class="history-empty"><i class="el-icon-time empty-icon" /> 暂无操作记录</div>
       </div>
     </div>
   </div>

@@ -331,9 +331,8 @@ $border: #CBD5E1;
   }
 }
 .page-heading { font-size: 24px; line-height: 32px; font-weight: 600; color: #1b1c1c; }
-.btn-back { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: transparent; border: none; color: var(--color-primary); cursor: pointer; font-size: 13px; transition: background .2s;
-  &:hover { background: rgba(var(--color-primary-rgb), 0.08); }
-  &:hover { background: var(--color-primary-light); }
+.btn-back { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #fff; border: 1px solid $border; border-radius: 3px; color: var(--color-primary); cursor: pointer; font-size: 13px; transition: background .2s, border-color .2s;
+  &:hover { background: var(--color-primary-light); border-color: var(--color-primary); }
 }
 .tip-bar { display: flex; align-items: center; gap: 8px; background: var(--color-primary-light); border: 1px solid $border; color: var(--color-primary-hover); font-size: 13px; border-radius: 3px; padding: 10px 14px;
   i { color: $primary; }

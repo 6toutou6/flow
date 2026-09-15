@@ -19,6 +19,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -240,11 +241,21 @@ public class FlowDispatchController {
         return Result.success("获取成功", flowDispatchService.getMembers(taskId));
     }
 
-    /** 期次新增人员：不重新生成期次，抄用期次配置为每位新人员创建独立提交任务 */
+    /** 期次新增人员：不重新生成期次，抄用期次配置为每位新人员创建独立提交任务（可自定义任务名称） */
     @PostMapping("/period/add-members/{dispatchId}")
-    public Result<Integer> periodAddMembers(@PathVariable String dispatchId, @RequestBody Map<String, List<String>> body) {
+    public Result<Integer> periodAddMembers(@PathVariable String dispatchId,
+                                            @RequestBody(required = false) Map<String, Object> body) {
         try {
-            int count = flowDispatchService.addMembersToDispatch(dispatchId, body == null ? null : body.get("userIds"));
+            Map<String, Object> p = body == null ? new HashMap<>() : body;
+            List<String> userIds = null;
+            Object raw = p.get("userIds");
+            if (raw instanceof List) {
+                userIds = new ArrayList<>();
+                for (Object o : (List<?>) raw) {
+                    if (o != null) userIds.add(String.valueOf(o));
+                }
+            }
+            int count = flowDispatchService.addMembersToDispatch(dispatchId, userIds, ParamUtil.str(p.get("taskName")));
             return Result.success("新增成功", count);
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());

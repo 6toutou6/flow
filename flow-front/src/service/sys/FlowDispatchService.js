@@ -165,9 +165,10 @@ export function copyConfigTemplate(id) {
 
 /**
  * @desc: 期次新增人员（POST /flow-dispatch/period/add-members/{dispatchId}；抄用期次配置为每位新人员创建独立提交任务）
+ * @param taskName 自定义任务名称（可空：空则用系统默认；多人时以它作前缀拼姓名）
  */
-export function addPeriodMembers(dispatchId, userIds) {
-  return postDg(dispatchCtl, `period/add-members/${dispatchId}`, { userIds })
+export function addPeriodMembers(dispatchId, userIds, taskName) {
+  return postDg(dispatchCtl, `period/add-members/${dispatchId}`, { userIds, taskName })
 }
 
 /**

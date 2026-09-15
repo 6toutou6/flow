@@ -27,7 +27,7 @@
           @node-click="handleNodeClick"
         />
         <div v-if="loading" class="dept-loading"><i class="el-icon-loading" /> 加载中...</div>
-        <div v-else-if="treeData.length === 0" class="dept-empty">暂无可选部门，请先在系统中维护部门</div>
+        <div v-else-if="treeData.length === 0" class="dept-empty"><i class="el-icon-user empty-icon" /> 暂无可选部门，请先在系统中维护部门</div>
       </div>
       <div class="dept-selected">
         <span>已选择：</span>

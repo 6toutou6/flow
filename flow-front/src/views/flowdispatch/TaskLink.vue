@@ -4,12 +4,15 @@
       <section class="page-content">
         <!-- 页头 -->
         <div class="page-header">
-          <div>
-            <nav class="breadcrumb">
-              <span class="link" @click="goBackTaskManage">任务管理</span>
-              <span>/</span>
-              <span class="active">期次任务关联</span>
-            </nav>
+          <div class="header-left">
+            <div class="hl-row1">
+              <button class="btn-back" @click="goBackTaskManage"><i class="el-icon-arrow-left" /> 返回</button>
+              <nav class="breadcrumb">
+                <span class="link" @click="goBackTaskManage">任务管理</span>
+                <span>/</span>
+                <span class="active">期次任务关联</span>
+              </nav>
+            </div>
             <h3 class="page-heading">期次任务关联</h3>
           </div>
           <div class="header-actions">
@@ -451,6 +454,12 @@ $border: #CBD5E1;
 .main-content { width: 100%; display: flex; flex-direction: column; min-height: 100vh; }
 .page-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; }
+.header-left { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.hl-row1 { display: flex; align-items: center; gap: 14px; }
+.hl-row1 .breadcrumb { margin-bottom: 0; }
+.btn-back { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #fff; border: 1px solid $border; border-radius: 3px; color: var(--color-primary); cursor: pointer; font-size: 13px; transition: background .2s, border-color .2s;
+  &:hover { background: var(--color-primary-light); border-color: var(--color-primary); }
+}
 .breadcrumb { display: flex; gap: 8px; font-size: 12px; line-height: 20px; color: #414755; margin-bottom: 8px;
   .link { color: #909399; cursor: pointer;
     &:hover { color: $primary; }

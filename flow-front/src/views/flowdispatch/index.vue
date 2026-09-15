@@ -83,6 +83,7 @@
                 <option value="">全部状态</option>
                 <option value="启用">启用</option>
                 <option value="停用">停用</option>
+                <option value="草稿">草稿</option>
               </select>
             </div>
             <div class="filter-item">
@@ -140,7 +141,8 @@
               <div class="ct-main">
                 <span class="ct-name" :title="t.taskName">{{ t.taskName }}</span>
                 <span v-if="t.isSample === 1" class="sample-tag">样例</span>
-                <span :class="t.status === '启用' ? 'ct-status on' : 'ct-status off'">{{ t.status === '启用' ? '启用' : '停用' }}</span>
+                <span v-if="t.status === '草稿'" class="ct-status draft">草稿</span>
+                <span v-else :class="t.status === '启用' ? 'ct-status on' : 'ct-status off'">{{ t.status === '启用' ? '启用' : '停用' }}</span>
                 <span class="ct-meta" :title="ctMetaText(t)">{{ ctMetaText(t) }}</span>
               </div>
               <i class="el-icon-arrow-down tp-arrow" />
@@ -150,7 +152,11 @@
             <div v-show="isTaskOpen(t.id)" class="tp-body">
               <div class="task-detail">
                 <!-- 概览 -->
-                <div v-if="t.status !== '启用'" class="disabled-tip">
+                <div v-if="t.status === '草稿'" class="disabled-tip">
+                  <i class="el-icon-edit-outline" />
+                  <span><b>该任务还是草稿</b>：配置可随时修改，不参与自动下发、也不能生成期次；点「编辑」完善后保存为正式任务即可。</span>
+                </div>
+                <div v-else-if="t.status !== '启用'" class="disabled-tip">
                   <i class="el-icon-warning-outline" />
                   <span><b>该任务已停用</b>：不能生成新期次，自动下发暂停；已下发的期次与处理进度不受影响，点击「启用」可恢复。</span>
                 </div>
@@ -204,14 +210,14 @@
                   <template v-if="isSuperAdmin">
                     <button class="btn-ghost" @click="toggleSample(t)"><i :class="t.isSample === 1 ? 'el-icon-star-on star-on' : 'el-icon-star-off'" /> {{ t.isSample === 1 ? '取消样例' : '设为样例' }}</button>
                   </template>
-                  <button class="btn-gen" :disabled="t.status !== '启用' || isSampleLocked(t)" :title="t.status !== '启用' ? '请先启用任务' : (isSampleLocked(t) ? '样例任务仅超管可操作' : '生成期次')" @click="openGen(t)">
+                  <button class="btn-gen" :disabled="t.status !== '启用' || isSampleLocked(t)" :title="t.status === '草稿' ? '草稿任务请先完善并保存为正式任务' : (t.status !== '启用' ? '请先启用任务' : (isSampleLocked(t) ? '样例任务仅超管可操作' : '生成期次'))" @click="openGen(t)">
                     <i class="el-icon-s-promotion" /> 生成期次
                   </button>
                   <button class="btn-ghost btn-person" @click="openPersonView(t)"><i class="el-icon-user" /> 按人员查看</button>
                   <!-- 样例对所有用户开放编辑入口（参考学习：可试改，保存将被拒绝）；普通任务照常编辑 -->
                   <button class="btn-ghost" :title="t.isSample === 1 && !isSuperAdmin ? '样例任务仅供学习参考：可打开编辑查看配置并试改，但保存修改将被拒绝' : ''" @click="openEdit(t)"><i class="el-icon-edit" /> 编辑</button>
                   <button class="btn-ghost" :title="'复制任务基本信息（含人员配置），复制结果不含任何期次' + (t.isSample === 1 ? '；样例复制后转为普通任务' : '')" @click="openCopyTask(t)"><i class="el-icon-copy-document" /> 复制</button>
-                  <button class="btn-ghost" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例任务仅超管可操作' : ''" @click="toggleStatus(t)"><i class="el-icon-refresh" /> {{ t.status === '启用' ? '停用' : '启用' }}</button>
+                  <button v-if="t.status !== '草稿'" class="btn-ghost" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例任务仅超管可操作' : ''" @click="toggleStatus(t)"><i class="el-icon-refresh" /> {{ t.status === '启用' ? '停用' : '启用' }}</button>
                   <button class="btn-ghost text-error" :disabled="isSampleLocked(t)" :title="isSampleLocked(t) ? '样例任务仅超管可删除' : ''" @click="onDelete(t)"><i class="el-icon-delete" /> 删除</button>
                 </div>
 
@@ -220,7 +226,7 @@
                   <div class="sec-title"><i class="el-icon-tickets" /> 期次列表 <span class="sec-sub">共 {{ taskData[t.id] ? taskData[t.id].periods.length : 0 }} 期</span></div>
                   <!-- 拉取期次时的骨架占位（含展开后尚未加载完成的情况） -->
                   <div v-if="!taskData[t.id] || taskData[t.id].loading" class="period-skeleton"><i class="el-icon-loading" /> 正在加载期次...</div>
-                  <div v-else-if="taskData[t.id] && taskData[t.id].periods.length === 0" class="period-empty">暂无期次，点击上方「生成期次」下发</div>
+                  <div v-else-if="taskData[t.id] && taskData[t.id].periods.length === 0" class="period-empty"><i class="el-icon-folder-opened empty-icon" /> 暂无期次，点击上方「生成期次」下发</div>
                   <table v-else-if="taskData[t.id] && taskData[t.id].periods.length > 0" class="period-table">
                     <thead>
                       <tr>
@@ -398,7 +404,7 @@ export default {
     },
     // 五类状态卡/两个筛选下拉共享单值 filterSel，单选互斥（启用↔停用↔进行中↔已完成，选后另者自动清除）
     selStatus: {
-      get() { return (this.filters.filterSel === '启用' || this.filters.filterSel === '停用') ? this.filters.filterSel : '' },
+      get() { return (this.filters.filterSel === '启用' || this.filters.filterSel === '停用' || this.filters.filterSel === '草稿') ? this.filters.filterSel : '' },
       set(v) { this.pickFilter(v) }
     },
     selProgress: {
@@ -464,13 +470,13 @@ export default {
         }
         // 双闪跳转来源任务面板
         const flashId = sessionStorage.getItem('flowDispatchFlash')
-        if (Number.isInteger(flashId) && this.activeTasks.indexOf(flashId) >= 0) {
+        if (flashId && this.activeTasks.indexOf(flashId) >= 0) {
           this.flashTasks = [flashId]
           setTimeout(() => { this.flashTasks = [] }, 2200)
         }
         // 高亮跳转来源期次（如点「查看人员」跳转，返回时定位到该期次行）
         const flashPeriod = sessionStorage.getItem('flowDispatchFlashPeriod')
-        if (Number.isInteger(flashPeriod)) {
+        if (flashPeriod) {
           this.flashPeriod = flashPeriod
           setTimeout(() => { this.flashPeriod = null }, 2200)
         }
@@ -486,12 +492,13 @@ export default {
         console.error(e)
       }
     },
-    /** 记录跳转来源任务 id（返回本页时该面板红色双闪）与期次 id（对应期次行高亮） */
+    /** 记录跳转来源任务 id（返回本页时该面板红色双闪）与期次 id（对应期次行高亮）；id 可空（如「新建任务」） */
     saveFlashId(id, dispatchId) {
       try {
         sessionStorage.setItem('flowDispatchJumpOut', '1')
         sessionStorage.setItem('flowDispatchExpanded', JSON.stringify(this.activeTasks))
-        sessionStorage.setItem('flowDispatchFlash', String(id))
+        if (id) sessionStorage.setItem('flowDispatchFlash', String(id))
+        else sessionStorage.removeItem('flowDispatchFlash')
         if (dispatchId) sessionStorage.setItem('flowDispatchFlashPeriod', String(dispatchId))
         else sessionStorage.removeItem('flowDispatchFlashPeriod')
       } catch (e) {
@@ -571,7 +578,7 @@ export default {
       try {
         const p = { page: this.page, limit: this.limit }
         if (this.filters.taskName && this.filters.taskName.trim()) p.taskName = this.filters.taskName.trim()
-        if (this.filters.filterSel === '启用' || this.filters.filterSel === '停用') p.status = this.filters.filterSel
+        if (this.filters.filterSel === '启用' || this.filters.filterSel === '停用' || this.filters.filterSel === '草稿') p.status = this.filters.filterSel
         if (this.filters.filterSel === '进行中' || this.filters.filterSel === '已完成') p.progress = this.filters.filterSel
         if (this.filters.sample !== '') p.sample = Number(this.filters.sample)
         if (this.filters.creatorName && this.filters.creatorName.trim()) p.creatorName = this.filters.creatorName.trim()
@@ -762,6 +769,7 @@ export default {
     },
     /** 复制任务：进入「复制新增」编辑页，预填源任务基本信息与人员配置（不含任何期次），保存后生成全新普通任务 */
     openCopyTask(t) {
+      this.saveFlashId(t.id)
       this.$router.push({ path: '/flow-dispatch/edit', query: { copyFrom: t.id }})
     },
     /** 复制期次：打开生成期次弹窗（手动临时期次），成员回填源期次人员；期次名/开始/截止清空由用户自填 */
@@ -803,10 +811,12 @@ export default {
       if (t) this.openEdit(t)
     },
     openCreate() {
+      this.saveFlashId()
       this.$router.push('/flow-dispatch/edit')
     },
     /** 打开「期次任务关联」页面：来源 = 当前任务的某一期次 */
     goTaskLink(t, p) {
+      this.saveFlashId(t.id, p.dispatchId)
       this.$router.push({
         path: '/flow-dispatch/task-link',
         query: {
@@ -1030,6 +1040,7 @@ $border: #CBD5E1;
 .ct-status { padding: 2px 12px; border-radius: 4px; font-size: 12px; flex-shrink: 0;
   &.on { background: rgba(var(--color-primary-rgb),0.1); color: $primary; font-weight: 600; }
   &.off { background: #5c5f66; color: #fff; font-weight: 600; }
+  &.draft { background: rgba(180, 83, 9,0.14); color: #B45309; font-weight: 600; }
 }
 .sample-tag { padding: 2px 8px; background: rgba(180, 83, 9,0.14); color: #B45309; border-radius: 3px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
 

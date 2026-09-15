@@ -354,6 +354,11 @@ public class FlowDispatchService {
     private void validate(TaskSaveDTO dto) {
         if (!StringUtils.hasText(dto.getTaskName())) throw new RuntimeException("请填写任务名称");
         if (dto.getTemplateId() == null) throw new RuntimeException("请选择流程模板");
+        // 草稿暂存：名称/模板选好即可，模板完整性（节点/字段）与下发周期可后补，
+        // 待正式创建（状态转「启用」）时再走下面的完整校验
+        if ("草稿".equals(dto.getStatus())) {
+            return;
+        }
         // 引用模板校验：模板必须存在、已配置流程节点、已配置表单字段，否则不允许引用并告知用户
         FlowTemplate tpl = flowTemplateMapper.selectById(dto.getTemplateId());
         if (tpl == null) throw new RuntimeException("所选流程模板不存在，请重新选择");
@@ -375,6 +380,10 @@ public class FlowDispatchService {
         FlowDispatch d = flowDispatchMapper.selectById(id);
         if (d == null) return false;
         checkPermission(d);
+        // 草稿不参与启用/停用切换（要先在编辑页完善并正式创建）
+        if ("草稿".equals(d.getStatus())) {
+            throw new RuntimeException("草稿任务请先完善并创建，再启用/停用");
+        }
         d.setStatus(d.getStatus() == null || "停用".equals(d.getStatus()) ? "启用" : "停用");
         d.setUpdateTime(new Date());
         return flowDispatchMapper.updateById(d) > 0;
@@ -447,8 +456,12 @@ public class FlowDispatchService {
         }
     }
 
-    /** 状态归一化：null / "1" / "0" / "启用" / "停用" → 中文语义值 */
+    /** 状态归一化：null / "1" / "启用" / "停用" / "草稿" → 中文语义值 */
     private String normalizeStatus(String status) {
+        // 草稿（暂存）：任务配置未完善，不参与自动下发、不计入启用列表
+        if ("草稿".equals(status)) {
+            return "草稿";
+        }
         if (status == null || "1".equals(status) || "启用".equals(status)) {
             return "启用";
         }
@@ -815,6 +828,9 @@ public class FlowDispatchService {
                                            Date manualStartTime, Date manualEndTime, Map<String, String> memberTaskNames, boolean notifyMembers) {
         FlowDispatch task = flowDispatchMapper.selectById(taskId);
         if (task == null) throw new RuntimeException("任务不存在");
+        if ("草稿".equals(task.getStatus())) {
+            throw new RuntimeException("该任务还是草稿，请先完善并保存为正式任务后再生成期次");
+        }
         if (task.getStatus() != null && "停用".equals(task.getStatus())) {
             throw new RuntimeException("任务已停用，请先启用后再生成期次");
         }
@@ -986,11 +1002,17 @@ public class FlowDispatchService {
         return vo;
     }
 
+    /**
+     * 期次新增人员：为每位新人员创建独立提交任务。
+     * @param taskName 自定义任务名称（可空：空则用系统默认「下发给{姓名}的任务」；
+     *                 多人时以它作前缀拼姓名，避免同名无法区分）
+     */
     @Transactional(rollbackFor = Exception.class)
-    public int addMembersToDispatch(String dispatchId, List<String> userIds) {
+    public int addMembersToDispatch(String dispatchId, List<String> userIds, String taskName) {
         if (userIds == null || userIds.isEmpty()) throw new RuntimeException("请选择要新增的人员");
         List<String> uids = userIds.stream().filter(Objects::nonNull).distinct().collect(Collectors.toList());
         if (uids.isEmpty()) throw new RuntimeException("请选择要新增的人员");
+        String customName = StringUtils.hasText(taskName) ? taskName.trim() : null;
         FlowTaskDispatch dispatch = flowTaskDispatchMapper.selectById(dispatchId);
         if (dispatch == null) throw new RuntimeException("期次不存在");
         // 期次节点快照（优先，保证与期次锁定版本一致）；存量期次无快照则降级查当前模板
@@ -1025,14 +1047,26 @@ public class FlowDispatchService {
             total = flowTemplateNodeMapper.selectCount(
                     new LambdaQueryWrapper<FlowTemplateNode>().eq(FlowTemplateNode::getTemplateId, dispatch.getTemplateId())).intValue();
         }
-        // 该期次已存在的人员（从节点处理人判定，避免重复新增）
+        // 该期次已存在的人员：按每个成员任务的【第一个节点（sortNum 最小）处理人】判定 ——
+        // 第一位处理人才代表该成员；后续节点的协同/审批处理人与成员身份无关，不能算作"已在该期次中"
         List<String> taskIds = flowTaskMapper.selectList(
                 new LambdaQueryWrapper<FlowTask>().eq(FlowTask::getDispatchId, dispatchId))
                 .stream().map(FlowTask::getId).collect(Collectors.toList());
         List<String> existing = new ArrayList<>();
         if (!taskIds.isEmpty()) {
-            for (FlowTaskNode n : flowTaskNodeMapper.selectList(new LambdaQueryWrapper<FlowTaskNode>()
-                    .in(FlowTaskNode::getTaskId, taskIds).select(FlowTaskNode::getHandlerUserId))) {
+            List<FlowTaskNode> allNodes = flowTaskNodeMapper.selectList(new LambdaQueryWrapper<FlowTaskNode>()
+                    .in(FlowTaskNode::getTaskId, taskIds)
+                    .select(FlowTaskNode::getTaskId, FlowTaskNode::getSortNum, FlowTaskNode::getHandlerUserId));
+            // 每个任务取 sortNum 最小的那个节点（即该成员任务的第一个处理人）
+            Map<String, FlowTaskNode> firstOfTask = new HashMap<>();
+            for (FlowTaskNode n : allNodes) {
+                FlowTaskNode cur = firstOfTask.get(n.getTaskId());
+                if (cur == null || (n.getSortNum() != null
+                        && (cur.getSortNum() == null || n.getSortNum() < cur.getSortNum()))) {
+                    firstOfTask.put(n.getTaskId(), n);
+                }
+            }
+            for (FlowTaskNode n : firstOfTask.values()) {
                 if (n.getHandlerUserId() != null && !existing.contains(n.getHandlerUserId())) {
                     existing.add(n.getHandlerUserId());
                 }
@@ -1045,7 +1079,10 @@ public class FlowDispatchService {
             FlowTask ft = new FlowTask();
             ft.setTemplateId(dispatch.getTemplateId());
             ft.setDispatchId(dispatchId);
-            String memberTname = memberTaskNameOf(uid, null);
+            // 任务名称：自定义优先（单人直接用；多人以自定义名为前缀拼姓名，避免多条任务同名）
+            String memberTname = customName == null
+                    ? memberTaskNameOf(uid, null)
+                    : (uids.size() == 1 ? customName : customName + "-" + userNameOf(uid));
             ft.setTaskName(StringUtils.hasText(memberTname) ? memberTname : dispatch.getTaskName());
             ft.setTaskDesc(dispatch.getTaskDesc());
             ft.setTemplateData(dispatch.getTemplateData());
