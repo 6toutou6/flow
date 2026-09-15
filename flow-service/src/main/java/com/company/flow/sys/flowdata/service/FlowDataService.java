@@ -11,8 +11,11 @@ import com.company.flow.sys.flowdata.vo.DashboardVO;
 import com.company.flow.sys.flowdata.vo.FormRecordDetailVO;
 import com.company.flow.sys.flowdata.vo.FormRecordListVO;
 import com.company.flow.sys.flowdata.vo.FormRecordQueryForm;
+import com.company.flow.sys.flowdata.vo.NameCountVO;
 import com.company.flow.sys.flowdata.vo.PersonNodeVO;
 import com.company.flow.sys.flowdata.vo.PersonSubmitVO;
+import com.company.flow.sys.flowdata.vo.ScopedDashboardVO;
+import com.company.flow.sys.flowdata.vo.ScopedStatsVO;
 import com.company.flow.sys.flowdata.vo.TrendPointVO;
 import com.company.flow.sys.flowtask.entity.FlowTask;
 import com.company.flow.sys.flowtask.entity.FlowTaskDispatch;
@@ -32,6 +35,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -201,5 +206,63 @@ public class FlowDataService {
         String type = StringUtils.hasText(trendType) ? trendType.trim() : "day";
         vo.setTrend(flowFormRecordMapper.selectTrendByType(type, startDate, endDate));
         return vo;
+    }
+
+    /**
+     * 个人维度数据展示（普通用户，只看与自己相关的数据）。
+     * userId 由 controller 从登录态取出后传入（service 层不碰 UserContext）。
+     */
+    public ScopedDashboardVO getUserDashboard(String userId, String trendType, String startDate, String endDate) {
+        ScopedDashboardVO vo = new ScopedDashboardVO();
+        vo.setStats(flowFormRecordMapper.selectUserStats(userId));
+        vo.setTaskStatus(flowFormRecordMapper.selectUserTaskStatusDist(userId));
+        vo.setNodeStatus(flowFormRecordMapper.selectUserNodeStatusDist(userId));
+        String type = StringUtils.hasText(trendType) ? trendType.trim() : "day";
+        vo.setTrend(flowFormRecordMapper.selectUserTrendByType(userId, type, startDate, endDate));
+        return vo;
+    }
+
+    /**
+     * 部门维度数据展示（部门管理员，只看本部门数据）。
+     * deptId 由 controller 按 dept_admin 登记取出后传入；未登记部门（deptId 为空）返回空壳，
+     * 避免把全量数据暴露给没有部门归属的账号。
+     */
+    public ScopedDashboardVO getDeptDashboard(Long deptId, String trendType, String startDate, String endDate) {
+        if (deptId == null) {
+            ScopedDashboardVO empty = new ScopedDashboardVO();
+            empty.setStats(new ScopedStatsVO());
+            empty.setTaskStatus(new ArrayList<>());
+            empty.setPeriodStatus(new ArrayList<>());
+            empty.setNodeStatus(new ArrayList<>());
+            empty.setDispatchRank(new ArrayList<>());
+            empty.setPeriodPendingRank(new ArrayList<>());
+            empty.setFieldTypeRank(new ArrayList<>());
+            empty.setTemplateNodeDist(new ArrayList<>());
+            empty.setTrend(new ArrayList<>());
+            return empty;
+        }
+        ScopedDashboardVO vo = new ScopedDashboardVO();
+        ScopedStatsVO stats = flowFormRecordMapper.selectDeptStats(deptId);
+        vo.setStats(stats);
+        vo.setTaskStatus(flowFormRecordMapper.selectDeptTaskStatusDist(deptId));
+        vo.setPeriodStatus(flowFormRecordMapper.selectDeptPeriodStatusDist(deptId));
+        vo.setDispatchRank(flowFormRecordMapper.selectDeptDispatchRank(deptId));
+        vo.setPeriodPendingRank(flowFormRecordMapper.selectDeptPeriodPendingRank(deptId));
+        vo.setFieldTypeRank(flowFormRecordMapper.selectDeptFieldTypeRank(deptId));
+        vo.setTemplateNodeDist(flowFormRecordMapper.selectDeptTemplateNodeDist(deptId));
+        // 部门节点进度直接用统计卡里的两个数，省一次查询
+        vo.setNodeStatus(Arrays.asList(
+                nameCount("待处理", stats == null || stats.getMyTodoCount() == null ? 0L : stats.getMyTodoCount()),
+                nameCount("已完成", stats == null || stats.getDoneCount() == null ? 0L : stats.getDoneCount())));
+        String type = StringUtils.hasText(trendType) ? trendType.trim() : "day";
+        vo.setTrend(flowFormRecordMapper.selectDeptTrendByType(deptId, type, startDate, endDate));
+        return vo;
+    }
+
+    private NameCountVO nameCount(String name, Long value) {
+        NameCountVO n = new NameCountVO();
+        n.setName(name);
+        n.setValue(value);
+        return n;
     }
 }

@@ -8,10 +8,14 @@ import com.company.flow.sys.flowdata.vo.FormRecordListVO;
 import com.company.flow.sys.flowdata.vo.FormRecordQueryForm;
 import com.company.flow.sys.flowdata.vo.PersonNodeVO;
 import com.company.flow.sys.flowdata.vo.PersonSubmitVO;
+import com.company.flow.sys.flowdata.vo.ScopedDashboardVO;
 import com.company.flow.sys.flowdata.vo.TrendPointVO;
+import com.company.flow.sys.base.autuser.vo.LoginUser;
+import com.company.flow.sys.base.deptAdmin.service.DeptAdminService;
 import com.company.flow.sys.base.result.PageResult;
 import com.company.flow.sys.base.result.Result;
 import com.company.flow.sys.base.util.ParamUtil;
+import com.company.flow.sys.base.util.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,6 +30,9 @@ public class FlowDataController {
 
     @Autowired
     private FlowDataService flowDataService;
+
+    @Autowired
+    private DeptAdminService deptAdminService;
 
     @PostMapping("/list")
     public Result<PageResult<FormRecordListVO>> list(@RequestBody FormRecordQueryForm form) {
@@ -81,6 +88,31 @@ public class FlowDataController {
         String trendType = ParamUtil.str(p.get("trendType"));
         return Result.success("获取成功", flowDataService.getDashboard(
                 trendType == null || trendType.isEmpty() ? "day" : trendType,
+                ParamUtil.str(p.get("startDate")),
+                ParamUtil.str(p.get("endDate"))));
+    }
+
+    /** 数据展示（个人维度）：普通用户只看与自己相关的数据；范围由后端按登录身份决定，前端不传身份参数 */
+    @PostMapping("/dashboard-user")
+    public Result<ScopedDashboardVO> dashboardUser(@RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> p = body == null ? new HashMap<>() : body;
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        return Result.success("获取成功", flowDataService.getUserDashboard(
+                loginUser == null ? null : loginUser.getYyytId(),
+                ParamUtil.str(p.get("trendType")),
+                ParamUtil.str(p.get("startDate")),
+                ParamUtil.str(p.get("endDate"))));
+    }
+
+    /** 数据展示（部门维度）：部门管理员只看本部门数据；部门以 dept_admin 登记为准 */
+    @PostMapping("/dashboard-dept")
+    public Result<ScopedDashboardVO> dashboardDept(@RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> p = body == null ? new HashMap<>() : body;
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        Long deptId = loginUser == null ? null : deptAdminService.deptIdOf(loginUser.getYyytId());
+        return Result.success("获取成功", flowDataService.getDeptDashboard(
+                deptId,
+                ParamUtil.str(p.get("trendType")),
                 ParamUtil.str(p.get("startDate")),
                 ParamUtil.str(p.get("endDate"))));
     }

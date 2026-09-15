@@ -52,3 +52,19 @@ export function getPersonRecords(params) {
 export function getDashboard(params = {}) {
   return postDg(controller, 'dashboard', Object.assign({ trendType: 'day' }, params))
 }
+
+/**
+ * @desc: 数据展示（个人维度）POST /flow-data/dashboard-user
+ *        普通用户只看与自己相关的数据；范围由后端按登录身份决定，前端不传身份参数
+ */
+export function getUserDashboard(params = {}) {
+  return postDg(controller, 'dashboard-user', Object.assign({ trendType: 'day' }, params))
+}
+
+/**
+ * @desc: 数据展示（部门维度）POST /flow-data/dashboard-dept
+ *        部门管理员只看本部门数据；部门由后端按 dept_admin 登记决定，前端不传身份参数
+ */
+export function getDeptDashboard(params = {}) {
+  return postDg(controller, 'dashboard-dept', Object.assign({ trendType: 'day' }, params))
+}

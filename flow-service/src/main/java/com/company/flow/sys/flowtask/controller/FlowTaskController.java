@@ -17,6 +17,7 @@ import com.company.flow.sys.flowtask.vo.TaskProgressVO;
 import com.company.flow.sys.base.result.PageResult;
 import com.company.flow.sys.base.result.Result;
 import com.company.flow.sys.base.util.ParamUtil;
+import com.company.flow.sys.base.util.SecurityUtils;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -189,6 +190,18 @@ public class FlowTaskController {
         try {
             int count = flowTaskService.deleteBatch(body == null ? null : body.get("taskIds"));
             return Result.success("删除成功", count);
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
+    /** 批量完成成员任务（管理员强制办结：进行中的置为已结束、进度补满，不动流程节点） */
+    @PostMapping("/complete-batch")
+    public Result<Integer> completeBatch(@RequestBody Map<String, List<String>> body) {
+        try {
+            int count = flowTaskService.completeBatch(body == null ? null : body.get("taskIds"),
+                    SecurityUtils.getLoginUser());
+            return Result.success("批量完成成功", count);
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         }

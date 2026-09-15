@@ -1825,6 +1825,31 @@ public class FlowTaskService {
         return count;
     }
 
+    /**
+     * 批量完成成员任务：管理员强制办结 —— 只把「进行中」的任务置为「已结束」并把进度补满，
+     * **不动流程节点**（节点保持原状态）；已结束/已作废的自动跳过。返回实际办结数。
+     * 操作人由 controller 从登录态取出后传入（service 层不碰 UserContext）。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public int completeBatch(List<String> taskIds, LoginUser operator) {
+        if (taskIds == null || taskIds.isEmpty()) throw new RuntimeException("请选择要完成的成员");
+        int count = 0;
+        for (String taskId : taskIds) {
+            FlowTask task = flowTaskMapper.selectById(taskId);
+            if (task == null || !"进行中".equals(task.getStatus())) continue;
+            FlowTask update = new FlowTask();
+            update.setId(task.getId());
+            update.setStatus("已结束");
+            // 管理员办结视为整条任务完成，进度按节点总数记满
+            update.setFinishedNodeCount(task.getTotalNodeCount() == null ? 0 : task.getTotalNodeCount());
+            if (flowTaskMapper.updateById(update) > 0) {
+                recordFlowLog(task, null, operator, 1, "管理员批量办结，任务已置为已结束");
+                count++;
+            }
+        }
+        return count;
+    }
+
     /** 查询任务的流转/催办日志（按时间正序） */
     public List<FlowTaskLog> getTaskLogs(String taskId) {
         LambdaQueryWrapper<FlowTaskLog> lw = new LambdaQueryWrapper<>();

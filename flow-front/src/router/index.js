@@ -128,6 +128,20 @@ export const constantRoutes = [
         component: () => import('@/views/dataview/index'),
         meta: { title: '数据展示', icon: 'el-icon-data-analysis' }
       },
+      // 数据展示的三个维度：全系统（data-view）/ 部门管理员（data-view-dept）/ 普通用户（data-view-user）。
+      // 具体用户能看到哪个由内网框架按权限挂菜单，前端不做身份判断。
+      {
+        path: 'data-view-dept',
+        name: 'DataViewDept',
+        component: () => import('@/views/dataview/dept'),
+        meta: { title: '部门数据', icon: 'el-icon-office-building' }
+      },
+      {
+        path: 'data-view-user',
+        name: 'DataViewUser',
+        component: () => import('@/views/dataview/user'),
+        meta: { title: '我的数据', icon: 'el-icon-user' }
+      },
       {
         path: 'handover-approval',
         name: 'TaskHandoverApproval',

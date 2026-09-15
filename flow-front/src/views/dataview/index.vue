@@ -275,24 +275,9 @@
 
 <script>
 import { getDashboard } from '@/service/sys/DataService'
+import { withFieldTypeNames } from './fieldTypes'
 
 const STATUS_COLORS = ['#334155', '#15803D', '#B45309', '#2B6CB0', '#6B46C1', '#6366F1']
-// 字段类型 → 中文名
-const FIELD_TYPE_NAMES = {
-  text: '单行文本',
-  textarea: '多行文本',
-  number: '数字',
-  date: '日期',
-  datetime: '日期时间',
-  select: '下拉选择',
-  radio: '单选',
-  checkbox: '多选',
-  upload: '附件上传',
-  file: '文件',
-  image: '图片',
-  person: '人员选择',
-  rich: '富文本'
-}
 
 export default {
   name: 'DataView',
@@ -301,8 +286,8 @@ export default {
       loading: false,
       data: null,
       STATUS_COLORS,
-      // 提交趋势粒度：day / month / quarter / year
-      trendType: 'day',
+      // 提交趋势粒度：day / month / quarter / year（默认按月，与「部门数据」「我的数据」两个页面口径一致）
+      trendType: 'month',
       trendTypes: [
         { value: 'day', label: '日' },
         { value: 'month', label: '月' },
@@ -363,8 +348,7 @@ export default {
       return (this.data && this.data.templateNodeDist) || []
     },
     fieldTypeRank() {
-      const list = (this.data && this.data.fieldTypeRank) || []
-      return list.map(i => Object.assign({}, i, { name: FIELD_TYPE_NAMES[i.name] || i.name }))
+      return withFieldTypeNames(this.data && this.data.fieldTypeRank)
     },
     taskStatusTotal() {
       return this.taskStatus.reduce((s, i) => s + (Number(i.value) || 0), 0)
@@ -444,15 +428,18 @@ export default {
       const now = new Date()
       // 自定义时间范围（起止），无则用粒度默认窗口
       const range = this.rangeBoundaries
+      // 默认窗口起点：取后端返回数据的最早周期，否则历史数据会看不见（此前硬编码为本月）
+      const dates = Object.keys(map).sort()
+      const defStart = (dates.length && this.periodStart(dates[0])) || new Date(2026, 8, 1)
       if (this.trendType === 'month') {
-        const start = range ? range.start : new Date(2026, 8, 1)
+        const start = range ? range.start : defStart
         const end = range ? range.end : now
         for (let d = new Date(start.getFullYear(), start.getMonth(), 1); d <= end; d.setMonth(d.getMonth() + 1)) {
           const key = `${d.getFullYear()}-${this.pad(d.getMonth() + 1)}`
           list.push({ date: key, shortDate: `${d.getMonth() + 1}月`, count: map[key] || 0 })
         }
       } else if (this.trendType === 'quarter') {
-        const start = range ? range.start : new Date(2026, 8, 1)
+        const start = range ? range.start : defStart
         const end = range ? range.end : now
         let sy = start.getFullYear()
         let sq = Math.floor(start.getMonth() / 3) + 1
@@ -465,13 +452,13 @@ export default {
           if (sq > 4) { sq = 1; sy += 1 }
         }
       } else if (this.trendType === 'year') {
-        const startY = range ? range.start.getFullYear() : 2026
+        const startY = range ? range.start.getFullYear() : defStart.getFullYear()
         const endY = range ? range.end.getFullYear() : now.getFullYear()
         for (let y = startY; y <= endY; y++) {
           list.push({ date: String(y), shortDate: `${y}年`, count: map[String(y)] || 0 })
         }
       } else {
-        const start = range ? range.start : new Date(2026, 8, 1)
+        const start = range ? range.start : defStart
         const end = range ? range.end : now
         for (let d = new Date(start.getFullYear(), start.getMonth(), start.getDate()); d <= end; d.setDate(d.getDate() + 1)) {
           const key = `${d.getFullYear()}-${this.pad(d.getMonth() + 1)}-${this.pad(d.getDate())}`
@@ -507,6 +494,19 @@ export default {
     /** Date → 'yyyy-MM-dd' */
     fmtDate(d) {
       return `${d.getFullYear()}-${this.pad(d.getMonth() + 1)}-${this.pad(d.getDate())}`
+    },
+    /** 周期键 → 该周期起始 Date：支持 '2026-05' / '2026-Q2' / '2026' / '2026-05-05' */
+    periodStart(key) {
+      const s = String(key || '')
+      let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s)
+      if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+      m = /^(\d{4})-(\d{2})$/.exec(s)
+      if (m) return new Date(Number(m[1]), Number(m[2]) - 1, 1)
+      m = /^(\d{4})-Q(\d)$/.exec(s)
+      if (m) return new Date(Number(m[1]), (Number(m[2]) - 1) * 3, 1)
+      m = /^(\d{4})$/.exec(s)
+      if (m) return new Date(Number(m[1]), 0, 1)
+      return null
     },
     barHeight(count) {
       if (!this.trendMax) return '0%'

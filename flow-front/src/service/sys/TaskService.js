@@ -144,6 +144,14 @@ export function deleteTaskBatch(taskIds) {
 }
 
 /**
+ * @desc: 批量完成成员任务（POST /flow-task/complete-batch）
+ *        管理员强制办结：进行中的任务置为已结束、进度补满，不动流程节点
+ */
+export function completeTaskBatch(taskIds) {
+  return postDg(controller, 'complete-batch', { taskIds })
+}
+
+/**
  * @desc: 任务流转/催办日志列表（GET /flow-task/logs/{taskId}）
  */
 export function getTaskLogs(taskId) {

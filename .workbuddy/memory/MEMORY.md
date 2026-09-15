@@ -3,11 +3,14 @@
 ## 技术栈与运行
 
 - 后端：Spring Boot + MyBatis-Plus，`flow-service` 模块，端口 9000，无 context-path。
-- 前端：Vue 2 + Element UI + SCSS，`flow-front` 模块，端口 9528，`/api` 前缀代理到后端（剥掉前缀）。
+- 前端：Vue 2 + Element UI + SCSS，`flow-front` 模块，端口 9528，`/flow-service` 前缀代理到后端并剥掉前缀（`.env` 的 `/api` 已废弃）。
 - 数据库：MySQL `localhost:3306/flow`，用户 `root`，密码 `12345`。
 - 认证：Session 会话（`HttpSession` + `SESSION_USER_KEY`），不是 JWT。超管白名单在 `application.yml` 的 `system.admin.userIds`（当前 `emp0001`）。
-- 后端启动方式：`mvn spring-boot:run`（cwd 在 `flow-service`），**无 spring-boot-devtools 热加载**——改了后端代码/实体字段后必须重启进程才生效，否则运行中的进程仍用旧 class（表现为"字段值不入库"）。重启：`kill <PID>` 后重新 `mvn spring-boot:run`。
-- **环境变量坑**：CodeBuddy 会话环境存在 `SERVER__PORT=0`（Spring Boot relaxed binding 会映射为 `server.port=0`），直接 `mvn spring-boot:run` 会让后端跑随机端口而非 9000。重启后端必须 `env -u SERVER__PORT mvn spring-boot:run`。
+- 后端启动方式（**首选单 JVM，更抗沙箱回收**）：
+  - 日常：`/tmp/run-flow-backend.sh`（内容：`unset SERVER__PORT` + `cd flow-service` + `java -cp "target/classes:$(cat /tmp/flow-cp.txt)" com.company.flow.base.FlowApplication`）。启动约 5 秒、只 1 个 JVM；**改了 Java 代码要先 `mvn -o compile`**。classpath 重建：`mvn -o -q org.apache.maven.plugins:maven-dependency-plugin:3.6.1:build-classpath -Dmdep.outputFile=/tmp/flow-cp.txt`（**必须带 3.6.1**，默认 3.8.1 离线没下载过会报 `Cannot access alimaven`）。
+  - 备选：`env -u SERVER__PORT mvn -o spring-boot:run`（会多起一个 maven JVM，占用大、启动 30+ 秒，实测几分钟内常被回收）。
+  - 两种方式都**无 spring-boot-devtools 热加载** —— 改后端代码必须重启进程，否则仍用旧 class（表现为「字段值不入库」）。
+- **环境变量坑**：CodeBuddy 会话环境存在 `SERVER__PORT=0`（Spring Boot relaxed binding 映射为 `server.port=0`），不清掉会让后端跑**随机端口**而非 9000。启动前必须 `unset SERVER__PORT`（或 `env -u SERVER__PORT`）。
 
 ## 重要约定（踩过的坑）
 
@@ -84,6 +87,11 @@
   - 机制：`views/flowdispatch/index.vue` 的 `created` 调 `restoreExpandState()` —— 只有在 `sessionStorage.flowDispatchJumpOut === '1'` 时才恢复 `flowDispatchExpanded` 里保存的 `activeTasks`，并消费掉标记；否则清掉遗留标记、不做任何高亮（菜单/路由直达不展开）。
   - **所以每个跳转出口都必须先调 `saveFlashId(id, dispatchId)`**（它一次性写入 JumpOut + Expanded + Flash + FlashPeriod）。目前正确调用：`openEdit(t)`、`openPersonView(t)`、`openPeriodUsers(t, p)`、`goTaskLink(t, p)`、`openCopyTask(t)`、`openCreate()`（后三个是 09-15 补的）。**新加跳转出口漏调，就会出现「返回后任务面板被收起」的 bug。**
   - `saveFlashId` 的 `id` 可空（如「新建任务」没有来源任务），此时只清 Flash、不写。
+- **数据展示分三个维度**（2026-09-15 定，皇上要求「普通用户 / 部门管理员 / 整个系统」三套）：
+  - 三个独立页面 + 独立路由：`data-view`（全系统，`dataview/index.vue` 原有 9 个图表，**未重构、保持不动**）、`data-view-dept`（部门管理员，`dataview/dept.vue`）、`data-view-user`（普通用户，`dataview/user.vue`）。**哪个用户能看到哪个由内网框架按权限挂菜单，前端不做身份判断**。
+  - **数据范围一律由后端按登录身份自动过滤**（不是前端传 userId/deptId）：`POST /flow-data/dashboard-user` 在 controller 取 `SecurityUtils.getLoginUser()`；`/flow-data/dashboard-dept` 取 `deptAdminService.deptIdOf()`（**部门归属以 dept_admin 登记为准**）。**deptId 为 null 时返回全空壳**，绝不回退成全量数据。守住「UserContext 仅限 controller 层」铁律 —— 身份在 controller 取好再传给 service。
+  - 统计口径（`FlowFormRecordMapper.xml` 的 10 条新 SQL）：个人维度按 `flow_task.owner_id` / `flow_task_node.handler_user_id` / `flow_form_record.user_id` 过滤；部门维度**人员一律 join `aut_user.dept_id`**（与既有的 `selectHandlerDeptRank` 口径一致），任务/节点/提交都按成员 join 进去。
+  - **前端图表已抽公共组件**放 `components/charts/`：`BarChart.vue`（柱状趋势 + 峰值/平均/累计）、`DonutChart.vue`（conic-gradient 环形 + 图例）、`RankList.vue`（横向排行，默认前 5 可展开）。**新页面直接用这三个组件，不要再手写一份图表 DOM + 样式**（`dataview/index.vue` 是历史实现，暂未重构）。
   - ⚠️ 曾存在的坑：`restoreExpandState()` 里用 `Number.isInteger(flashId)` 判断，但 `sessionStorage.getItem` 返回**字符串**，导致「返回双闪 + 期次行高亮」从未生效；已改为 `if (flashId && this.activeTasks.indexOf(flashId) >= 0)`（`activeTasks`/`flashTasks`/`flashPeriod` 全用**字符串** id 比较）。
 - 分组在**前端 computed 里做**（后端只补必要字段），按「后端时间倒序下的首现顺序」排组。展开状态用 `openMap: { tabKey: null }`，`null` 表示未初始化 → 首次加载默认全部展开；`syncOpenState()` 保留用户已收起的分组、丢弃已消失的、**新出现的默认展开**（否则筛选后命中的分组会被历史收起状态藏掉）；写回用 `$set` 保证响应式。
 - **页头不放「全部展开 / 收起」按钮（2026-09-10 已撤）**，改放**筛选条件**：`.head-filter` + `.head-filter-label` + `el-select.head-select`（`::v-deep .el-input__inner` 高 36px，刷新按钮同步 36px）。任务交接页筛**状态**（两页签共用）；交接审批页筛**任务**（`filterable clearable`，选项取当前页签数据去重 `dispatchId`，`switchTab` 时重置）。空态分两档：原本为空「暂无…」/ 筛掉为空「没有符合筛选条件的…」。

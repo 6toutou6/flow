@@ -71,6 +71,9 @@
             <button class="btn-bulk urge" :disabled="selected.length === 0" @click="onBatchUrge">
               <i class="el-icon-alarm-clock" /> 批量催办
             </button>
+            <button class="btn-bulk done" :disabled="selected.length === 0" @click="onBatchComplete">
+              <i class="el-icon-circle-check" /> 批量完成
+            </button>
             <button class="btn-bulk danger" :disabled="selected.length === 0" @click="onBatchDelete">
               <i class="el-icon-delete" /> 批量删除
             </button>
@@ -153,7 +156,7 @@
 </template>
 
 <script>
-import { getTaskMembers, urgeTaskBatch, deleteTaskBatch } from '@/service/sys/TaskService'
+import { getTaskMembers, urgeTaskBatch, deleteTaskBatch, completeTaskBatch } from '@/service/sys/TaskService'
 import { addPeriodMembers, getPeriodInfo } from '@/service/sys/FlowDispatchService'
 import UserPicker from '@/components/UserPicker/index.vue'
 
@@ -259,6 +262,26 @@ export default {
         this.fetchMembers()
       } catch (e) {
         if (e !== 'cancel') this.$notifyError(e, '催办失败')
+      }
+    },
+    /** 批量完成：管理员强制办结（进行中的置为已结束、进度补满，不动流程节点） */
+    async onBatchComplete() {
+      if (this.selected.length === 0) return
+      try {
+        await this.$confirm(`确定把已选的 ${this.selected.length} 位人员的任务标记为「已结束」吗？将跳过未处理的流程节点，进度按节点总数记满。`, '批量完成确认', {
+          confirmButtonText: '确定完成',
+          cancelButtonText: '取消',
+          type: 'warning',
+          confirmButtonClass: 'el-button--primary'
+        })
+        const res = await completeTaskBatch(this.selected)
+        if (!res || res.code !== 200) return
+        const count = res.data != null ? res.data : this.selected.length
+        this.$message.success(`已办结 ${count} 条任务（已完成/已作废人员自动跳过）`)
+        this.selected = []
+        this.fetchMembers()
+      } catch (e) {
+        if (e !== 'cancel') this.$notifyError(e, '批量完成失败')
       }
     },
     async onBatchDelete() {
@@ -405,6 +428,9 @@ $border: #CBD5E1;
   }
   &.urge { background: #EFF6FF; color: #B45309; border-color: rgba(180, 83, 9,0.5);
     &:hover { background: rgba(180, 83, 9,0.12); }
+  }
+  &.done { background: #F0FDF4; color: #15803D; border-color: rgba(21,128,61,0.5);
+    &:hover { background: rgba(21,128,61,0.12); }
   }
   &.danger { background: #fff; color: #DC2626; border-color: rgba(220,38,38,0.3);
     &:hover { background: rgba(220,38,38,0.05); }

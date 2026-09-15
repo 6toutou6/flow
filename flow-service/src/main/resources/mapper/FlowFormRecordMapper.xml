@@ -241,13 +241,13 @@
         ORDER BY value DESC, name ASC
     </select>
 
-    <!-- 数据展示页：处理人部门排行（按提交人部门统计历史提交次数） -->
+    <!-- 数据展示页：处理人部门排行（按提交人所属部门汇总历史提交次数） -->
     <select id="selectHandlerDeptRank" resultType="com.company.flow.sys.flowdata.vo.NameCountVO">
-        SELECT COALESCE(u.dept_name, CONCAT('用户#', r.user_id)) AS name, COUNT(*) AS value
+        SELECT COALESCE(u.dept_name, '未知部门') AS name, COUNT(*) AS value
         FROM flow_form_record r
         LEFT JOIN aut_user u ON r.user_id = u.yyyt_id
         WHERE r.record_status = 1
-        GROUP BY u.dept_id, u.dept_name, r.user_id
+        GROUP BY u.dept_id, u.dept_name
         ORDER BY value DESC, name ASC
     </select>
 
@@ -280,14 +280,9 @@
                 SELECT DATE_FORMAT(submit_time, '%Y-%m') AS date, COUNT(*) AS count
                 FROM flow_form_record
                 WHERE record_status = 1
-                <choose>
-                    <when test="startDate != null and startDate != ''">
-                        AND DATE(submit_time) &gt;= #{startDate}
-                    </when>
-                    <otherwise>
-                        AND submit_time >= '2026-09-01'
-                    </otherwise>
-                </choose>
+                <if test="startDate != null and startDate != ''">
+                    AND DATE(submit_time) &gt;= #{startDate}
+                </if>
                 <if test="endDate != null and endDate != ''">
                     AND DATE(submit_time) &lt;= #{endDate}
                 </if>
@@ -297,14 +292,9 @@
                 SELECT CONCAT(YEAR(submit_time), '-Q', QUARTER(submit_time)) AS date, COUNT(*) AS count
                 FROM flow_form_record
                 WHERE record_status = 1
-                <choose>
-                    <when test="startDate != null and startDate != ''">
-                        AND DATE(submit_time) &gt;= #{startDate}
-                    </when>
-                    <otherwise>
-                        AND submit_time >= '2026-09-01'
-                    </otherwise>
-                </choose>
+                <if test="startDate != null and startDate != ''">
+                    AND DATE(submit_time) &gt;= #{startDate}
+                </if>
                 <if test="endDate != null and endDate != ''">
                     AND DATE(submit_time) &lt;= #{endDate}
                 </if>
@@ -314,14 +304,9 @@
                 SELECT DATE_FORMAT(submit_time, '%Y') AS date, COUNT(*) AS count
                 FROM flow_form_record
                 WHERE record_status = 1
-                <choose>
-                    <when test="startDate != null and startDate != ''">
-                        AND DATE(submit_time) &gt;= #{startDate}
-                    </when>
-                    <otherwise>
-                        AND submit_time >= '2026-09-01'
-                    </otherwise>
-                </choose>
+                <if test="startDate != null and startDate != ''">
+                    AND DATE(submit_time) &gt;= #{startDate}
+                </if>
                 <if test="endDate != null and endDate != ''">
                     AND DATE(submit_time) &lt;= #{endDate}
                 </if>
@@ -331,20 +316,219 @@
                 SELECT DATE_FORMAT(submit_time, '%Y-%m-%d') AS date, COUNT(*) AS count
                 FROM flow_form_record
                 WHERE record_status = 1
-                <choose>
-                    <when test="startDate != null and startDate != ''">
-                        AND DATE(submit_time) &gt;= #{startDate}
-                    </when>
-                    <otherwise>
-                        AND submit_time >= '2026-09-01'
-                    </otherwise>
-                </choose>
+                <if test="startDate != null and startDate != ''">
+                    AND DATE(submit_time) &gt;= #{startDate}
+                </if>
                 <if test="endDate != null and endDate != ''">
                     AND DATE(submit_time) &lt;= #{endDate}
                 </if>
                 GROUP BY DATE_FORMAT(submit_time, '%Y-%m-%d')
             </otherwise>
         </choose>
+        ORDER BY date
+    </select>
+
+    <!-- ==================== 数据展示：个人维度（普通用户，只看与自己相关的） ==================== -->
+
+    <!-- 个人统计卡：我的任务数、我参与的期次数、我的待办与已办、我的提交数 -->
+    <select id="selectUserStats" resultType="com.company.flow.sys.flowdata.vo.ScopedStatsVO">
+        SELECT
+            (SELECT COUNT(*) FROM flow_task t WHERE t.owner_id = #{userId}) AS totalTasks,
+            (SELECT COUNT(DISTINCT t.dispatch_id) FROM flow_task t
+              WHERE t.owner_id = #{userId} AND t.dispatch_id IS NOT NULL) AS totalPeriods,
+            (SELECT COUNT(*) FROM flow_task t
+              WHERE t.owner_id = #{userId} AND t.status = '进行中') AS runningPeriods,
+            (SELECT COUNT(*) FROM flow_task t
+              WHERE t.owner_id = #{userId} AND t.status = '已结束') AS finishedPeriods,
+            (SELECT COUNT(*) FROM flow_task_node n
+              WHERE n.handler_user_id = #{userId} AND n.submit_status = 0) AS myTodoCount,
+            (SELECT COUNT(*) FROM flow_task_node n
+              WHERE n.handler_user_id = #{userId} AND n.submit_status = 1) AS doneCount,
+            (SELECT COUNT(*) FROM flow_form_record r
+              WHERE r.user_id = #{userId} AND r.record_status = 1) AS submitCount,
+            1 AS memberCount
+    </select>
+
+    <!-- 我的任务状态分布 -->
+    <select id="selectUserTaskStatusDist" resultType="com.company.flow.sys.flowdata.vo.NameCountVO">
+        SELECT t.status AS name, COUNT(*) AS value
+        FROM flow_task t
+        WHERE t.owner_id = #{userId}
+        GROUP BY t.status
+        ORDER BY t.status
+    </select>
+
+    <!-- 我的节点进度（我作为处理人的节点：待处理/已完成） -->
+    <select id="selectUserNodeStatusDist" resultType="com.company.flow.sys.flowdata.vo.NameCountVO">
+        SELECT CASE n.submit_status WHEN 0 THEN '待处理' WHEN 1 THEN '已完成' ELSE '其他' END AS name,
+               COUNT(*) AS value
+        FROM flow_task_node n
+        WHERE n.handler_user_id = #{userId}
+        GROUP BY n.submit_status
+        ORDER BY n.submit_status
+    </select>
+
+    <!-- 趋势分组表达式（个人/部门共用；仅静态表达式，无注入风险） -->
+    <sql id="TrendDateExpr">
+        <choose>
+            <when test="type == 'month'">DATE_FORMAT(r.submit_time, '%Y-%m')</when>
+            <when test="type == 'quarter'">CONCAT(YEAR(r.submit_time), '-Q', QUARTER(r.submit_time))</when>
+            <when test="type == 'year'">DATE_FORMAT(r.submit_time, '%Y')</when>
+            <otherwise>DATE_FORMAT(r.submit_time, '%Y-%m-%d')</otherwise>
+        </choose>
+    </sql>
+
+    <!-- 我的提交趋势（不传时间范围时不设起点，由前端粒度决定展示区间） -->
+    <select id="selectUserTrendByType" resultType="com.company.flow.sys.flowdata.vo.TrendPointVO">
+        SELECT <include refid="TrendDateExpr" /> AS date, COUNT(*) AS count
+        FROM flow_form_record r
+        WHERE r.record_status = 1
+          AND r.user_id = #{userId}
+        <if test="startDate != null and startDate != ''">
+            AND DATE(r.submit_time) &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DATE(r.submit_time) &lt;= #{endDate}
+        </if>
+        GROUP BY <include refid="TrendDateExpr" />
+        ORDER BY date
+    </select>
+
+    <!-- ==================== 数据展示：部门维度（部门管理员，只看本部门） ==================== -->
+
+    <!-- 部门统计卡：部门成员的任务数与期次数、进行中与已完成、部门待办与已办、部门提交数、部门人数 -->
+    <select id="selectDeptStats" resultType="com.company.flow.sys.flowdata.vo.ScopedStatsVO">
+        SELECT
+            (SELECT COUNT(*) FROM flow_task t
+               INNER JOIN aut_user u ON u.yyyt_id = t.owner_id
+              WHERE u.dept_id = #{deptId}) AS totalTasks,
+            (SELECT COUNT(DISTINCT t.dispatch_id) FROM flow_task t
+               INNER JOIN aut_user u ON u.yyyt_id = t.owner_id
+              WHERE u.dept_id = #{deptId} AND t.dispatch_id IS NOT NULL) AS totalPeriods,
+            (SELECT COUNT(DISTINCT t.dispatch_id) FROM flow_task t
+               INNER JOIN aut_user u ON u.yyyt_id = t.owner_id
+              WHERE u.dept_id = #{deptId} AND t.status = '进行中') AS runningPeriods,
+            (SELECT COUNT(DISTINCT t.dispatch_id) FROM flow_task t
+               INNER JOIN aut_user u ON u.yyyt_id = t.owner_id
+              WHERE u.dept_id = #{deptId} AND t.status = '已结束') AS finishedPeriods,
+            (SELECT COUNT(*) FROM flow_task_node n
+               INNER JOIN aut_user u ON u.yyyt_id = n.handler_user_id
+              WHERE u.dept_id = #{deptId} AND n.submit_status = 0) AS myTodoCount,
+            (SELECT COUNT(*) FROM flow_task_node n
+               INNER JOIN aut_user u ON u.yyyt_id = n.handler_user_id
+              WHERE u.dept_id = #{deptId} AND n.submit_status = 1) AS doneCount,
+            (SELECT COUNT(*) FROM flow_form_record r
+               INNER JOIN aut_user u ON u.yyyt_id = r.user_id
+              WHERE u.dept_id = #{deptId} AND r.record_status = 1) AS submitCount,
+            (SELECT COUNT(*) FROM aut_user u WHERE u.dept_id = #{deptId}) AS memberCount
+    </select>
+
+    <!-- 部门任务状态分布（本部门成员的任务） -->
+    <select id="selectDeptTaskStatusDist" resultType="com.company.flow.sys.flowdata.vo.NameCountVO">
+        SELECT t.status AS name, COUNT(*) AS value
+        FROM flow_task t
+        INNER JOIN aut_user u ON u.yyyt_id = t.owner_id
+        WHERE u.dept_id = #{deptId}
+        GROUP BY t.status
+        ORDER BY t.status
+    </select>
+
+    <!-- 部门期次状态分布（期次下有本部门成员参与才计入） -->
+    <select id="selectDeptPeriodStatusDist" resultType="com.company.flow.sys.flowdata.vo.NameCountVO">
+        SELECT
+            CASE
+                WHEN c.totalMembers = 0 THEN '暂无人员'
+                WHEN c.running &gt; 0 THEN '进行中'
+                WHEN c.done &gt; 0 THEN '已完成'
+                ELSE '已作废'
+            END AS name,
+            COUNT(*) AS value
+        FROM (
+            SELECT d.id,
+                   COUNT(t.id) AS totalMembers,
+                   SUM(CASE WHEN t.status = '进行中' THEN 1 ELSE 0 END) AS running,
+                   SUM(CASE WHEN t.status = '已结束' THEN 1 ELSE 0 END) AS done
+            FROM flow_task_dispatch d
+            LEFT JOIN flow_task t ON t.dispatch_id = d.id
+            WHERE EXISTS (
+                SELECT 1 FROM flow_task mt
+                  INNER JOIN aut_user u ON u.yyyt_id = mt.owner_id
+                 WHERE mt.dispatch_id = d.id AND u.dept_id = #{deptId}
+            )
+            GROUP BY d.id
+        ) c
+        GROUP BY name
+        ORDER BY value DESC, name ASC
+    </select>
+
+    <!-- 部门下发排行：本部门各管理员（以 dept_admin 登记为准）下发的期次数 -->
+    <select id="selectDeptDispatchRank" resultType="com.company.flow.sys.flowdata.vo.NameCountVO">
+        SELECT d.creator_name AS name, COUNT(*) AS value
+        FROM flow_task_dispatch td
+        INNER JOIN flow_dispatch d ON d.id = td.task_id
+        WHERE d.creator_id IN (
+            SELECT da.admin_yst_id FROM dept_admin da WHERE da.dept_id = #{deptId}
+        )
+        GROUP BY d.creator_id, d.creator_name
+        ORDER BY value DESC, name ASC
+    </select>
+
+    <!-- 下发期次中未处理的任务：本部门下发的期次里仍有进行中成员任务的，按期次列出未处理数 -->
+    <select id="selectDeptPeriodPendingRank" resultType="com.company.flow.sys.flowdata.vo.NameCountVO">
+        SELECT CONCAT(d.task_name, ' / ', td.period_name) AS name, COUNT(t.id) AS value
+        FROM flow_task_dispatch td
+        INNER JOIN flow_dispatch d ON d.id = td.task_id
+        INNER JOIN flow_task t ON t.dispatch_id = td.id AND t.status = '进行中'
+        WHERE d.creator_id IN (
+            SELECT da.admin_yst_id FROM dept_admin da WHERE da.dept_id = #{deptId}
+        )
+        GROUP BY td.id, d.task_name, td.period_name
+        ORDER BY value DESC, name ASC
+    </select>
+
+    <!-- 部门字段类型使用排行（只统计本部门任务所用的模板） -->
+    <select id="selectDeptFieldTypeRank" resultType="com.company.flow.sys.flowdata.vo.NameCountVO">
+        SELECT f.field_type AS name, COUNT(*) AS value
+        FROM flow_template_field f
+        WHERE f.template_id IN (
+            SELECT DISTINCT d.template_id FROM flow_dispatch d
+             WHERE d.dept_id = #{deptId} AND d.template_id IS NOT NULL
+        )
+        GROUP BY f.field_type
+        ORDER BY value DESC, name ASC
+    </select>
+
+    <!-- 部门模板节点数分布（只统计本部门任务所用的模板） -->
+    <select id="selectDeptTemplateNodeDist" resultType="com.company.flow.sys.flowdata.vo.NameCountVO">
+        SELECT CONCAT(nc.node_count, '个节点') AS name, COUNT(*) AS value
+        FROM (
+            SELECT t.id, COUNT(n.id) AS node_count
+            FROM flow_template t
+            LEFT JOIN flow_template_node n ON n.template_id = t.id
+            WHERE t.id IN (
+                SELECT DISTINCT d.template_id FROM flow_dispatch d
+                 WHERE d.dept_id = #{deptId} AND d.template_id IS NOT NULL
+            )
+            GROUP BY t.id
+        ) nc
+        GROUP BY nc.node_count
+        ORDER BY nc.node_count
+    </select>
+
+    <!-- 部门提交趋势（同个人趋势，不传时间范围时不设起点） -->
+    <select id="selectDeptTrendByType" resultType="com.company.flow.sys.flowdata.vo.TrendPointVO">
+        SELECT <include refid="TrendDateExpr" /> AS date, COUNT(*) AS count
+        FROM flow_form_record r
+        INNER JOIN aut_user u ON u.yyyt_id = r.user_id
+        WHERE r.record_status = 1
+          AND u.dept_id = #{deptId}
+        <if test="startDate != null and startDate != ''">
+            AND DATE(r.submit_time) &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DATE(r.submit_time) &lt;= #{endDate}
+        </if>
+        GROUP BY <include refid="TrendDateExpr" />
         ORDER BY date
     </select>
 
