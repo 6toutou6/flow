@@ -3,6 +3,7 @@
     :title="null"
     :visible.sync="dialogVisible"
     width="720px"
+    top="5vh"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
     custom-class="gen-period-dialog"
@@ -111,11 +112,14 @@
       <div class="gpd-card">
         <div class="gpd-card-title gpd-members-head">
           <span><i class="el-icon-user" /> 本期次人员 <b>{{ tempMembers.length }}</b> 人</span>
-          <button class="gpd-add" @click="pickerVisible = true"><i class="el-icon-plus" /> 临时增加人员</button>
+          <div class="gpd-head-actions">
+            <button class="gpd-add" @click="pickerVisible = true"><i class="el-icon-plus" /> 临时增加人员</button>
+            <button class="gpd-add gpd-import" @click="importVisible = true"><i class="el-icon-upload2" /> 批量导入</button>
+          </div>
         </div>
         <div v-if="tempMembers.length === 0" class="gpd-empty">
           <i class="el-icon-user" />
-          <p>尚未选择人员，请点击「临时增加人员」添加</p>
+          <p>尚未选择人员，请点击「临时增加人员」或「批量导入」添加</p>
         </div>
         <div v-else class="gpd-members">
           <table class="gpdmt">
@@ -178,17 +182,25 @@
       @confirm="confirmPick"
       @close="pickerVisible = false"
     />
+
+    <!-- 批量导入人员（Excel） -->
+    <ImportMemberModal
+      :visible="importVisible"
+      @close="importVisible = false"
+      @success="onImportMembers"
+    />
   </el-dialog>
 </template>
 
 <script>
 import { getPreviewPeriod, generatePeriod } from '@/service/sys/FlowDispatchService'
 import UserPicker from '@/components/UserPicker'
+import ImportMemberModal from '@/components/ImportMemberModal'
 import { CYCLE_TYPE, CYCLE_TYPE_TEXT } from '@/constants/dict'
 
 export default {
   name: 'GeneratePeriodModal',
-  components: { UserPicker },
+  components: { UserPicker, ImportMemberModal },
   props: {
     visible: { type: Boolean, default: false },
     task: { type: Object, default: null },
@@ -213,6 +225,7 @@ export default {
       notifyAfterDispatch: true,
       saving: false,
       pickerVisible: false,
+      importVisible: false,
       lastAutoName: ''
     }
   },
@@ -312,6 +325,28 @@ export default {
       })
       this.pickerVisible = false
     },
+    /** 批量导入成功：按用户号去重后并入本期次人员，保留导入文件里各自的任务名 */
+    onImportMembers(list) {
+      const existing = new Set(this.tempMembers.map(m => m.yyytId))
+      let added = 0
+      let skipped = 0
+      ;(list || []).forEach(m => {
+        const uid = m.yyytId
+        if (!uid) return
+        if (existing.has(uid)) { skipped++; return }
+        existing.add(uid)
+        this.tempMembers.push({
+          yyytId: uid,
+          userName: m.userName,
+          deptName: m.deptName,
+          taskName: (m.taskName || '').trim() || this.defaultTaskName({ userName: m.userName })
+        })
+        added++
+      })
+      this.importVisible = false
+      if (skipped > 0) this.$message.warning(`已导入 ${added} 人，另有 ${skipped} 人已在列表中、已跳过`)
+      else if (added > 0) this.$message.success(`已导入 ${added} 人`)
+    },
     defaultTaskName(m) {
       const n = (m && m.userName) || ''
       return n ? '下发给' + n + '的任务' : '下发给的任务'
@@ -385,6 +420,8 @@ export default {
 
 <style lang="scss" scoped>
 $primary: var(--color-primary);
+// 弹窗内容较多，限高并内部滚动，保证整窗不超出屏幕
+::v-deep .gen-period-dialog .el-dialog__body { max-height: calc(90vh - 150px); overflow-y: auto; }
 .gpd { display: flex; flex-direction: column; gap: 14px; }
 .gpd-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 14px; border-bottom: 1px dashed #CBD5E1; }
 .gpd-title { display: flex; align-items: center; gap: 12px;
@@ -434,8 +471,14 @@ $primary: var(--color-primary);
 .gpd-add { display: flex; align-items: center; gap: 4px; padding: 5px 12px; background: $primary; color: #fff; border: none; border-radius: 2px; cursor: pointer; font-size: 12px; font-weight: 600;
   &:hover { opacity: 0.9; }
 }
-.gpd-empty { text-align: center; padding: 26px 16px; color: #bbb;
-  i { font-size: 34px; display: block; margin-bottom: 8px; }
+// 「临时增加人员 / 批量导入」两个按钮并排（批量导入用描边样式，与主按钮区分）
+.gpd-head-actions { display: flex; align-items: center; gap: 8px; }
+.gpd-import { background: #fff; color: $primary; border: 1px solid #CBD5E1;
+  &:hover { opacity: 1; background: var(--color-primary-light); border-color: $primary; }
+}
+// 空态与人员列表保持同一高度（列表内部滚动），弹窗高度不随人数变化
+.gpd-empty { height: 232px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #bbb;
+  i { font-size: 34px; margin-bottom: 8px; }
   p { margin: 0; font-size: 13px; }
 }
 .gpd-footer { display: flex; justify-content: space-between; align-items: center; }
@@ -443,7 +486,7 @@ $primary: var(--color-primary);
 .gpd-actions { display: flex; gap: 8px; }
 
 // ===== 本期人员行式列表（参考任务编辑成员表格） =====
-.gpd-members { border: 1px solid #E5EAF1; border-radius: 3px; overflow: hidden; }
+.gpd-members { height: 232px; overflow-y: auto; border: 1px solid #E5EAF1; border-radius: 3px; }
 .gpdmt { width: 100%; border-collapse: collapse; table-layout: fixed; background: #fff; }
 .gpdmt th { text-align: left; font-size: 12px; font-weight: 600; color: #6b7280; background: #F7F9FC; padding: 8px 14px; border-bottom: 1px solid #E5EAF1; white-space: nowrap; }
 .gpdmt td { padding: 6px 14px; border-bottom: 1px solid #F0F2F6; vertical-align: middle; }

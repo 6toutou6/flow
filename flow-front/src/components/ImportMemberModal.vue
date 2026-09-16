@@ -131,6 +131,8 @@ export default {
 <style lang="scss" scoped>
 $primary: var(--color-primary);
 $border: #CBD5E1;
+// 内容区固定高度：出现「校验未通过」清单时不会把弹窗整体撑高，只让清单内部滚动
+::v-deep .el-dialog__body { height: 300px; overflow-y: auto; }
 .im-step { display: flex; gap: 10px; padding: 12px 0; border-bottom: 1px dashed #E2E8F0; }
 .im-no { width: 20px; height: 20px; border-radius: 50%; background: $primary; color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
 .im-main { flex: 1; min-width: 0; }

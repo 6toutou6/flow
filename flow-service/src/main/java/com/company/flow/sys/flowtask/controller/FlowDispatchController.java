@@ -272,21 +272,28 @@ public class FlowDispatchController {
         return Result.success("获取成功", flowDispatchService.getMembers(taskId));
     }
 
-    /** 期次新增人员：不重新生成期次，抄用期次配置为每位新人员创建独立提交任务（可自定义任务名称） */
+    /** 期次新增人员：不重新生成期次，抄用期次配置为每位新人员创建独立提交任务（支持逐人自定义任务名称） */
     @PostMapping("/period/add-members/{dispatchId}")
     public Result<Integer> periodAddMembers(@PathVariable String dispatchId,
                                             @RequestBody(required = false) Map<String, Object> body) {
         try {
             Map<String, Object> p = body == null ? new HashMap<>() : body;
-            List<String> userIds = null;
-            Object raw = p.get("userIds");
+            // members: [{ yyytId, taskName }]，逐人任务名；taskName 留空由 Service 用默认名兜底
+            List<String> userIds = new ArrayList<>();
+            Map<String, String> taskNames = new HashMap<>();
+            Object raw = p.get("members");
             if (raw instanceof List) {
-                userIds = new ArrayList<>();
                 for (Object o : (List<?>) raw) {
-                    if (o != null) userIds.add(String.valueOf(o));
+                    if (!(o instanceof Map)) continue;
+                    Map<?, ?> m = (Map<?, ?>) o;
+                    String uid = ParamUtil.str(m.get("yyytId"));
+                    if (!StringUtils.hasText(uid)) continue;
+                    userIds.add(uid);
+                    String tname = ParamUtil.str(m.get("taskName"));
+                    if (StringUtils.hasText(tname)) taskNames.put(uid, tname.trim());
                 }
             }
-            int count = flowDispatchService.addMembersToDispatch(dispatchId, userIds, ParamUtil.str(p.get("taskName")));
+            int count = flowDispatchService.addMembersToDispatch(dispatchId, userIds, taskNames);
             return Result.success("新增成功", count);
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());

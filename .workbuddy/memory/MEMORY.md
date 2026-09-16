@@ -118,3 +118,49 @@
   - `validate()`（`FlowDispatchService`）：**草稿只要求「任务名称 + 模板非空」**，模板完整性（节点/字段）与触发日一律跳过；status 非草稿才走完整校验。注意后端**本就不校验创建人字段与人员**（那是前端 `handleSubmit` 的职责），所以草稿转启用时不要指望后端兜底。
   - 前端：`EditTask.vue` 底部「暂存」（`handleSubmit(true)`，虚线框）与主按钮（`handleSubmit(false)`）分离，暂存成功后回列表、正式创建按原逻辑；编辑草稿时主按钮文案为「创建任务」。
 - 现有落点：任务交接页按**创建部门**折叠（两个页签都是），交接审批页按**任务**折叠（两个页签都是）。
+
+## 业务概念：期次 vs 期次任务（2026-09-15 皇上明确）
+
+- **「期次」本身没有流程进度这个概念**，只有具体的**期次任务**（某人在某期次下的成员任务）才有流程进度。
+- 所以任何「期次列表」的表头/汇总行**不要给期次配流程节点链**（`per.nodes`），流程进度只出现在展开后的每条待办行上（`td.chains`）。
+- 任务处理页（`taskprocess/index.vue`）的表头据此定为 5 列：**期次 / 待办情况 / 起止时间 / 状态 / 操作**。
+
+## 列表展开子项的排版约定（2026-09-15 皇上两次纠正后定稿）
+
+皇上原话：「展开的期次任务，不要隔那么远啊，不要受期次的表头束缚，这里的样式和展示内容是独立的」「具体的期次任务，列宽自己定一下，不要挤在一起了」。据此确立：
+
+1. **父级走表格，子级走独立的一行** —— 期次行按表头 5 列排；待办行整行 `colspan` 合并后**自己排版**，不跟表头列对齐（表头描述的是期次维度）。
+2. **子级内容紧凑挨着排，绝不加 `flex-grow: 1`** —— 第一版就是给任务名加了 `flex:1`，把状态/进度/操作顶到很远，被皇上说「更丑了」「隔那么远」。正确做法是**每段固定宽度**（本次：任务名 `flex: 0 0 260px`、状态 `112px`、进度 `240px`、操作按钮自动），`gap: 20px`，多余空间留右边 —— 既整齐（各段起始位置稳定）又不分散。
+3. **子级仍要保留主次**：缩进（`padding-left: 34px`）+ 一条 `1px dashed` 从属竖线（`&::before`）+ 淡色底（`#FAFCFE`），父级用更重的蓝底（`#E4EBF5`，展开时 `#DCE7F8`）+ 3px 左侧色条 + `font-weight: 700`。
+4. **表格里 `td` 加 `white-space: nowrap` 必须同时设 `table-layout: fixed` + 明确列宽百分比**，否则内容一多就把右侧列挤出可视区（本次「操作」列曾被整个挤出屏幕，加 `fixed` 后消失）。
+5. 子级里**不要重复父级已有的信息**（如期次名、期号、起止时间）。
+6. **子级行必须比父级行矮**（本次：期次行 40px、待办行 37px）。父不高子高会显得「头轻脚重」，皇上会直接说「太丑了，高度太高」。
+7. **⚠️ 同文件 SCSS 里改样式不生效，先量 `getComputedStyle` 再怀疑特异性** —— 本次 `.period-body td { padding: 0 }` 被文件后面同特异性（0,1,1）的 `.period-table td { padding: 10px 12px }` 盖掉，导致行高怎么调都降不下来。修法是给选择器加前缀提特异性（`.period-table .period-body td`）。
+8. **状态类小标签按内容自适应，不要写死宽度** —— `.pb-status` 原写死 `flex: 0 0 104px`，「待我处理 + 已超期」需要约 128px 就会溢到邻列。改 `flex: 0 0 auto; white-space: nowrap`，进度段用 `flex: 1 1 auto; min/max-width` 吃余量才是正解。
+
+## 期次人员新增：逐人任务名（2026-09-16 定稿）
+
+- **口径**：期次人员页「新增人员」时，**给每个人单独设任务名**（不是统一前缀拼接）。
+- 组件：`components/UserPicker/index.vue` 的 **`perUserTaskName` 模式**（老模式 `showTaskName` 保留，用于统一前缀场景）。勾选的人在表格下方按行列出，每人一个输入框，**placeholder 显示该人的默认名 `下发给{姓名}的任务`**。
+- **留空即用默认名**，默认名规则由后端 `FlowDispatchService.memberTaskNameOf(uid, names)` 统一决定（`names` 里没有或为空 → `下发给{姓名}的任务`）。前端 placeholder 只是提示，不做兜底。
+- 接口：`POST /flow-dispatch/period/add-members/{dispatchId}`，body `{ members: [{ yyytId, taskName }] }`（**旧格式 `{userIds, taskName}` 已废弃**）。后端把 members 拆成 `userIds` + `Map<String,String> taskNames` 交给 `addMembersToDispatch`。
+- **批量导入人员的落点（2026-09-16）**：`components/ImportMemberModal.vue` 是可复用组件（模板下载 + 上传 + 错误清单），导入成功 emit `success` 出 `[{yyytId, userName, deptName, taskName}]`。目前接在 **4 处**：
+  1. `views/flowdispatch/EditTask.vue`（新建/编辑任务 → 配置人员）
+  2. `views/flowdispatch/components/GeneratePeriodModal.vue`（生成期次弹窗 —— **「按周期自动下发」与「手动临时期次」是同一个弹窗用 `mode` 切换，共用一个按钮**）
+  3. `views/flowdispatch/PeriodUsers.vue`（查看期次人员 → 批量操作栏，导入后直接调 `addPeriodMembers`，用 `memberUserIds` 过滤已在本期次的人）
+  - 各处的已选人员结构都是 `[{yyytId, userName, deptName, taskName}]`，与导入结果**格式一致**，接入只需「合并 + 按 yyytId 去重」，不需要格式转换。
+- ⚠️ **给某个 Vue 文件的 scoped 样式加规则前，先确认该文件自己定义了哪些 `$` 变量** —— 本项目各文件各写各的（`$primary` 普遍有，`$border` 只有部分文件有），从一个文件照抄到另一个文件会直接 `SassError: Undefined variable` 导致整页 `Failed to compile`（本次 `GeneratePeriodModal.vue` 就踩了）。
+- **⚠️ 弹窗一律固定高度（2026-09-16 皇上要求「弹窗都要固定好高度」）**：各阶段/各状态切换时**不要跳高跳矮**。落点是 **`.el-dialog__body`**（`::v-deep` 穿透 scoped），不要在内部各块上东设一个西设一个 —— body 一处设好就吸收掉所有状态差异。
+  - 纯表单类（导入人员）：`::v-deep .el-dialog__body { height: 300px; overflow-y: auto }`。
+  - 选人类（UserPicker）：`height: 424px; max-height: 70vh; overflow-y: auto`。
+  - **内容多到可能超屏的**（生成期次）：`height` 保证不跳动 + `max-height: calc(90vh - 150px)` 兜底 + `top="5vh"` 调小（本次整窗 975px → 534px）。
+  - **空态与列表必须同高**，否则「0 人 → 有人」会跳一下（`.gpd-empty` 要给和 `.gpd-members` 一样的 `height` + flex 居中，不能用 `padding` 撑）。
+  - 实测：导入弹窗 300/300；选人弹窗未选 562 / 已选 3 人 562；生成期次人员列表恒 232px。
+- **逐人任务名弹窗的左右布局（2026-09-16 定稿，皇上两轮修改后）**：必须左右分栏 —— 左侧选人表格（`flex: 0 0 456px`，逐人模式隐藏手机号列）、右侧逐人输入框（`flex: 1` 吃掉剩余宽度，把空间都给任务名），弹窗宽 **1000px**。右侧未选人时给引导文案；已选时**每人一行**：`姓名（52px）+ 用户号（78px 灰色）+ 任务名输入框（flex:1）`，行高约 39px。左侧表格 `height="380"`、右侧列表 `height: 347px`。
+  - ❌ **不要放表格下方**：皇上原话「不然用户可能没看下面的就直接添加了」—— 用户勾完人通常会直接点确定，下方的填写区等于不存在。
+  - 通用经验：**需要用户逐条填写的内容，要和触发它的操作并排**（边选边填），不要放在其后；**逐条列表每项保持一行**（皇上原话「添加的用户，成一行，不要分两行」），信息塞不下就把次要信息（如部门）移到 `title`。
+- **经验**：皇上说「XX 没办法设置」时，**先分清是「找不到入口」/「功能缺失」/「填了不生效」再动手** —— 本次功能本就存在，只是埋在筛选框里、样式与筛选条件一样，看起来像第三个筛选条件。先问准诉求（皇上要的是「逐人单独设名」）才没白做。
+- **启动相关**：`/tmp/flow-cp.txt` 是**加 POI 依赖之前**生成的，直接拿它启动会 `NoClassDefFoundError`。**只要动过 pom 就必须重建 classpath**（`mvn -o -q org.apache.maven.plugins:maven-dependency-plugin:3.6.1:build-classpath -Dmdep.outputFile=/tmp/flow-cp.txt`，重建后从 8590 → 9645 字节）。
+
+
+

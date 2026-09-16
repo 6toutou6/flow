@@ -6,14 +6,14 @@
         <div class="page-header">
           <div class="header-left">
             <div class="hl-row1">
-            <button class="btn-back" @click="goBack"><i class="el-icon-arrow-left" /> 返回</button>
-            <nav class="breadcrumb">
-              <span class="link" @click="goBack">任务管理</span>
-              <span>/</span>
-              <span class="active">期次人员</span>
-            </nav>
-          </div>
-          <h3 class="page-heading">期次人员</h3>
+              <button class="btn-back" @click="goBack"><i class="el-icon-arrow-left" /> 返回</button>
+              <nav class="breadcrumb">
+                <span class="link" @click="goBack">任务管理</span>
+                <span>/</span>
+                <span class="active">期次人员</span>
+              </nav>
+            </div>
+            <h3 class="page-heading">期次人员</h3>
           </div>
         </div>
 
@@ -33,11 +33,11 @@
           <div class="filter-grid">
             <div class="filter-item">
               <label class="filter-label">姓名</label>
-              <input v-model="filters.name" class="filter-input" placeholder="输入姓名搜索" @keyup.enter="onSearch" />
+              <input v-model="filters.name" class="filter-input" placeholder="输入姓名搜索" @keyup.enter="onSearch">
             </div>
             <div class="filter-item">
               <label class="filter-label">部门</label>
-              <input v-model="filters.dept" class="filter-input" placeholder="输入部门搜索" @keyup.enter="onSearch" />
+              <input v-model="filters.dept" class="filter-input" placeholder="输入部门搜索" @keyup.enter="onSearch">
             </div>
             <div class="filter-item">
               <label class="filter-label">状态</label>
@@ -67,6 +67,9 @@
           <div class="bulk-right">
             <button class="btn-bulk add" @click="openAddModal">
               <i class="el-icon-plus" /> 新增人员
+            </button>
+            <button class="btn-bulk import" @click="importVisible = true">
+              <i class="el-icon-upload2" /> 批量导入
             </button>
             <button class="btn-bulk urge" :disabled="selected.length === 0" @click="onBatchUrge">
               <i class="el-icon-alarm-clock" /> 批量催办
@@ -143,14 +146,21 @@
       </section>
     </main>
 
-    <!-- 新增人员：复用生成期次的 UserPicker 选人弹窗（可自定义下发任务名称） -->
+    <!-- 新增人员：复用生成期次的 UserPicker 选人弹窗，逐人设置任务名称 -->
     <UserPicker
       :visible="pickerVisible"
       title="新增本期次人员（可多选，不影响任务配置）"
       :exclude-ids="pickerExcludeIds"
-      :show-task-name="true"
+      :per-user-task-name="true"
       @confirm="onAddMembers"
       @close="pickerVisible = false"
+    />
+
+    <!-- 批量导入人员（Excel） -->
+    <ImportMemberModal
+      :visible="importVisible"
+      @close="importVisible = false"
+      @success="onImportMembers"
     />
   </div>
 </template>
@@ -159,10 +169,11 @@
 import { getTaskMembers, urgeTaskBatch, deleteTaskBatch, completeTaskBatch } from '@/service/sys/TaskService'
 import { addPeriodMembers, getPeriodInfo } from '@/service/sys/FlowDispatchService'
 import UserPicker from '@/components/UserPicker/index.vue'
+import ImportMemberModal from '@/components/ImportMemberModal'
 
 export default {
   name: 'PeriodUsers',
-  components: { UserPicker },
+  components: { UserPicker, ImportMemberModal },
   data() {
     return {
       loading: false,
@@ -177,6 +188,7 @@ export default {
       filters: { name: '', dept: '', status: '' },
       selected: [],
       pickerVisible: false,
+      importVisible: false,
       adding: false,
       memberUserIds: []
     }
@@ -229,19 +241,53 @@ export default {
     openAddModal() {
       this.pickerVisible = true
     },
-    async onAddMembers(users, taskName) {
+    async onAddMembers(users) {
       if (!users || users.length === 0 || this.adding) return
       this.adding = true
       try {
-        const res = await addPeriodMembers(this.dispatchId, users.map(u => u.yyytId || u.id).filter(Boolean), taskName)
+        // 逐人任务名：每人在弹窗里各自填过（留空则由后端用默认名兜底）
+        const members = users
+          .filter(u => u.yyytId || u.id)
+          .map(u => ({ yyytId: u.yyytId || u.id, taskName: (u.taskName || '').trim() }))
+        const res = await addPeriodMembers(this.dispatchId, members)
         if (!res || res.code !== 200) return
-        const count = res.data != null ? res.data : users.length
+        const count = res.data != null ? res.data : members.length
         this.$message.success(`已新增 ${count} 位人员`)
         this.pickerVisible = false
         this.page = 1
         this.fetchMembers()
       } catch (e) {
         this.$notifyError(e, '新增失败')
+      } finally {
+        this.adding = false
+      }
+    },
+    /** 批量导入成功：跳过已在本期次的人，其余直接新增（任务名取自导入文件，留空由后端兜底） */
+    async onImportMembers(list) {
+      if (this.adding) return
+      const all = list || []
+      const existing = new Set(this.memberUserIds)
+      const members = all
+        .filter(m => m.yyytId && !existing.has(m.yyytId))
+        .map(m => ({ yyytId: m.yyytId, taskName: (m.taskName || '').trim() }))
+      const skipped = all.length - members.length
+      this.importVisible = false
+      if (members.length === 0) {
+        this.$message.warning(skipped > 0 ? '导入的人员都已在本次期次中' : '没有可新增的人员')
+        return
+      }
+      this.adding = true
+      try {
+        const res = await addPeriodMembers(this.dispatchId, members)
+        if (!res || res.code !== 200) return
+        const count = res.data != null ? res.data : members.length
+        this.$message.success(skipped > 0
+          ? `已导入 ${count} 位人员，另有 ${skipped} 人已在本次期次、已跳过`
+          : `已导入 ${count} 位人员`)
+        this.page = 1
+        this.fetchMembers()
+      } catch (e) {
+        this.$notifyError(e, '导入失败')
       } finally {
         this.adding = false
       }
@@ -425,6 +471,10 @@ $border: #CBD5E1;
 .btn-bulk { display: inline-flex; align-items: center; gap: 4px; padding: 6px 14px; border-radius: 2px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s; border: 1px solid transparent;
   &.add { background: $primary; color: #fff; border-color: $primary;
     &:hover { opacity: 0.9; }
+  }
+  // 批量导入（Excel）：描边样式，与「新增人员」主按钮区分
+  &.import { background: #fff; color: $primary; border-color: $border;
+    &:hover { background: var(--color-primary-light); border-color: $primary; }
   }
   &.urge { background: #EFF6FF; color: #B45309; border-color: rgba(180, 83, 9,0.5);
     &:hover { background: rgba(180, 83, 9,0.12); }

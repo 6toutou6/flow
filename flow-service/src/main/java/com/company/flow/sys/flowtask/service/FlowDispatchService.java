@@ -1004,15 +1004,13 @@ public class FlowDispatchService {
 
     /**
      * 期次新增人员：为每位新人员创建独立提交任务。
-     * @param taskName 自定义任务名称（可空：空则用系统默认「下发给{姓名}的任务」；
-     *                 多人时以它作前缀拼姓名，避免同名无法区分）
+     * @param taskNames 逐人自定义任务名称 { 用户号: 任务名 }，缺省或留空者用系统默认「下发给{姓名}的任务」
      */
     @Transactional(rollbackFor = Exception.class)
-    public int addMembersToDispatch(String dispatchId, List<String> userIds, String taskName) {
+    public int addMembersToDispatch(String dispatchId, List<String> userIds, Map<String, String> taskNames) {
         if (userIds == null || userIds.isEmpty()) throw new RuntimeException("请选择要新增的人员");
         List<String> uids = userIds.stream().filter(Objects::nonNull).distinct().collect(Collectors.toList());
         if (uids.isEmpty()) throw new RuntimeException("请选择要新增的人员");
-        String customName = StringUtils.hasText(taskName) ? taskName.trim() : null;
         FlowTaskDispatch dispatch = flowTaskDispatchMapper.selectById(dispatchId);
         if (dispatch == null) throw new RuntimeException("期次不存在");
         // 期次节点快照（优先，保证与期次锁定版本一致）；存量期次无快照则降级查当前模板
@@ -1079,10 +1077,8 @@ public class FlowDispatchService {
             FlowTask ft = new FlowTask();
             ft.setTemplateId(dispatch.getTemplateId());
             ft.setDispatchId(dispatchId);
-            // 任务名称：自定义优先（单人直接用；多人以自定义名为前缀拼姓名，避免多条任务同名）
-            String memberTname = customName == null
-                    ? memberTaskNameOf(uid, null)
-                    : (uids.size() == 1 ? customName : customName + "-" + userNameOf(uid));
+            // 任务名称：逐人自定义优先，未填则用默认名「下发给{姓名}的任务」
+            String memberTname = memberTaskNameOf(uid, taskNames);
             ft.setTaskName(StringUtils.hasText(memberTname) ? memberTname : dispatch.getTaskName());
             ft.setTaskDesc(dispatch.getTaskDesc());
             ft.setTemplateData(dispatch.getTemplateData());
